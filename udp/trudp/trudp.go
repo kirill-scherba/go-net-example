@@ -32,27 +32,36 @@ type TRUDP struct {
 // Init start trudp connection
 func Init(port int) (retval *TRUDP) {
 
-	// Combine service from host name and port
-	service := hostName + ":" + strconv.Itoa(port)
+	// Connect to UDP
+	conn := func() *net.UDPConn {
+		for {
+			// Combine service from host name and port
+			service := hostName + ":" + strconv.Itoa(port)
 
-	// Resolve the UDP address so that we can make use of ListenUDP
-	// with an actual IP and port instead of a name (in case a
-	// hostname is specified).
-	udpAddr, err := net.ResolveUDPAddr(network, service)
-	if err != nil {
-		panic(err)
-	}
+			// Resolve the UDP address so that we can make use of ListenUDP
+			// with an actual IP and port instead of a name (in case a
+			// hostname is specified).
+			udpAddr, err := net.ResolveUDPAddr(network, service)
+			if err != nil {
+				//fmt.Println("Resolv")
+				panic(err)
+			}
 
-	// Start listen UDP port
-	conn, err := net.ListenUDP(network, udpAddr)
-	if err != nil {
-		panic(err)
-	}
+			// Start listen UDP port
+			conn, err := net.ListenUDP(network, udpAddr)
+			if err != nil {
+				port++
+				fmt.Println("Try next port:", port)
+				//panic(err)
+				continue
+			}
+			log("start listenning at", udpAddr)
+			return conn
+		}
+	}()
 
 	// Start ticker
 	ticker := time.NewTicker(pingInterval * time.Millisecond)
-
-	log("start listenning at", udpAddr)
 
 	retval = &TRUDP{
 		conn:   conn,
