@@ -25,12 +25,14 @@ func log(p ...interface{}) {
 
 // TRUDP connection strucure
 type TRUDP struct {
-	conn *net.UDPConn
+	conn   *net.UDPConn
+	ticker *time.Ticker
 }
 
 // Init start trudp connection
 func Init(port int) (retval *TRUDP) {
 
+	// Combine service from host name and port
 	service := hostName + ":" + strconv.Itoa(port)
 
 	// Resolve the UDP address so that we can make use of ListenUDP
@@ -46,16 +48,32 @@ func Init(port int) (retval *TRUDP) {
 	if err != nil {
 		panic(err)
 	}
+
+	// Start ticker
+	ticker := time.NewTicker(pingInterval * time.Millisecond)
+
 	log("start listenning at", udpAddr)
 
 	retval = &TRUDP{
-		conn: conn,
+		conn:   conn,
+		ticker: ticker,
 	}
+
+	retval.ticerCheck()
 
 	return
 }
 
-// Run wait some data received from UDP port and procces it
+// TRUDP Ticker
+func (trudp *TRUDP) ticerCheck() {
+	go func() {
+		for t := range trudp.ticker.C {
+			log("tick at", t)
+		}
+	}()
+}
+
+// Run waits some data received from UDP port and procces it
 func (trudp *TRUDP) Run() {
 
 	for {
@@ -94,13 +112,15 @@ func (trudp *TRUDP) Run() {
 
 // Connect to remote host
 func (trudp *TRUDP) Connect(rhost string, rport int) {
-	// Send hello to remote host
+
 	service := rhost + ":" + strconv.Itoa(rport)
 	rUDPAddr, err := net.ResolveUDPAddr(network, service)
 	if err != nil {
 		panic(err)
 	}
 	log("connecting to rhost", rUDPAddr)
+
+	// Send hello to remote host
 	trudp.conn.WriteToUDP([]byte(helloMsg), rUDPAddr)
 
 	// Keep alive: send Ping
@@ -111,4 +131,5 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 			conn.WriteToUDP(append([]byte(echoMsg), dt...), rUDPAddr)
 		}
 	}(trudp.conn)
+
 }
