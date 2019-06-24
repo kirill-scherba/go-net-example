@@ -29,36 +29,46 @@ type TRUDP struct {
 	ticker *time.Ticker
 }
 
+// listenUDP Connect to UDP with selected port (the port incremented if busy)
+func listenUDP(port int) *net.UDPConn {
+
+	// Combine service from host name and port
+	service := hostName + ":" + strconv.Itoa(port)
+
+	// Resolve the UDP address so that we can make use of ListenUDP
+	// with an actual IP and port instead of a name (in case a
+	// hostname is specified).
+	udpAddr, err := net.ResolveUDPAddr(network, service)
+	if err != nil {
+		panic(err)
+	}
+
+	// Start listen UDP port
+	conn, err := net.ListenUDP(network, udpAddr)
+	if err != nil {
+		port++
+		fmt.Println("the", port-1, "is busy, try next port:", port)
+		conn = listenUDP(port)
+	}
+
+	return conn
+}
+
+// TRUDP Ticker
+func (trudp *TRUDP) ticerCheck() {
+	go func() {
+		for t := range trudp.ticker.C {
+			log("tick at", t)
+		}
+	}()
+}
+
 // Init start trudp connection
 func Init(port int) (retval *TRUDP) {
 
 	// Connect to UDP
-	conn := func() *net.UDPConn {
-		for {
-			// Combine service from host name and port
-			service := hostName + ":" + strconv.Itoa(port)
-
-			// Resolve the UDP address so that we can make use of ListenUDP
-			// with an actual IP and port instead of a name (in case a
-			// hostname is specified).
-			udpAddr, err := net.ResolveUDPAddr(network, service)
-			if err != nil {
-				//fmt.Println("Resolv")
-				panic(err)
-			}
-
-			// Start listen UDP port
-			conn, err := net.ListenUDP(network, udpAddr)
-			if err != nil {
-				port++
-				fmt.Println("Try next port:", port)
-				//panic(err)
-				continue
-			}
-			log("start listenning at", udpAddr)
-			return conn
-		}
-	}()
+	conn := listenUDP(port)
+	log("start listenning at", conn.LocalAddr())
 
 	// Start ticker
 	ticker := time.NewTicker(pingInterval * time.Millisecond)
@@ -71,15 +81,6 @@ func Init(port int) (retval *TRUDP) {
 	retval.ticerCheck()
 
 	return
-}
-
-// TRUDP Ticker
-func (trudp *TRUDP) ticerCheck() {
-	go func() {
-		for t := range trudp.ticker.C {
-			log("tick at", t)
-		}
-	}()
 }
 
 // Run waits some data received from UDP port and procces it
