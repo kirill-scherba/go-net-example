@@ -66,16 +66,18 @@ func Init(port int) (trudp *TRUDP) {
 		ticker:   ticker,
 		logLog:   false,
 		logLevel: CONNECT,
+		packet:   &packetType{},
 	}
+	trudp.packet.trudp = trudp
 
 	trudp.log(CONNECT, "start listenning at", conn.LocalAddr())
-	trudp.ticerCheck()
+	trudp.tickerCheck()
 
 	return
 }
 
 // TRUDP Ticker
-func (trudp *TRUDP) ticerCheck() {
+func (trudp *TRUDP) tickerCheck() {
 	go func() {
 		for t := range trudp.ticker.C {
 			trudp.log(DEBUG_VV, "tick at", t)
@@ -123,6 +125,7 @@ func (trudp *TRUDP) Run() {
 			data := trudp.packet.getData(buffer[:nRead])
 			trudp.log(DEBUG_V, "got trudp packet from:", addr, "data:", data, string(data),
 				", channel:", ch, "packet id:", id, "type:", tp)
+			trudp.packet.process(buffer[:nRead], addr)
 			continue
 		}
 

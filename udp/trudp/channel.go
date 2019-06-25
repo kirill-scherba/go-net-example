@@ -25,16 +25,16 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 	}
 
 	// Send hello to remote host
-	packet := trudp.packet.dataCreateNew(tcd.getId(), ch, []byte(helloMsg))
-	defer trudp.packet.freeCreated(packet)
+	packet, destroy := trudp.packet.dataCreateNew(tcd.getId(), ch, []byte(helloMsg))
+	defer destroy()
 	trudp.conn.WriteToUDP(packet, rUDPAddr)
 
 	// Keep alive: send Ping
 	go func(conn *net.UDPConn) {
 		for {
 			time.Sleep(pingInterval * time.Millisecond)
-			packet := trudp.packet.dataCreateNew(tcd.getId(), ch, []byte(echoMsg))
-			defer trudp.packet.freeCreated(packet)
+			packet, destroy := trudp.packet.pingCreateNew(tcd.getId(), ch, []byte(echoMsg))
+			defer destroy()
 			trudp.conn.WriteToUDP(packet, rUDPAddr)
 		}
 	}(trudp.conn)
