@@ -10,23 +10,21 @@ import (
 const (
 	maxBufferSize = 2048 // bytes
 	pingInterval  = 1000 // ms
-	echoMsg       = "ping"
 	helloMsg      = "hello"
+	echoMsg       = "ping"
 	echoAnswerMsg = "pong"
 
-	hostName = ""
 	network  = "udp"
+	hostName = ""
 )
-
-// This packet log function
-func log(p ...interface{}) {
-	fmt.Println(p...)
-}
 
 // TRUDP connection strucure
 type TRUDP struct {
-	conn   *net.UDPConn
-	ticker *time.Ticker
+	conn     *net.UDPConn
+	ticker   *time.Ticker
+	packet   *packetType
+	logLog   bool
+	logLevel int
 }
 
 // listenUDP Connect to UDP with selected port (the port incremented if busy)
@@ -54,33 +52,35 @@ func listenUDP(port int) *net.UDPConn {
 	return conn
 }
 
-// TRUDP Ticker
-func (trudp *TRUDP) ticerCheck() {
-	go func() {
-		for t := range trudp.ticker.C {
-			log("tick at", t)
-		}
-	}()
-}
-
 // Init start trudp connection
-func Init(port int) (retval *TRUDP) {
+func Init(port int) (trudp *TRUDP) {
 
 	// Connect to UDP
 	conn := listenUDP(port)
-	log("start listenning at", conn.LocalAddr())
 
 	// Start ticker
 	ticker := time.NewTicker(pingInterval * time.Millisecond)
 
-	retval = &TRUDP{
-		conn:   conn,
-		ticker: ticker,
+	trudp = &TRUDP{
+		conn:     conn,
+		ticker:   ticker,
+		logLog:   false,
+		logLevel: CONNECT,
 	}
 
-	retval.ticerCheck()
+	trudp.log(CONNECT, "start listenning at", conn.LocalAddr())
+	trudp.ticerCheck()
 
 	return
+}
+
+// TRUDP Ticker
+func (trudp *TRUDP) ticerCheck() {
+	go func() {
+		for t := range trudp.ticker.C {
+			trudp.log(DEBUG_VV, "tick at", t)
+		}
+	}()
 }
 
 // Run waits some data received from UDP port and procces it
@@ -96,13 +96,13 @@ func (trudp *TRUDP) Run() {
 
 		// Process connect message
 		if nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg {
-			log("got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+			trudp.log(DEBUG, "got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 			continue
 		}
 
 		// Process echo message Ping (send to Pong)
 		if nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg {
-			log("got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
+			trudp.log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
 			trudp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr.(*net.UDPAddr))
 			continue
 		}
@@ -111,16 +111,27 @@ func (trudp *TRUDP) Run() {
 		if nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg {
 			var ts time.Time
 			ts.UnmarshalBinary(buffer[len(echoAnswerMsg):nRead])
-			log("got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
+			trudp.log(DEBUG, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
+			continue
+		}
+
+		// Check trudp packet
+		if trudp.packet.check(buffer[:nRead]) {
+			ch := trudp.packet.getChannel(buffer[:nRead])
+			id := trudp.packet.getId(buffer[:nRead])
+			tp := trudp.packet.getType(buffer[:nRead])
+			data := trudp.packet.getData(buffer[:nRead])
+			trudp.log(DEBUG_V, "got trudp packet from:", addr, "data:", data, string(data),
+				", channel:", ch, "packet id:", id, "type:", tp)
 			continue
 		}
 
 		// Process other messages
-		log("got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+		trudp.log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 	}
 }
 
-// Connect to remote host
+// Connect to remote host by UDP
 func (trudp *TRUDP) Connect(rhost string, rport int) {
 
 	service := rhost + ":" + strconv.Itoa(rport)
@@ -128,7 +139,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 	if err != nil {
 		panic(err)
 	}
-	log("connecting to rhost", rUDPAddr)
+	trudp.log(CONNECT, "connecting to host", rUDPAddr)
 
 	// Send hello to remote host
 	trudp.conn.WriteToUDP([]byte(helloMsg), rUDPAddr)
@@ -141,5 +152,4 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 			conn.WriteToUDP(append([]byte(echoMsg), dt...), rUDPAddr)
 		}
 	}(trudp.conn)
-
 }
