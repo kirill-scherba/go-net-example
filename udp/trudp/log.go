@@ -5,23 +5,24 @@ import (
 	"log"
 )
 
+// Type of log messages
 const (
 	NONE = iota
 	CONNECT
 	MESSAGE
 	DEBUG
-	DEBUG_V
-	DEBUG_VV
+	DEBUGv
+	DEBUGvv
 )
 
 const (
-	strNONE     = "NONE"
-	strCONNECT  = "CONNECT"
-	strMESSAGE  = "MESSAGE"
-	strDEBUG    = "DEBUG"
-	strDEBUG_V  = "DEBUG_V"
-	strDEBUG_VV = "DEBUG_VV"
-	strUNKNOWN  = "UNKNOWN"
+	strNONE    = "NONE"
+	strCONNECT = "CONNECT"
+	strMESSAGE = "MESSAGE"
+	strDEBUG   = "DEBUG"
+	strDEBUGv  = "DEBUGv"
+	strDEBUGvv = "DEBUGvv"
+	strUNKNOWN = "UNKNOWN"
 )
 
 // log shows log message in terminal
@@ -37,10 +38,16 @@ func (trudp *TRUDP) log(level int, p ...interface{}) {
 
 // LogLevel sets TRUDP log level
 // Avalable level values: NONE, CONNECT, MSSAGE, DEBUG, DEBUG_V, DEBUG_VV
-func (trudp *TRUDP) LogLevel(level interface{}, log bool) {
+func (trudp *TRUDP) LogLevel(level interface{}, logLog bool, flag int) {
 
 	// Set log type
-	trudp.logLog = log
+	trudp.logLog = logLog
+	if logLog {
+		if flag == 0 {
+			flag = log.LstdFlags
+		}
+		log.SetFlags(flag)
+	}
 
 	// Set log level
 	switch l := level.(type) {
@@ -56,10 +63,10 @@ func (trudp *TRUDP) LogLevel(level interface{}, log bool) {
 			trudp.logLevel = MESSAGE
 		case strDEBUG:
 			trudp.logLevel = DEBUG
-		case strDEBUG_V:
-			trudp.logLevel = DEBUG_V
-		case strDEBUG_VV:
-			trudp.logLevel = DEBUG_VV
+		case strDEBUGv:
+			trudp.logLevel = DEBUGv
+		case strDEBUGvv:
+			trudp.logLevel = DEBUGvv
 		default:
 			trudp.logLevel = DEBUG
 		}
@@ -84,10 +91,10 @@ func (trudp *TRUDP) LogLevelString() (strLogLevel string) {
 		strLogLevel = strMESSAGE
 	case DEBUG:
 		strLogLevel = strDEBUG
-	case DEBUG_V:
-		strLogLevel = strDEBUG_V
-	case DEBUG_VV:
-		strLogLevel = strDEBUG_VV
+	case DEBUGv:
+		strLogLevel = strDEBUGv
+	case DEBUGvv:
+		strLogLevel = strDEBUGvv
 	default:
 		strLogLevel = strUNKNOWN
 	}
