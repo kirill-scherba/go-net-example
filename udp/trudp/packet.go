@@ -5,12 +5,12 @@ package trudp
 //#include "packet.h"
 import "C"
 import (
-	"net"
 	"unsafe"
 )
 
 type packetType struct {
 	trudp *TRUDP
+	//data  []byte
 }
 
 // goBytesUnsafe makes a Go byte slice from a C array (without copying the original data)
@@ -31,36 +31,37 @@ func (trudp *TRUDP) getTimestamp() uint32 {
 // }
 
 // dataCreateNew creates DATA package, it should be free with freeCreated
-func (pac *packetType) dataCreateNew(id uint, channel int, data []byte) []byte {
+func (pac *packetType) dataCreateNew(id uint, channel int, data []byte) packetData {
 	var length C.size_t
 	packet := C.trudpPacketDATAcreateNew(C.uint32_t(id), C.uint(channel),
 		unsafe.Pointer(&data[0]), C.size_t(len(data)), &length)
-	return goBytesUnsafe(packet, length)
+	return packetData{packetBase{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
 }
 
+
 // pingCreateNew Create PING package, it should be free with freeCreated
-func (pac *packetType) pingCreateNew(channel int, data []byte) []byte {
+func (pac *packetType) pingCreateNew(channel int, data []byte) packetService {
 	var length C.size_t
 	packet := C.trudpPacketPINGcreateNew(0, C.uint(channel),
 		unsafe.Pointer(&data[0]), C.size_t(len(data)), &length)
-	return goBytesUnsafe(packet, length)
+	return packetService{packetBase{trudp: pac.trudp, data:goBytesUnsafe(packet, length)}}
 }
 
 // ackCreateNew Create ACK to data package, it should be free with freeCreated
-func (pac *packetType) ackCreateNew(packetInput []byte) []byte {
+func (pac *packetType) ackCreateNew(packetInput []byte) packetService {
 	packetPtr := unsafe.Pointer(&packetInput[0])
 	packet := C.trudpPacketACKcreateNew(packetPtr)
 	length := C.trudpPacketGetHeaderLength(packetPtr)
-	return goBytesUnsafe(packet, length)
+	return packetService{packetBase{trudp: pac.trudp, data:goBytesUnsafe(packet, length)}}
 }
 
 // ackToPingCreateNew Create ACK to ping package, it should be free with freeCreated
-func (pac *packetType) ackToPingCreateNew(packetInput []byte) []byte {
+func (pac *packetType) ackToPingCreateNew(packetInput []byte) packetService {
 	packetPtr := unsafe.Pointer(&packetInput[0])
 	headerLength := C.trudpPacketGetHeaderLength(packetPtr)
 	packet := C.trudpPacketACKtoPINGcreateNew(packetPtr)
 	length := C.size_t(int(headerLength) + len(pac.getData(packetInput)))
-	return goBytesUnsafe(packet, length)
+	return packetService{packetBase{trudp: pac.trudp, data:goBytesUnsafe(packet, length)}}
 }
 
 // freeCreated frees packet created with functions dataCreateNew, pingCreateNew
@@ -72,16 +73,6 @@ func (pac *packetType) freeCreated(packet []byte) {
 // Check TR-UDP packet and return true if packet valid
 func (pac *packetType) check(packet []byte) bool {
 	return int(C.trudpPacketCheck(unsafe.Pointer(&packet[0]), C.size_t(len(packet)))) != 0
-}
-
-// writeTo writes to address and free packet
-func (pac *packetType) writeTo(tcd *channelData, packet []byte, addr net.Addr, addToSendQueueF bool) {
-	pac.trudp.conn.WriteTo(packet, addr)
-	if addToSendQueueF {
-		tcd.sendQueueAdd(packet)
-	} else {
-		pac.freeCreated(packet)
-	}
 }
 
 // getChannel return trudp packet channel number

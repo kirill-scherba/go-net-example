@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-type sendQueueData struct {
-	packet []byte
-}
-
 type receivedQueueData struct {
 	packet []byte
 }
@@ -26,23 +22,8 @@ type channelData struct {
 
 	sendQueue     []sendQueueData     // send queue
 	receivedQueue []receivedQueueData // received queue
-}
 
-func (tcd *channelData) sendQueueAdd(packet []byte) {
-	tcd.sendQueue = append(tcd.sendQueue, sendQueueData{packet: packet})
-	tcd.trudp.log(DEBUGv, "add to send queue, id", tcd.trudp.packet.getId(packet))
-}
-
-func (tcd *channelData) sendQueueRemove(packet []byte) {
-	id := tcd.trudp.packet.getId(packet)
-	for i, p := range tcd.sendQueue {
-		if tcd.trudp.packet.getId(p.packet) == id {
-			tcd.trudp.packet.freeCreated(p.packet)
-			tcd.sendQueue = append(tcd.sendQueue[:i], tcd.sendQueue[i+1:]...)
-			tcd.trudp.log(DEBUGv, "remove from send queue, id", id)
-			break
-		}
-	}
+	chSendQueue chan func()
 }
 
 const (
@@ -86,20 +67,34 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 	tcd, ok := trudp.tcdmap[key]
 	if ok {
 		trudp.log(DEBUGvv, "the ChannelData with key", key, "selected")
-	} else {
-		tcd = &channelData{
-			trudp:      trudp,
-			addr:       addr,
-			ch:         ch,
-			id:         0,
-			expectedID: 1,
-		}
-		tcd.receivedQueue = make([]receivedQueueData, 0)
-		tcd.sendQueue = make([]sendQueueData, 0)
-		trudp.tcdmap[key] = tcd
-
-		trudp.log(DEBUGvv, "new ChannelData with key", key, "created")
+		return
 	}
+
+	// Channel data create
+	tcd = &channelData{
+		trudp:      trudp,
+		addr:       addr,
+		ch:         ch,
+		id:         0,
+		expectedID: 1,
+	}
+	tcd.receivedQueue = make([]receivedQueueData, 0)
+	tcd.sendQueue = make([]sendQueueData, 0)
+	//tcd.sendQueueProcess(sqpINIT, nil)
+	trudp.tcdmap[key] = tcd
+
+	// Keep alive: send Ping
+	//tcd.chKeepAlive <- sendQueueProcessCommand{cmd, data}
+	go func(conn *net.UDPConn) {
+		for {
+			time.Sleep(pingInterval * time.Millisecond)
+			tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+			tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
+		}
+	}(trudp.conn)
+
+	trudp.log(DEBUGvv, "new ChannelData with key", key, "created")
+
 	return
 }
 
@@ -115,18 +110,23 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channe
 
 	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
 
+	// tcd.sendQueueProcess(sqINIT, nil)
+	// tcd.sendQueueProcess(sqDESTROY, nil)
+
 	// Send hello to remote host
 	for i := 0; i < 3; i++ {
-		trudp.packet.writeTo(tcd, trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg)), rUDPAddr, true)
+		//trudp.packet.writeTo(tcd, trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg))) //, rUDPAddr, true)
+		trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg)).writeTo(tcd)
 	}
 
 	// Keep alive: send Ping
-	go func(conn *net.UDPConn) {
-		for {
-			time.Sleep(pingInterval * time.Millisecond)
-			trudp.packet.writeTo(tcd, trudp.packet.pingCreateNew(ch, []byte(echoMsg)), rUDPAddr, false)
-		}
-	}(trudp.conn)
+	// go func(conn *net.UDPConn) {
+	// 	for {
+	// 		time.Sleep(pingInterval * time.Millisecond)
+	// 		//trudp.packet.writeTo(tcd, trudp.packet.pingCreateNew(ch, []byte(echoMsg))) //, rUDPAddr, false)
+	// 		trudp.packet.pingCreateNew(ch, []byte(echoMsg)).writeTo(tcd)
+	// 	}
+	// }(trudp.conn)
 
 	return
 }
