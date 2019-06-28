@@ -8,9 +8,10 @@ import (
 	"unsafe"
 )
 
+// |TODO remane to trudpPacket
 type packetType struct {
 	trudp *TRUDP
-	//data  []byte
+	data  []byte
 }
 
 // goBytesUnsafe makes a Go byte slice from a C array (without copying the original data)
@@ -35,16 +36,15 @@ func (pac *packetType) dataCreateNew(id uint, channel int, data []byte) packetDa
 	var length C.size_t
 	packet := C.trudpPacketDATAcreateNew(C.uint32_t(id), C.uint(channel),
 		unsafe.Pointer(&data[0]), C.size_t(len(data)), &length)
-	return packetData{packetBase{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
+	return packetData{packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
 }
-
 
 // pingCreateNew Create PING package, it should be free with freeCreated
 func (pac *packetType) pingCreateNew(channel int, data []byte) packetService {
 	var length C.size_t
 	packet := C.trudpPacketPINGcreateNew(0, C.uint(channel),
 		unsafe.Pointer(&data[0]), C.size_t(len(data)), &length)
-	return packetService{packetBase{trudp: pac.trudp, data:goBytesUnsafe(packet, length)}}
+	return packetService{packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
 }
 
 // ackCreateNew Create ACK to data package, it should be free with freeCreated
@@ -52,7 +52,7 @@ func (pac *packetType) ackCreateNew(packetInput []byte) packetService {
 	packetPtr := unsafe.Pointer(&packetInput[0])
 	packet := C.trudpPacketACKcreateNew(packetPtr)
 	length := C.trudpPacketGetHeaderLength(packetPtr)
-	return packetService{packetBase{trudp: pac.trudp, data:goBytesUnsafe(packet, length)}}
+	return packetService{packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
 }
 
 // ackToPingCreateNew Create ACK to ping package, it should be free with freeCreated
@@ -61,7 +61,7 @@ func (pac *packetType) ackToPingCreateNew(packetInput []byte) packetService {
 	headerLength := C.trudpPacketGetHeaderLength(packetPtr)
 	packet := C.trudpPacketACKtoPINGcreateNew(packetPtr)
 	length := C.size_t(int(headerLength) + len(pac.getData(packetInput)))
-	return packetService{packetBase{trudp: pac.trudp, data:goBytesUnsafe(packet, length)}}
+	return packetService{packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
 }
 
 // freeCreated frees packet created with functions dataCreateNew, pingCreateNew

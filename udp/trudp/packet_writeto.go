@@ -1,22 +1,17 @@
 package trudp
 
-type packetBase struct {
-	data  []byte
-	trudp *TRUDP
-}
-
 // Data packet type
 type packetData struct {
-	packetBase
+	packetType
 }
 
 // Service packet type
 type packetService struct {
-	packetBase
+	packetType
 }
 
 // destriy packet
-func (packet packetBase) destroy() {
+func (packet packetType) destroy() {
 	packet.trudp.packet.freeCreated(packet.data)
 }
 
@@ -24,9 +19,6 @@ func (packet packetBase) destroy() {
 func (packet packetData) writeTo(tcd *channelData) {
 	data := packet.data
 	packet.trudp.conn.WriteTo(data, tcd.addr)
-	// f := func() {
-	// 	tcd.sendQueueAdd(&packet)
-	// }
 	tcd.sendQueueProcess(func() { tcd.sendQueueAdd(&packet) })
 }
 
@@ -35,7 +27,7 @@ func (packet packetData) writeTo(tcd *channelData) {
 func (packet packetData) reWriteTo(tcd *channelData) {
 	data := packet.data
 	packet.trudp.conn.WriteTo(data, tcd.addr)
-	tcd.sendQueueProcess(func() { tcd.sendQueueUpdate(data) }) //&packet)
+	tcd.sendQueueProcess(func() { tcd.sendQueueUpdate(data) })
 }
 
 // writeTo send packetService to trudp channel
