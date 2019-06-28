@@ -62,7 +62,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 			tcd.trudp.conn.WriteTo(sqd.packet.data, tcd.addr)
 
 			tcd.trudp.log(DEBUGv, "resend sendQueue packet with",
-				"id:", fmt.Sprintf("%4d", sqd.packet.getId(sqd.packet.data)),
+				"id:", fmt.Sprintf("%4d", sqd.packet.getID(sqd.packet.data)),
 				"rtt:", rtt)
 		}
 	}
@@ -78,15 +78,15 @@ func (tcd *channelData) sendQueueAdd(packet *packetData) {
 		sendTime:    now,
 		arrivalTime: now.Add(rttTime * time.Millisecond)})
 
-	tcd.trudp.log(DEBUGv, "add to send queue, id", tcd.trudp.packet.getId(packet.data))
+	tcd.trudp.log(DEBUGv, "add to send queue, id", tcd.trudp.packet.getID(packet.data))
 }
 
 // sendQueueFind find packet in sendQueue
 func (tcd *channelData) sendQueueFind(packet []byte) (idx int, sqd sendQueueData, id uint, err error) {
 	err = errors.New(fmt.Sprint("not found, packet id: ", id))
-	id = tcd.trudp.packet.getId(packet)
+	id = tcd.trudp.packet.getID(packet)
 	for idx, sqd = range tcd.sendQueue {
-		if tcd.trudp.packet.getId(sqd.packet.data) == id {
+		if tcd.trudp.packet.getID(sqd.packet.data) == id {
 			err = nil
 			break
 		}

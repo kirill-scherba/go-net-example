@@ -147,7 +147,7 @@ func (trudp *TRUDP) Run() {
 		// Check trudp packet
 		if trudp.packet.check(buffer[:nRead]) {
 			ch := trudp.packet.getChannel(buffer[:nRead])
-			id := trudp.packet.getId(buffer[:nRead])
+			id := trudp.packet.getID(buffer[:nRead])
 			tp := trudp.packet.getType(buffer[:nRead])
 			data := trudp.packet.getData(buffer[:nRead])
 			trudp.log(DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),

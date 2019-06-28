@@ -28,7 +28,7 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 
 	case DATA: // DATA packet received
 		pac.trudp.log(DEBUGv, "DATA     packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"id:", fmt.Sprintf("%4d", pac.getID(packet)),
 			"expected id:", tcd.expectedID,
 			"data:", pac.getData(packet))
 		// Create ACK packet and send it back to sender
@@ -40,7 +40,7 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 		// Set trip time to ChannelData
 		tcd.setTriptime(pac.getTriptime(packet))
 		pac.trudp.log(DEBUGv, "ACK      packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"id:", fmt.Sprintf("%4d", pac.getID(packet)),
 			"trip time:", fmt.Sprintf("%.3f", tcd.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.triptimeMiddle), "ms")
 		// Remove packet from send queue
@@ -54,7 +54,7 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 
 	case PING: // PING packet received
 		pac.trudp.log(DEBUGv, "PING     packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"id:", fmt.Sprintf("%4d", pac.getID(packet)),
 			"expected id:", tcd.expectedID,
 			"data:", pac.getData(packet), string(pac.getData(packet)))
 		// Create ACK to ping packet and send it back to sender
@@ -64,7 +64,7 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 		// Set trip time to ChannelData
 		tcd.setTriptime(pac.getTriptime(packet))
 		pac.trudp.log(DEBUGv, "ACK_PING packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"id:", fmt.Sprintf("%4d", pac.getID(packet)),
 			"trip time:", fmt.Sprintf("%.3f", tcd.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.triptimeMiddle), "ms")
 

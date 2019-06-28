@@ -24,13 +24,6 @@ func (trudp *TRUDP) getTimestamp() uint32 {
 	return uint32(C.trudpGetTimestamp())
 }
 
-// autodestroy is helper to destroy packet for xxxCreateNew functions
-// func (pac *packetType) autodestroy(sliceOrig []byte) (slice []byte, destroy func()) {
-// 	slice = sliceOrig
-// 	destroy = func() { pac.freeCreated(slice) }
-// 	return
-// }
-
 // dataCreateNew creates DATA package, it should be free with freeCreated
 func (pac *packetType) dataCreateNew(id uint, channel int, data []byte) packetData {
 	var length C.size_t
@@ -80,8 +73,8 @@ func (pac *packetType) getChannel(packet []byte) int {
 	return int(C._trudpPacketGetChannel(unsafe.Pointer(&packet[0])))
 }
 
-// getId reurn packet id
-func (pac *packetType) getId(packet []byte) uint {
+// getID reurn packet id
+func (pac *packetType) getID(packet []byte) uint {
 	return uint(C.trudpPacketGetId(unsafe.Pointer(&packet[0])))
 }
 

@@ -38,7 +38,7 @@ const (
 )
 
 func (tcd *channelData) receivedQueueProcess(packet []byte) {
-	id := tcd.trudp.packet.getId(packet)
+	id := tcd.trudp.packet.getID(packet)
 	switch {
 	case id == tcd.expectedID:
 		tcd.expectedID++
