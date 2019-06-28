@@ -13,11 +13,14 @@ type receivedQueueData struct {
 type channelData struct {
 	trudp *TRUDP // link to trudp
 
-	addr             net.Addr  // UDP address
-	ch               int       // TRUDP channel
-	id               uint      // Last send packet ID
-	expectedID       uint      // Expected incoming ID
+	addr net.Addr // UDP address
+	ch   int      // TRUDP channel
+
+	id         uint // Last send packet ID
+	expectedID uint // Expected incoming ID
+
 	triptime         float32   // Channels triptime in Millisecond
+	triptimeMiddle   float32   // Channels midle triptime in Millisecond
 	lastTimeReceived time.Time // Time when last packet was received
 
 	sendQueue     []sendQueueData     // send queue
@@ -140,6 +143,11 @@ func (tcd *channelData) getID() uint {
 // setTriptime save triptime to the ChannelData
 func (tcd *channelData) setTriptime(triptime float32) {
 	tcd.triptime = triptime
+	if tcd.triptimeMiddle == 0 {
+		tcd.triptimeMiddle = tcd.triptime
+		return
+	}
+	tcd.triptimeMiddle = (tcd.triptimeMiddle*10 + tcd.triptime) / 11
 }
 
 // setLastTimeReceived save last time received from channel to the ChannelData

@@ -7,8 +7,9 @@ import (
 )
 
 type sendQueueData struct {
-	packet   *packetData
-	sendtime time.Time
+	packet      *packetData
+	sendTime    time.Time
+	arrivalTime time.Time
 }
 
 type sendQueueProcessCommand struct {
@@ -16,13 +17,14 @@ type sendQueueProcessCommand struct {
 	data        interface{}
 }
 
-// func (tcd *channelData) sendQueueProcess(cmd quecommand) {
+// sendQueueProcess receive messageas from channel and exequte it
+// in 'Send queue process command' worker
 func (tcd *channelData) sendQueueProcess(fnc func()) {
 	if tcd.chSendQueue == nil {
 		tcd.trudp.log(DEBUGv, "sendQueue channel created")
 		tcd.chSendQueue = make(chan func())
 
-		// Send queue process command worker
+		// Send queue 'process command' worker
 		go func() {
 			for {
 				if tcd.chSendQueue != nil {
@@ -33,14 +35,12 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 			}
 		}()
 
+		// Send queue 'resend processing' worker
 		go func() {
 			for {
-				var t time.Duration = pingInterval
+				var t time.Duration = defaultRTT
 				time.Sleep(t * time.Millisecond)
-
-				tcd.sendQueueProcess(func() {
-					//t = tcd.sendQueueProcessQueue()
-				})
+				tcd.sendQueueProcess(func() { t = tcd.sendQueueResendProcess() })
 			}
 		}()
 
@@ -49,9 +49,35 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 	tcd.chSendQueue <- fnc
 }
 
+// sendQueueResendProcess resend packet from send queue if it does not got
+// ACK during selected time
+func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
+	rtt = defaultRTT * time.Millisecond
+	now := time.Now()
+	for _, sqd := range tcd.sendQueue {
+		if now.After(sqd.arrivalTime) {
+			rtt = time.Duration(defaultRTT+tcd.triptimeMiddle) * time.Millisecond
+			sqd.sendTime = now
+			sqd.arrivalTime = now.Add(rtt)
+			tcd.trudp.conn.WriteTo(sqd.packet.data, tcd.addr)
+
+			tcd.trudp.log(DEBUGv, "resend sendQueue packet with",
+				"id:", fmt.Sprintf("%4d", sqd.packet.getId(sqd.packet.data)),
+				"rtt:", rtt)
+		}
+	}
+	return
+}
+
 // sendQueueAdd add packet to send queue
 func (tcd *channelData) sendQueueAdd(packet *packetData) {
-	tcd.sendQueue = append(tcd.sendQueue, sendQueueData{packet: packet, sendtime: time.Now()})
+	now := time.Now()
+	var rttTime time.Duration = defaultRTT
+	tcd.sendQueue = append(tcd.sendQueue, sendQueueData{
+		packet:      packet,
+		sendTime:    now,
+		arrivalTime: now.Add(rttTime * time.Millisecond)})
+
 	tcd.trudp.log(DEBUGv, "add to send queue, id", tcd.trudp.packet.getId(packet.data))
 }
 
@@ -66,15 +92,6 @@ func (tcd *channelData) sendQueueFind(packet []byte) (idx int, sqd sendQueueData
 		}
 	}
 	return
-}
-
-// sendQueueUpdate update record in send queue
-func (tcd *channelData) sendQueueUpdate(packet []byte) {
-	_, sqd, id, err := tcd.sendQueueFind(packet)
-	if err == nil {
-		sqd.sendtime = time.Now()
-	}
-	tcd.trudp.log(DEBUGv, "updated record in send queue, id", id)
 }
 
 // sendQueueRemove remove packet from send queue

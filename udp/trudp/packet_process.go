@@ -1,6 +1,9 @@
 package trudp
 
-import "net"
+import (
+	"fmt"
+	"net"
+)
 
 // Packet type
 const (
@@ -24,9 +27,10 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 	switch packetType {
 
 	case DATA: // DATA packet received
-		pac.trudp.log(DEBUGv, "DATA packet received, key:", key,
-			"id:", pac.getId(packet), "expected id:", tcd.expectedID,
-			"data: ", pac.getData(packet))
+		pac.trudp.log(DEBUGv, "DATA     packet received, key:", key,
+			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"expected id:", tcd.expectedID,
+			"data:", pac.getData(packet))
 		// Create ACK packet and send it back to sender
 		pac.ackCreateNew(packet).writeTo(tcd)
 		// Process received queue
@@ -35,9 +39,10 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 	case ACK: // ACK-to-data packet received
 		// Set trip time to ChannelData
 		tcd.setTriptime(pac.getTriptime(packet))
-		pac.trudp.log(DEBUGv, "ACK packet received, key:", key,
-			"id:", pac.getId(packet),
-			"trip time:", tcd.triptime, "ms")
+		pac.trudp.log(DEBUGv, "ACK      packet received, key:", key,
+			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"trip time:", fmt.Sprintf("%.3f", tcd.triptime), "ms",
+			"trip time midle:", fmt.Sprintf("%.3f", tcd.triptimeMiddle), "ms")
 		// Remove packet from send queue
 		tcd.sendQueueProcess(func() { tcd.sendQueueRemove(packet) })
 
@@ -48,7 +53,9 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 		pac.trudp.log(DEBUGv, "ACK_RESET packet received, key:", key)
 
 	case PING: // PING packet received
-		pac.trudp.log(DEBUGv, "PING packet received, key:", key,
+		pac.trudp.log(DEBUGv, "PING     packet received, key:", key,
+			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"expected id:", tcd.expectedID,
 			"data:", pac.getData(packet), string(pac.getData(packet)))
 		// Create ACK to ping packet and send it back to sender
 		pac.ackToPingCreateNew(packet).writeTo(tcd)
@@ -57,7 +64,9 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 		// Set trip time to ChannelData
 		tcd.setTriptime(pac.getTriptime(packet))
 		pac.trudp.log(DEBUGv, "ACK_PING packet received, key:", key,
-			"trip time:", tcd.triptime, "ms")
+			"id:", fmt.Sprintf("%4d", pac.getId(packet)),
+			"trip time:", fmt.Sprintf("%.3f", tcd.triptime), "ms",
+			"trip time midle:", fmt.Sprintf("%.3f", tcd.triptimeMiddle), "ms")
 
 	default: // UNKNOWN packet received
 		pac.trudp.log(DEBUGv, "UNKNOWN packet received, key:", key, ", type:", packetType)

@@ -10,6 +10,8 @@ import (
 const (
 	maxBufferSize = 2048 // bytes
 	pingInterval  = 1000 // ms
+	defaultRTT    = 20   // ms
+
 	helloMsg      = "hello"
 	echoMsg       = "ping"
 	echoAnswerMsg = "pong"

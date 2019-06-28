@@ -8,6 +8,7 @@ import (
 // Type of log messages
 const (
 	NONE = iota
+	ERROR
 	CONNECT
 	MESSAGE
 	DEBUG
@@ -17,6 +18,7 @@ const (
 
 const (
 	strNONE    = "NONE"
+	strERROR   = "ERROR"
 	strCONNECT = "CONNECT"
 	strMESSAGE = "MESSAGE"
 	strDEBUG   = "DEBUG"
@@ -37,7 +39,7 @@ func (trudp *TRUDP) log(level int, p ...interface{}) {
 }
 
 // LogLevel sets TRUDP log level
-// Avalable level values: NONE, CONNECT, MSSAGE, DEBUG, DEBUG_V, DEBUG_VV
+// Avalable level values: NONE, CONNECT, MESSAGE, DEBUG, DEBUGv, DEBUGvv
 func (trudp *TRUDP) LogLevel(level interface{}, logLog bool, flag int) {
 
 	// Set log type
@@ -57,6 +59,8 @@ func (trudp *TRUDP) LogLevel(level interface{}, logLog bool, flag int) {
 		switch l {
 		case strNONE:
 			trudp.logLevel = NONE
+		case strERROR:
+			trudp.logLevel = ERROR
 		case strCONNECT:
 			trudp.logLevel = CONNECT
 		case strMESSAGE:
@@ -79,7 +83,7 @@ func (trudp *TRUDP) LogLevel(level interface{}, logLog bool, flag int) {
 	fmt.Println("show time in log:", trudp.logLog)
 }
 
-// LogLevelString reurn trudp log level in string format
+// LogLevelString return trudp log level in string format
 func (trudp *TRUDP) LogLevelString() (strLogLevel string) {
 
 	switch trudp.logLevel {
@@ -87,6 +91,8 @@ func (trudp *TRUDP) LogLevelString() (strLogLevel string) {
 		strLogLevel = strNONE
 	case CONNECT:
 		strLogLevel = strCONNECT
+	case ERROR:
+		strLogLevel = strERROR
 	case MESSAGE:
 		strLogLevel = strMESSAGE
 	case DEBUG:
