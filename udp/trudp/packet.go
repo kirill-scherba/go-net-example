@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-// |TODO remane to trudpPacket
+// \TODO remane to trudpPacket
 type packetType struct {
 	trudp *TRUDP
 	data  []byte
@@ -54,6 +54,21 @@ func (pac *packetType) ackToPingCreateNew(packetInput []byte) packetService {
 	headerLength := C.trudpPacketGetHeaderLength(packetPtr)
 	packet := C.trudpPacketACKtoPINGcreateNew(packetPtr)
 	length := C.size_t(int(headerLength) + len(pac.getData(packetInput)))
+	return packetService{packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
+}
+
+// resetCreateNew Create RSET package, it should be free with freeCreated
+func (pac *packetType) resetCreateNew(channel int) packetService {
+	packet := C.trudpPacketRESETcreateNew(0, C.uint(channel))
+	length := C.trudpPacketGetHeaderLength(nil)
+	return packetService{packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
+}
+
+// ackToResetCreateNew Create ACK to reset package, it should be free with freeCreated
+func (pac *packetType) ackToResetCreateNew(packetInput []byte) packetService {
+	packetPtr := unsafe.Pointer(&packetInput[0])
+	packet := C.trudpPacketACKtoRESETcreateNew(packetPtr)
+	length := C.trudpPacketGetHeaderLength(packetPtr)
 	return packetService{packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length)}}
 }
 

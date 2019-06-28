@@ -11,6 +11,7 @@ const (
 	maxBufferSize = 2048 // bytes
 	pingInterval  = 1000 // ms
 	defaultRTT    = 20   // ms
+	firstPacketID = 0
 
 	helloMsg      = "hello"
 	echoMsg       = "ping"
@@ -122,6 +123,10 @@ func (trudp *TRUDP) Run() {
 		if err != nil {
 			panic(err)
 		}
+		if nRead == 0 {
+			trudp.log(DEBUGv, "empty paket received from:", addr)
+			continue
+		}
 
 		// Process connect message
 		if nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg {
@@ -152,6 +157,7 @@ func (trudp *TRUDP) Run() {
 			data := trudp.packet.getData(buffer[:nRead])
 			trudp.log(DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),
 				", channel:", ch, "packet id:", id, "type:", tp)
+
 			trudp.packet.process(buffer[:nRead], addr)
 			continue
 		}

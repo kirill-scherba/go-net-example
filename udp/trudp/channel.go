@@ -40,26 +40,39 @@ const (
 func (tcd *channelData) receivedQueueProcess(packet []byte) {
 	id := tcd.trudp.packet.getID(packet)
 	switch {
+
 	case id == tcd.expectedID:
 		tcd.expectedID++
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
-	case id == 1:
+		// \TODO Send received data packet to use level
+
+	case id == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "need to reset locally"+_ANSI_NONE)
 		tcd.reset()
-	case tcd.expectedID == 1:
+		// \TODO Send received data packet to use level
+
+	case tcd.expectedID == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "need to reset remote host"+_ANSI_NONE)
-		// \TODO send reset
+		ch := tcd.trudp.packet.getChannel(packet)
+		tcd.trudp.packet.resetCreateNew(ch).writeTo(tcd)
+		// \TODO Send event "RESET was sent" to user level
+
 	case id < tcd.expectedID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
+		// Add to statistic
 	}
 }
 
-// reset this cannel  \TODO
+// reset exequte reset of this cannel
 func (tcd *channelData) reset() {
 	// Clear sendQueue
-	// Clear receivedQueue
+	tcd.sendQueueReset()
+	// \TODO Clear receivedQueue
 	// Set tcd.id = 0
+	tcd.id = firstPacketID
 	// Set tcd.expectedID = 1
+	tcd.expectedID = firstPacketID
+	// \TODO Send event "RESET was applied" to user level
 }
 
 // newChannelData create new TRUDP ChannelData or select existing
@@ -78,12 +91,11 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 		trudp:      trudp,
 		addr:       addr,
 		ch:         ch,
-		id:         0,
-		expectedID: 1,
+		id:         firstPacketID,
+		expectedID: firstPacketID,
 	}
 	tcd.receivedQueue = make([]receivedQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
-	//tcd.sendQueueProcess(sqpINIT, nil)
 	trudp.tcdmap[key] = tcd
 
 	// Keep alive: send Ping
@@ -91,7 +103,9 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 	go func(conn *net.UDPConn) {
 		for {
 			time.Sleep(pingInterval * time.Millisecond)
-			tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+			// \TODO Send ping only if tcd.lastTimeReceived < pingInterval
+			//if tcd.lastTimeReceived
+			//tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 			tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
 		}
 	}(trudp.conn)
@@ -135,9 +149,10 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channe
 }
 
 // getId return new packe id
-func (tcd *channelData) getID() uint {
+func (tcd *channelData) getID() (id uint) {
+	id = tcd.id
 	tcd.id++
-	return tcd.id
+	return
 }
 
 // setTriptime save triptime to the ChannelData

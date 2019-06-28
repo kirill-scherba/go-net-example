@@ -103,3 +103,8 @@ func (tcd *channelData) sendQueueRemove(packet []byte) {
 		tcd.trudp.log(DEBUGv, "remove from send queue, id", id)
 	}
 }
+
+// sendQueueReset \TODO reset (clear) send queue
+func (tcd *channelData) sendQueueReset() {
+
+}
