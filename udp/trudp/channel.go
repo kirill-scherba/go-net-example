@@ -41,22 +41,26 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 	id := tcd.trudp.packet.getID(packet)
 	switch {
 
+	// Valid data packet
 	case id == tcd.expectedID:
 		tcd.expectedID++
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
-		// \TODO Send received data packet to use level
+		// \TODO Send received data packet to user level
 
+	// Invalid packet (with id = 0)
 	case id == firstPacketID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "need to reset locally"+_ANSI_NONE)
+		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
 		tcd.reset()
-		// \TODO Send received data packet to use level
+		// \TODO Send received data packet to user level
 
+	// Invalid packet (with expectedID = 0)
 	case tcd.expectedID == firstPacketID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "need to reset remote host"+_ANSI_NONE)
+		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
 		ch := tcd.trudp.packet.getChannel(packet)
-		tcd.trudp.packet.resetCreateNew(ch).writeTo(tcd)
+		tcd.trudp.packet.resetCreateNew(ch).writeTo(tcd) // Send reset
 		// \TODO Send event "RESET was sent" to user level
 
+	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
 		// Add to statistic

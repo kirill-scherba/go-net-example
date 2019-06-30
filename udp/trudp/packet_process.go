@@ -54,6 +54,7 @@ func (pac *packetType) process(packet []byte, addr net.Addr) (processed bool) {
 
 	case ACKReset: // ACK-to-reset packet received
 		pac.trudp.log(DEBUGv, "ACK_RESET packet received, key:", key)
+		tcd.reset()
 
 	case PING: // PING packet received
 		pac.trudp.log(DEBUGv, "PING      packet received, key:", key,
