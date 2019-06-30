@@ -65,16 +65,27 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 
 		// Channel 'keep alive (send Ping)' worker
 		go func() {
+			slepTime := pingInterval * time.Millisecond
+			disconnectAfterTime := disconnectAfter * time.Millisecond
 			for {
-				time.Sleep(pingInterval * time.Millisecond)
+				time.Sleep(slepTime)
 				if stopWorkers {
 					tcd.trudp.log(DEBUGv, "sendQueue channel 'keep alive (send Ping)' worker stopped")
 					break
 				}
-				// \TODO Send ping only if tcd.lastTimeReceived < pingInterval
-				//if tcd.lastTimeReceived
-				//tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-				tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
+				// Send ping if time since tcd.lastTimeReceived >= pingInterval
+				switch {
+				case time.Since(tcd.lastTimeReceived) >= disconnectAfterTime:
+					tcd.trudp.log(DEBUGv, "disconnect this channel: does not answer long time", time.Since(tcd.lastTimeReceived))
+					tcd.destroy()
+				case time.Since(tcd.lastTimeReceived) >= slepTime:
+					tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+					tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
+				}
+				// \TODO send test data - remove it
+				if tcd.sendTestMsg {
+					tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
+				}
 			}
 		}()
 

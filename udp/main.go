@@ -29,7 +29,8 @@ func main() {
 	conn := trudp.Init(port)
 	conn.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 	if rport != 0 {
-		conn.ConnectChannel(rhost, rport, 1)
+		tcd := conn.ConnectChannel(rhost, rport, 1)
+		tcd.SendTestMsg(true)
 	}
 	conn.Run()
 }

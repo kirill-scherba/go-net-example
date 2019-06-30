@@ -10,7 +10,8 @@ import (
 const (
 	maxResendAttempt = 50   // (number) max number of resend packet from sendQueue
 	maxBufferSize    = 2048 // (bytes) send buffer size in bytes
-	pingInterval     = 1000 // (ms) send ping afret ms
+	pingInterval     = 1000 // (ms) send ping afret in ms
+	disconnectAfter  = 3000 // (ms) disconnect afret in ms
 	defaultRTT       = 20   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 

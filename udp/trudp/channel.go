@@ -19,6 +19,8 @@ type channelData struct {
 	id         uint // Last send packet ID
 	expectedID uint // Expected incoming ID
 
+	sendTestMsg bool
+
 	triptime         float32   // Channels triptime in Millisecond
 	triptimeMiddle   float32   // Channels midle triptime in Millisecond
 	lastTimeReceived time.Time // Time when last packet was received
@@ -108,6 +110,11 @@ func (tcd *channelData) setTriptime(triptime float32) {
 // setLastTimeReceived save last time received from channel to the ChannelData
 func (tcd *channelData) setLastTimeReceived() {
 	tcd.lastTimeReceived = time.Now()
+}
+
+// SendTestMsg set sendTestMsg flag to send test message by interval
+func (tcd *channelData) SendTestMsg(sendTestMsg bool) {
+	tcd.sendTestMsg = sendTestMsg
 }
 
 // makeKey return trudp channel key
