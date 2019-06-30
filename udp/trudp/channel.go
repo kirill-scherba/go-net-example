@@ -135,11 +135,12 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 
 	// Channel data create
 	tcd = &channelData{
-		trudp:      trudp,
-		addr:       addr,
-		ch:         ch,
-		id:         firstPacketID,
-		expectedID: firstPacketID,
+		trudp:       trudp,
+		addr:        addr,
+		ch:          ch,
+		id:          firstPacketID,
+		expectedID:  firstPacketID,
+		sendTestMsg: true,
 	}
 	tcd.receivedQueue = make([]receivedQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
