@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kirill-scherba/go-net-example/udp/trudp"
+	"github.com/kirill-scherba/net-example-go/udp/trudp"
 )
 
 func main() {

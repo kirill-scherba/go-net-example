@@ -20,6 +20,7 @@ type sendQueueProcessCommand struct {
 // sendQueueProcess receive messageas from channel and exequte it
 // in 'Send queue process command' worker
 func (tcd *channelData) sendQueueProcess(fnc func()) {
+
 	if tcd.chSendQueue == nil {
 		tcd.trudp.log(DEBUGv, "sendQueue channel created")
 		tcd.chSendQueue = make(chan func())
@@ -27,23 +28,25 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 		// Send queue 'process command' worker
 		go func() {
 			for {
-				if tcd.chSendQueue != nil {
-					(<-tcd.chSendQueue)()
-				} else {
+				if tcd.chSendQueue == nil {
 					break
 				}
+				(<-tcd.chSendQueue)()
 			}
 		}()
 
 		// Send queue 'resend processing' worker
 		go func() {
+			var t time.Duration = defaultRTT * time.Millisecond
 			for {
-				var t time.Duration = defaultRTT
-				time.Sleep(t * time.Millisecond)
+				if tcd.chSendQueue == nil {
+					break
+				}
+				//tcd.trudp.log(DEBUG, "proces, time:", int(t))
+				time.Sleep(t)
 				tcd.sendQueueProcess(func() { t = tcd.sendQueueResendProcess() })
 			}
 		}()
-
 	}
 
 	tcd.chSendQueue <- fnc
@@ -55,15 +58,23 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 	rtt = defaultRTT * time.Millisecond
 	now := time.Now()
 	for _, sqd := range tcd.sendQueue {
-		if now.After(sqd.arrivalTime) {
-			rtt = time.Duration(defaultRTT+tcd.triptimeMiddle) * time.Millisecond
+		var t time.Duration
+		if !now.After(sqd.arrivalTime) {
+			t = time.Until(sqd.arrivalTime)
+		} else {
+			// Resend recort with arrivalTime less than Windows
+			t = time.Duration(defaultRTT+tcd.triptimeMiddle) * time.Millisecond
 			sqd.sendTime = now
-			sqd.arrivalTime = now.Add(rtt)
+			sqd.arrivalTime = now.Add(t)
 			tcd.trudp.conn.WriteTo(sqd.packet.data, tcd.addr)
 
-			tcd.trudp.log(DEBUGv, "resend sendQueue packet with",
+			tcd.trudp.log(DEBUG, "resend sendQueue packet with",
 				"id:", fmt.Sprintf("%4d", sqd.packet.getID(sqd.packet.data)),
-				"rtt:", rtt)
+				"rtt:", t)
+		}
+		// Next time to run sendQueueResendProcess
+		if t < rtt {
+			rtt = t
 		}
 	}
 	return
