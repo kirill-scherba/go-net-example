@@ -79,77 +79,13 @@ func (tcd *channelData) reset() {
 	// \TODO Send event "RESET was applied" to user level
 }
 
-// newChannelData create new TRUDP ChannelData or select existing
-func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key string) {
-
-	key = addr.String() + ":" + strconv.Itoa(ch)
-
-	tcd, ok := trudp.tcdmap[key]
-	if ok {
-		trudp.log(DEBUGvv, "the ChannelData with key", key, "selected")
-		return
-	}
-
-	// Channel data create
-	tcd = &channelData{
-		trudp:      trudp,
-		addr:       addr,
-		ch:         ch,
-		id:         firstPacketID,
-		expectedID: firstPacketID,
-	}
-	tcd.receivedQueue = make([]receivedQueueData, 0)
-	tcd.sendQueue = make([]sendQueueData, 0)
-	trudp.tcdmap[key] = tcd
-
-	// Keep alive: send Ping
-	//tcd.chKeepAlive <- sendQueueProcessCommand{cmd, data}
-	go func(conn *net.UDPConn) {
-		for {
-			time.Sleep(pingInterval * time.Millisecond)
-			// \TODO Send ping only if tcd.lastTimeReceived < pingInterval
-			//if tcd.lastTimeReceived
-			//tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-			tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
-		}
-	}(trudp.conn)
-
-	trudp.log(DEBUGvv, "new ChannelData with key", key, "created")
-
-	return
-}
-
-// ConnectChannel to remote host by UDP
-func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channelData) {
-
-	address := rhost + ":" + strconv.Itoa(rport)
-	rUDPAddr, err := net.ResolveUDPAddr(network, address)
-	if err != nil {
-		panic(err)
-	}
-	trudp.log(CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
-
-	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
-
-	// tcd.sendQueueProcess(sqINIT, nil)
-	// tcd.sendQueueProcess(sqDESTROY, nil)
-
-	// Send hello to remote host
-	for i := 0; i < 3; i++ {
-		//trudp.packet.writeTo(tcd, trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg))) //, rUDPAddr, true)
-		trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg)).writeTo(tcd)
-	}
-
-	// Keep alive: send Ping
-	// go func(conn *net.UDPConn) {
-	// 	for {
-	// 		time.Sleep(pingInterval * time.Millisecond)
-	// 		//trudp.packet.writeTo(tcd, trudp.packet.pingCreateNew(ch, []byte(echoMsg))) //, rUDPAddr, false)
-	// 		trudp.packet.pingCreateNew(ch, []byte(echoMsg)).writeTo(tcd)
-	// 	}
-	// }(trudp.conn)
-
-	return
+func (tcd *channelData) destroy() {
+	tcd.sendQueueReset()
+	close(tcd.chSendQueue)
+	//time.Sleep(100 * time.Microsecond)
+	key := tcd.trudp.makeKey(tcd.addr, tcd.ch)
+	delete(tcd.trudp.tcdmap, key)
+	tcd.trudp.log(CONNECT, "channel with key", key, "disconnected")
 }
 
 // getId return new packe id
@@ -172,4 +108,60 @@ func (tcd *channelData) setTriptime(triptime float32) {
 // setLastTimeReceived save last time received from channel to the ChannelData
 func (tcd *channelData) setLastTimeReceived() {
 	tcd.lastTimeReceived = time.Now()
+}
+
+// makeKey return trudp channel key
+func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
+	return addr.String() + ":" + strconv.Itoa(ch)
+}
+
+// newChannelData create new TRUDP ChannelData or select existing
+func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key string) {
+
+	key = trudp.makeKey(addr, ch)
+
+	tcd, ok := trudp.tcdmap[key]
+	if ok {
+		trudp.log(DEBUGvv, "the ChannelData with key", key, "selected")
+		return
+	}
+
+	// Channel data create
+	tcd = &channelData{
+		trudp:      trudp,
+		addr:       addr,
+		ch:         ch,
+		id:         firstPacketID,
+		expectedID: firstPacketID,
+	}
+	tcd.receivedQueue = make([]receivedQueueData, 0)
+	tcd.sendQueue = make([]sendQueueData, 0)
+	trudp.tcdmap[key] = tcd
+
+	// Channels and sendQueue workers Init
+	tcd.sendQueueProcess(nil)
+
+	trudp.log(CONNECT, "channel with key", key, "connected")
+
+	return
+}
+
+// ConnectChannel to remote host by UDP
+func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channelData) {
+
+	address := rhost + ":" + strconv.Itoa(rport)
+	rUDPAddr, err := net.ResolveUDPAddr(network, address)
+	if err != nil {
+		panic(err)
+	}
+	trudp.log(CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
+
+	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
+
+	// \TODO Just for test: Send hello to remote host
+	for i := 0; i < 3; i++ {
+		trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg)).writeTo(tcd)
+	}
+
+	return
 }

@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	maxBufferSize = 2048 // bytes
-	pingInterval  = 1000 // ms
-	defaultRTT    = 20   // ms
-	firstPacketID = 0
+	maxResendAttempt = 50   // (number) max number of resend packet from sendQueue
+	maxBufferSize    = 2048 // (bytes) send buffer size in bytes
+	pingInterval     = 1000 // (ms) send ping afret ms
+	defaultRTT       = 20   // (ms) default retransmit time in ms
+	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 
 	helloMsg      = "hello"
 	echoMsg       = "ping"

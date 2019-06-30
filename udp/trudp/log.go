@@ -79,8 +79,8 @@ func (trudp *TRUDP) LogLevel(level interface{}, logLog bool, flag int) {
 	}
 
 	// Show log level
-	fmt.Println("log level:", trudp.LogLevelString())
 	fmt.Println("show time in log:", trudp.logLog)
+	fmt.Println("log level:", trudp.LogLevelString())
 }
 
 // LogLevelString return trudp log level in string format
