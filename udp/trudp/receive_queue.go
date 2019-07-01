@@ -30,7 +30,6 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
 		// \TODO Send received data packet to user level
 		// Check packets in received queue
-		//tcd.sendQueueProcess(func() {
 		for {
 			idx, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
 			if err != nil {
@@ -41,7 +40,6 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 			// \TODO Send received data packet to user level
 			tcd.receiveQueueRemove(idx)
 		}
-		//})
 
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
@@ -49,7 +47,7 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 		tcd.reset()
 		// \TODO Send received data packet to user level
 
-	// Invalid packet (with expectedID = 0)
+	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
 		ch := tcd.trudp.packet.getChannel(packet)
@@ -59,15 +57,19 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
-		// Add to statistic
+		// \TODO Set statistic REJECTED (already received) packet
 
 	// Packet with id more than expectedID placed to receive queue and wait
 	// previouse packets
 	case id > tcd.expectedID:
-		tcd.trudp.log(DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
-		//tcd.sendQueueProcess(func() {
-		tcd.receiveQueueAdd(packet)
-		//})
+		_, _, err := tcd.receiveQueueFind(id)
+		if err == nil {
+			tcd.trudp.log(DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
+			tcd.receiveQueueAdd(packet)
+		} else {
+			tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
+			// \TODO Set statistic REJECTED (already received) packet
+		}
 	}
 }
 
