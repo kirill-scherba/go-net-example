@@ -125,46 +125,40 @@ func (trudp *TRUDP) Run() {
 		if err != nil {
 			panic(err)
 		}
-		if nRead == 0 {
+
+		switch {
+		// Empty packet
+		case nRead == 0:
 			trudp.log(DEBUGv, "empty paket received from:", addr)
-			continue
-		}
+
+		// Check trudp packet
+		case trudp.packet.check(buffer[:nRead]):
+			trudp.packet.process(buffer[:nRead], addr)
+			// ch := trudp.packet.getChannel(buffer[:nRead])
+			// id := trudp.packet.getID(buffer[:nRead])
+			// tp := trudp.packet.getType(buffer[:nRead])
+			// data := trudp.packet.getData(buffer[:nRead])
+			// trudp.log(DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),
+			// 	", channel:", ch, "packet id:", id, "type:", tp)
 
 		// Process connect message
-		if nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg {
+		case nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg:
 			trudp.log(DEBUG, "got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
-			continue
-		}
 
 		// Process echo message Ping (send to Pong)
-		if nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg {
+		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
 			trudp.log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
 			trudp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr.(*net.UDPAddr))
-			continue
-		}
 
 		// Process echo answer message Pong (answer to Ping)
-		if nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg {
+		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
 			var ts time.Time
 			ts.UnmarshalBinary(buffer[len(echoAnswerMsg):nRead])
 			trudp.log(DEBUG, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
-			continue
-		}
-
-		// Check trudp packet
-		if trudp.packet.check(buffer[:nRead]) {
-			ch := trudp.packet.getChannel(buffer[:nRead])
-			id := trudp.packet.getID(buffer[:nRead])
-			tp := trudp.packet.getType(buffer[:nRead])
-			data := trudp.packet.getData(buffer[:nRead])
-			trudp.log(DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),
-				", channel:", ch, "packet id:", id, "type:", tp)
-
-			trudp.packet.process(buffer[:nRead], addr)
-			continue
-		}
 
 		// Process other messages
-		trudp.log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+		default:
+			trudp.log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+		}
 	}
 }
