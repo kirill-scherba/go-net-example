@@ -13,11 +13,6 @@ type sendQueueData struct {
 	resendAttempt int
 }
 
-type sendQueueProcessCommand struct {
-	commandType int
-	data        interface{}
-}
-
 // sendQueueProcess receive messageas from channel and exequte it
 // in 'Send queue process command' worker
 func (tcd *channelData) sendQueueProcess(fnc func()) {
