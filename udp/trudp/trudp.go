@@ -31,6 +31,13 @@ type TRUDP struct {
 	logLog   bool                    // show time in trudp log
 	tcdmap   map[string]*channelData // channel data map
 	packet   *packetType             // packet functions holder
+	Event    chan *eventData         // User level event channel
+}
+
+type eventData struct {
+	Tcd   *channelData
+	Event int
+	Data  []byte
 }
 
 // Enumeration of TRUDP events
@@ -196,6 +203,7 @@ func Init(port int) (trudp *TRUDP) {
 		packet:   &packetType{},
 	}
 	trudp.tcdmap = make(map[string]*channelData)
+	trudp.Event = make(chan *eventData, 2048)
 	trudp.packet.trudp = trudp
 
 	trudp.log(CONNECT, "start listenning at", conn.LocalAddr())
@@ -206,7 +214,7 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
-
+	trudp.Event <- &eventData{tcd, event, data}
 }
 
 // Connect to remote host by UDP
