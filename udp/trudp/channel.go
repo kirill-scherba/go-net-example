@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-type receivedQueueData struct {
-	packet []byte
-}
-
 type channelData struct {
 	trudp *TRUDP // link to trudp
 
@@ -25,8 +21,8 @@ type channelData struct {
 	triptimeMiddle   float32   // Channels midle triptime in Millisecond
 	lastTimeReceived time.Time // Time when last packet was received
 
-	sendQueue     []sendQueueData     // send queue
-	receivedQueue []receivedQueueData // received queue
+	sendQueue    []sendQueueData    // send queue
+	receiveQueue []receiveQueueData // received queue
 
 	chSendQueue chan func()  // channel for worker 'trudp process command'
 	stopWorkers [4]chan bool // channels to stop wokers
@@ -40,46 +36,6 @@ const (
 	wkKeepAlive
 	wkStopped
 )
-
-const (
-	_ANSI_NONE       = "\033[0m"
-	_ANSI_RED        = "\033[22;31m"
-	_ANSI_LIGHTGREEN = "\033[01;32m"
-	_ANSI_LIGHTRED   = "\033[01;31m"
-	_ANSI_LIGHTBLUE  = "\033[01;34m"
-)
-
-// receivedQueueProcess process receivedQueue and send received data and events
-// to user level
-func (tcd *channelData) receivedQueueProcess(packet []byte) {
-	id := tcd.trudp.packet.getID(packet)
-	switch {
-
-	// Valid data packet
-	case id == tcd.expectedID:
-		tcd.expectedID++
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
-		// \TODO Send received data packet to user level
-
-	// Invalid packet (with id = 0)
-	case id == firstPacketID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
-		tcd.reset()
-		// \TODO Send received data packet to user level
-
-	// Invalid packet (with expectedID = 0)
-	case tcd.expectedID == firstPacketID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
-		ch := tcd.trudp.packet.getChannel(packet)
-		tcd.trudp.packet.resetCreateNew(ch).writeTo(tcd) // Send reset
-		// \TODO Send event "RESET was sent" to user level
-
-	// Already processed packet (id < expectedID)
-	case id < tcd.expectedID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
-		// Add to statistic
-	}
-}
 
 // reset exequte reset of this cannel
 func (tcd *channelData) reset() {
@@ -181,7 +137,7 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 		lastTimeReceived: time.Now(),
 		sendTestMsg:      true,
 	}
-	tcd.receivedQueue = make([]receivedQueueData, 0)
+	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
 	trudp.tcdmap[key] = tcd
 
