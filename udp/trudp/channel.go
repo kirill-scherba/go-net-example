@@ -28,8 +28,18 @@ type channelData struct {
 	sendQueue     []sendQueueData     // send queue
 	receivedQueue []receivedQueueData // received queue
 
-	chSendQueue chan func()
+	chSendQueue chan func()  // channel for worker 'trudp process command'
+	stopWorkers [4]chan bool // channels to stop wokers
+	stoppedF    bool
 }
+
+// Workrs index
+const (
+	wkProcessCommand = iota
+	wkResendProcessing
+	wkKeepAlive
+	wkStopped
+)
 
 const (
 	_ANSI_NONE       = "\033[0m"
@@ -39,6 +49,8 @@ const (
 	_ANSI_LIGHTBLUE  = "\033[01;34m"
 )
 
+// receivedQueueProcess process receivedQueue and send received data and events
+// to user level
 func (tcd *channelData) receivedQueueProcess(packet []byte) {
 	id := tcd.trudp.packet.getID(packet)
 	switch {
@@ -81,13 +93,38 @@ func (tcd *channelData) reset() {
 	// \TODO Send event "RESET was applied" to user level
 }
 
+// destroy close and destroy trudp channel
 func (tcd *channelData) destroy() {
-	tcd.sendQueueReset()
-	close(tcd.chSendQueue)
-	//time.Sleep(100 * time.Microsecond)
-	key := tcd.trudp.makeKey(tcd.addr, tcd.ch)
-	delete(tcd.trudp.tcdmap, key)
-	tcd.trudp.log(CONNECT, "channel with key", key, "disconnected")
+
+	go func() {
+
+		// Disable repeatable 'destroy'
+		if tcd.stoppedF {
+			return
+		}
+		tcd.stoppedF = true
+
+		// Stop workers
+		tcd.stopWorkers[wkKeepAlive] <- true
+		tcd.stopWorkers[wkResendProcessing] <- true
+		tcd.stopWorkers[wkProcessCommand] <- true
+
+		// Wait wokers to stopped
+		for i := 0; i < len(tcd.stopWorkers)-1; i++ {
+			<-tcd.stopWorkers[wkStopped]
+		}
+
+		// Close workers channels
+		for i := 0; i < len(tcd.stopWorkers)-1; i++ {
+			close(tcd.stopWorkers[i])
+		}
+		close(tcd.chSendQueue)
+
+		// Remove trudp channel from channels map
+		key := tcd.trudp.makeKey(tcd.addr, tcd.ch)
+		delete(tcd.trudp.tcdmap, key)
+		tcd.trudp.log(CONNECT, "channel with key", key, "disconnected")
+	}()
 }
 
 // getId return new packe id
@@ -127,6 +164,7 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 
 	key = trudp.makeKey(addr, ch)
 
+	// Channel data select
 	tcd, ok := trudp.tcdmap[key]
 	if ok {
 		trudp.log(DEBUGvv, "the ChannelData with key", key, "selected")
@@ -135,12 +173,13 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 
 	// Channel data create
 	tcd = &channelData{
-		trudp:       trudp,
-		addr:        addr,
-		ch:          ch,
-		id:          firstPacketID,
-		expectedID:  firstPacketID,
-		sendTestMsg: true,
+		trudp:            trudp,
+		addr:             addr,
+		ch:               ch,
+		id:               firstPacketID,
+		expectedID:       firstPacketID,
+		lastTimeReceived: time.Now(),
+		sendTestMsg:      true,
 	}
 	tcd.receivedQueue = make([]receivedQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
