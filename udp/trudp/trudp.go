@@ -33,6 +33,118 @@ type TRUDP struct {
 	packet   *packetType             // packet functions holder
 }
 
+// Enumeration of TRUDP events
+const (
+
+	/**
+	 * Initialize TR-UDP event
+	 * @param td Pointer to trudpData
+	 */
+	INITIALIZE = iota
+
+	/**
+	 * Destroy TR-UDP event
+	 * @param td Pointer to trudpData
+	 */
+	DESTROY
+
+	/**
+	 * TR-UDP channel disconnected event
+	 * @param data NULL
+	 * @param data_length 0
+	 * @param user_data NULL
+	 */
+	CONNECTED
+
+	/**
+	 * TR-UDP channel disconnected event
+	 * @param data Last packet received
+	 * @param data_length 0
+	 * @param user_data NULL
+	 */
+	DISCONNECTED
+
+	/**
+	 * Got TR-UDP reset packet
+	 * @param data NULL
+	 * @param data_length 0
+	 * @param user_data NULL
+	 */
+	GOT_RESET
+
+	/**
+	 * Send TR-UDP reset packet
+	 * @param data Pointer to uint32_t send id or NULL if received id = 0
+	 * @param data_length Size of uint32_t or 0
+	 * @param user_data NULL
+	 */
+	SEND_RESET
+
+	/**
+	 * Got ACK to reset command
+	 * @param data NULL
+	 * @param data_length 0
+	 * @param user_data NULL
+	 */
+	GOT_ACK_RESET
+
+	/**
+	 * Got ACK to ping command
+	 * @param data Pointer to ping data (usually it is a string)
+	 * @param data_length Length of data
+	 * @param user_data NULL
+	 */
+	GOT_ACK_PING
+
+	/**
+	 * Got PING command
+	 * @param data Pointer to ping data (usually it is a string)
+	 * @param data_length Length of data
+	 * @param user_data NULL
+	 */
+	GOT_PING
+
+	/**
+	 * Got ACK command
+	 * @param data Pointer to ACK packet
+	 * @param data_length Length of data
+	 * @param user_data NULL
+	 */
+	GOT_ACK
+
+	/**
+	 * Got DATA
+	 * @param data Pointer to data
+	 * @param data_length Length of data
+	 * @param user_data NULL
+	 */
+	GOT_DATA
+
+	/**
+	 * Process received data
+	 * @param tcd Pointer to trudpData
+	 * @param data Pointer to receive buffer
+	 * @param data_length Receive buffer length
+	 * @param user_data NULL
+	 */
+	PROCESS_RECEIVE
+
+	/** Process received not TR-UDP data
+	 * @param tcd Pointer to trudpData
+	 * @param data Pointer to receive buffer
+	 * @param data_length Receive buffer length
+	 * @param user_data NULL
+	 */
+	PROCESS_RECEIVE_NO_TRUDP
+
+	/** Process send data
+	 * @param data Pointer to send data
+	 * @param data_length Length of send
+	 * @param user_data NULL
+	 */
+	PROCESS_SEND
+)
+
 // listenUDP Connect to UDP with selected port (the port incremented if busy)
 func listenUDP(port int) *net.UDPConn {
 
@@ -90,6 +202,11 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.tickerCheck()
 
 	return
+}
+
+// sendEvent Send event to user level (to event callback or channel)
+func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
+
 }
 
 // Connect to remote host by UDP
