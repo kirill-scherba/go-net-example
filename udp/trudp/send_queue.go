@@ -24,69 +24,86 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 
 	// Start trudp channel and sendQueue workers
 	if tcd.chSendQueue == nil {
+
 		tcd.trudp.log(DEBUGv, "sendQueue channel created")
+
+		// Initialize channels
 		tcd.chSendQueue = make(chan func())
-		var stopWorkers = false
+		for idx, _ := range tcd.stopWorkers {
+			tcd.stopWorkers[idx] = make(chan bool)
+		}
 
 		// Send queue 'process command' worker
 		go func() {
+			tcd.trudp.log(DEBUGv, "worker 'trudp process command' started")
+		for_l:
 			for {
-				// Wait message from channel
-				f, ok := <-tcd.chSendQueue
-				// Exit from worker if channel closed
-				if !ok {
-					tcd.trudp.log(DEBUGv, "sendQueue channel 'process command' worker stopped")
-					stopWorkers = true
-					break
-				}
-				// Exequte commands
-				switch f {
-				case nil:
-					continue // Init (nil)
-				default:
-					f() // All other commands
+				// Wait message from chSendQueue or stopWorkers channels
+				select {
+				case <-tcd.stopWorkers[wkProcessCommand]:
+					break for_l
+				case fun := <-tcd.chSendQueue:
+					// Exequte commands(functions) but skip nil, nil sends on Init
+					switch fun {
+					case nil:
+					default:
+						fun()
+					}
 				}
 			}
+			tcd.trudp.log(DEBUGv, "worker 'trudp process command' stopped")
+			tcd.stopWorkers[wkStopped] <- true
 		}()
 
 		// Send queue 'resend processing' worker
 		go func() {
 			var t time.Duration = defaultRTT * time.Millisecond
+			tcd.trudp.log(DEBUGv, "worker 'send queue resend processing' started")
+		for_l:
 			for {
-				//tcd.trudp.log(DEBUG, "proces, time:", int(t))
-				time.Sleep(t)
-				if stopWorkers {
-					tcd.trudp.log(DEBUGv, "sendQueue channel 'resend processing' worker stopped")
-					break
+				select {
+				case <-tcd.stopWorkers[wkResendProcessing]:
+					break for_l
+				default:
+					time.Sleep(t)
+					tcd.sendQueueProcess(func() { t = tcd.sendQueueResendProcess() })
 				}
-				tcd.sendQueueProcess(func() { t = tcd.sendQueueResendProcess() })
 			}
+			tcd.sendQueueReset()
+			tcd.trudp.log(DEBUGv, "worker 'send queue resend processing' stopped")
+			tcd.stopWorkers[wkStopped] <- true
 		}()
 
-		// Channel 'keep alive (send Ping)' worker
+		// Channel 'keep alive (send ping)' worker
 		go func() {
 			slepTime := pingInterval * time.Millisecond
 			disconnectAfterTime := disconnectAfter * time.Millisecond
+			tcd.trudp.log(DEBUGv, "worker 'trudp keep alive (send ping)' started")
+		for_l:
 			for {
-				time.Sleep(slepTime)
-				if stopWorkers {
-					tcd.trudp.log(DEBUGv, "sendQueue channel 'keep alive (send Ping)' worker stopped")
-					break
-				}
-				// Send ping if time since tcd.lastTimeReceived >= pingInterval
-				switch {
-				case time.Since(tcd.lastTimeReceived) >= disconnectAfterTime:
-					tcd.trudp.log(DEBUGv, "disconnect this channel: does not answer long time", time.Since(tcd.lastTimeReceived))
-					tcd.destroy()
-				case time.Since(tcd.lastTimeReceived) >= slepTime:
-					tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-					tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
-				}
-				// \TODO send test data - remove it
-				if tcd.sendTestMsg {
-					tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
+				select {
+				case <-tcd.stopWorkers[wkKeepAlive]:
+					break for_l
+				default:
+					time.Sleep(slepTime)
+					// Send ping if time since tcd.lastTimeReceived >= pingInterval
+					switch {
+					case time.Since(tcd.lastTimeReceived) >= disconnectAfterTime:
+						tcd.trudp.log(DEBUGv, "destroy this channel: does not answer long time", time.Since(tcd.lastTimeReceived))
+						tcd.destroy()
+						break
+					case time.Since(tcd.lastTimeReceived) >= slepTime:
+						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+						tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
+					}
+					// \TODO send test data - remove it
+					if tcd.sendTestMsg {
+						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
+					}
 				}
 			}
+			tcd.trudp.log(DEBUGv, "worker 'trudp keep alive (send ping)' stopped")
+			tcd.stopWorkers[wkStopped] <- true
 		}()
 
 	}
@@ -172,5 +189,6 @@ func (tcd *channelData) sendQueueReset() {
 	for _, sqd := range tcd.sendQueue {
 		sqd.packet.destroy()
 	}
-	tcd.sendQueue = nil
+	//tcd.sendQueue = nil
+	tcd.sendQueue = tcd.sendQueue[:0]
 }
