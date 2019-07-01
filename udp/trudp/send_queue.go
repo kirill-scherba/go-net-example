@@ -33,7 +33,8 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 			tcd.stopWorkers[idx] = make(chan bool)
 		}
 
-		// Send queue 'process command' worker
+		// Send queue 'process command' worker. Exequte all concurent sendQueue
+		// commands.
 		go func() {
 			tcd.trudp.log(DEBUGv, "worker 'trudp process command' started")
 		for_l:
@@ -74,7 +75,9 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 			tcd.stopWorkers[wkStopped] <- true
 		}()
 
-		// Channel 'keep alive (send ping)' worker
+		// Channel 'keep alive (send ping)' worker. Sleep during pingInterval
+		// constant and send ping if nothing received in sleep period. Destroy
+		// channel if peer does not answer long time = disconnectAfterTime constant
 		go func() {
 			slepTime := pingInterval * time.Millisecond
 			disconnectAfterTime := disconnectAfter * time.Millisecond
@@ -113,7 +116,8 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 }
 
 // sendQueueResendProcess resend packet from send queue if it does not got
-// ACK during selected time
+// ACK during selected time. Destroy channel if too much resends happens =
+// maxResendAttempt constant
 func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 	rtt = defaultRTT * time.Millisecond
 	now := time.Now()
@@ -124,7 +128,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 		} else {
 			// Destroy this trudp channel if resendAttemp more than maxResendAttemp
 			if sqd.resendAttempt >= maxResendAttempt {
-				// \TODO destroy this trudp channel
+				// Destroy this trudp channel
 				tcd.trudp.log(DEBUGv, "destroy this channel: too much resends happens", sqd.resendAttempt)
 				tcd.destroy()
 				break
