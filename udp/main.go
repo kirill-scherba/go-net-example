@@ -32,5 +32,13 @@ func main() {
 		tcd := conn.ConnectChannel(rhost, rport, 1)
 		tcd.SendTestMsg(true)
 	}
+	go func() {
+		for ev := range conn.Event {
+			switch ev.Event {
+			case trudp.GOT_DATA:
+				log.Println("(main) got data:", ev.Data, string(ev.Data))
+			}
+		}
+	}()
 	conn.Run()
 }
