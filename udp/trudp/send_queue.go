@@ -7,7 +7,7 @@ import (
 )
 
 type sendQueueData struct {
-	packet        *packetData
+	packet        *packetType
 	sendTime      time.Time
 	arrivalTime   time.Time
 	resendAttempt int
@@ -149,7 +149,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 }
 
 // sendQueueAdd add packet to send queue
-func (tcd *channelData) sendQueueAdd(packet *packetData) {
+func (tcd *channelData) sendQueueAdd(packet *packetType) {
 	now := time.Now()
 	var rttTime time.Duration = defaultRTT
 	tcd.sendQueue = append(tcd.sendQueue, sendQueueData{
