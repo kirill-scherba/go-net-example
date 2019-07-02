@@ -41,13 +41,13 @@ func main() {
 		}
 		// Sender
 		f := func() {
-			const sleepTime = 1720
+			const sleepTime = 100 // 1720
 			for {
 				time.Sleep(sleepTime * time.Microsecond)
 				tcd.WriteTo([]byte("Hello!"))
 			}
 		}
-		for i := 0; i < 2; i++ {
+		for i := 0; i < 1; i++ {
 			go f()
 		}
 	}
@@ -57,10 +57,14 @@ func main() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
-				log.Println("(main) GOT_DATA: ", ev.Data, string(ev.Data), time.Duration(ev.Tcd.TripTime()*1000)*time.Microsecond)
+				//log.Println("(main) GOT_DATA: " /*ev.Data,*/, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+				if rport == 0 {
+					log.Println("(main) SEND ....")
+					ev.Tcd.WriteTo([]byte("Hello!"))
+				}
 
 			case trudp.SEND_DATA:
-				log.Println("(main) SEND_DATA:", ev.Data, string(ev.Data))
+				//log.Println("(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 			case trudp.INITIALIZE:
 				log.Println("(main) INITIALIZE, listen at:", string(ev.Data))

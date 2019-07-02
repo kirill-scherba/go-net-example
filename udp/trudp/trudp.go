@@ -12,7 +12,7 @@ const (
 	maxBufferSize    = 2048 // (bytes) send buffer size in bytes
 	pingInterval     = 1000 // (ms) send ping afret in ms
 	disconnectAfter  = 3000 // (ms) disconnect afret in ms
-	defaultRTT       = 20   // (ms) default retransmit time in ms
+	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 
 	helloMsg      = "hello"
