@@ -20,8 +20,8 @@ const (
 
 // receivedQueueProcess process received packet, check receivedQueue and
 // send received data and events to user level
-func (tcd *channelData) receivedQueueProcess(packet []byte) {
-	id := tcd.trudp.packet.getID(packet)
+func (tcd *channelData) receivedQueueProcess(packet *packetType) {
+	id := packet.getID()
 	switch {
 
 	// Valid data packet
@@ -29,7 +29,7 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 		tcd.expectedID++
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
 		// Send received data packet to user level
-		tcd.trudp.sendEvent(tcd, GOT_DATA, tcd.trudp.packet.getData(packet))
+		tcd.trudp.sendEvent(tcd, GOT_DATA, packet.getData())
 		// Check packets in received queue
 		for {
 			idx, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
@@ -37,9 +37,9 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 				break
 			}
 			tcd.expectedID++
-			tcd.trudp.log(DEBUGv, "find packet in receivedQueue, id:", tcd.trudp.packet.getID(rqd.packet.data))
+			tcd.trudp.log(DEBUGv, "find packet in receivedQueue, id:", rqd.packet.getID())
 			// Send received data packet to user level
-			tcd.trudp.sendEvent(tcd, GOT_DATA, tcd.trudp.packet.getData(packet))
+			tcd.trudp.sendEvent(tcd, GOT_DATA, rqd.packet.getData())
 			tcd.receiveQueueRemove(idx)
 		}
 
@@ -52,7 +52,7 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
-		ch := tcd.trudp.packet.getChannel(packet)
+		ch := packet.getChannel()
 		tcd.trudp.packet.resetCreateNew(ch).writeTo(tcd) // Send reset
 		// \TODO Send event "RESET was sent" to user level
 
@@ -76,17 +76,17 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 }
 
 // receiveQueueAdd add packet to receive queue
-func (tcd *channelData) receiveQueueAdd(data []byte) {
-	packet := &packetType{trudp: tcd.trudp, data: data}
+func (tcd *channelData) receiveQueueAdd(packet *packetType) {
+	//packet := &packetType{trudp: tcd.trudp, data: data}
 	tcd.receiveQueue = append(tcd.receiveQueue, receiveQueueData{packet: packet})
-	tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID(packet.data))
+	tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID())
 }
 
 // receiveQueueFind find packet with selected id in receiveQueue
 func (tcd *channelData) receiveQueueFind(id uint) (idx int, rqd receiveQueueData, err error) {
 	err = errors.New(fmt.Sprint("not found, packet id: ", id))
 	for idx, rqd = range tcd.receiveQueue {
-		if tcd.trudp.packet.getID(rqd.packet.data) == id {
+		if rqd.packet.getID() == id {
 			err = nil
 			break
 		}

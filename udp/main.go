@@ -37,13 +37,22 @@ func main() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
-				log.Println("(main) GOT_DATA:", ev.Data, string(ev.Data))
+				log.Println("(main) GOT_DATA: ", ev.Data, string(ev.Data))
+
+			case trudp.SEND_DATA:
+				log.Println("(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 			case trudp.INITIALIZE:
 				log.Println("(main) INITIALIZE, listen at:", string(ev.Data))
 
-			case trudp.RESET:
-				log.Println("(main) RESET executed")
+			case trudp.CONNECTED:
+				log.Println("(main) CONNECTED", string(ev.Data))
+
+			case trudp.DISCONNECTED:
+				log.Println("(main) DISCONNECTED", string(ev.Data))
+
+			case trudp.RESET_LOCAL:
+				log.Println("(main) RESET_LOCAL executed")
 			}
 		}
 	}()
