@@ -24,8 +24,8 @@ func main() {
 	flag.BoolVar(&noLogTime, "no_log_time", false, "don't show time in application log")
 	flag.IntVar(&port, "p", 0, "this host port (to remote hosts connect to this host)")
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
-	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
+	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&logLevel, "log", "DEBUGv", "application log level")
 	flag.Parse()
 
