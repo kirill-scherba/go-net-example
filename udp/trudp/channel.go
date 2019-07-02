@@ -113,6 +113,11 @@ func (tcd *channelData) SendTestMsg(sendTestMsg bool) {
 	tcd.sendTestMsg = sendTestMsg
 }
 
+// TripTime return current triptime (ms)
+func (tcd *channelData) TripTime() float32 {
+	return tcd.triptime
+}
+
 // makeKey return trudp channel key
 func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
 	return addr.String() + ":" + strconv.Itoa(ch)
