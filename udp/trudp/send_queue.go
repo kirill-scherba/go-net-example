@@ -183,11 +183,10 @@ func (tcd *channelData) sendQueueRemove(packet []byte) {
 	}
 }
 
-// sendQueueReset \TODO reset (clear) send queue
+// sendQueueReset resets (clear) send queue
 func (tcd *channelData) sendQueueReset() {
 	for _, sqd := range tcd.sendQueue {
 		sqd.packet.destroy()
 	}
-	//tcd.sendQueue = nil
 	tcd.sendQueue = tcd.sendQueue[:0]
 }
