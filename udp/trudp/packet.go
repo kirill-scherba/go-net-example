@@ -43,8 +43,8 @@ func (pac *packetType) pingCreateNew(channel int, data []byte) *packetType {
 }
 
 // ackCreateNew Create ACK to data package, it should be free with freeCreated
-func (pac *packetType) ackCreateNew(packetInput []byte) *packetType {
-	packetPtr := unsafe.Pointer(&packetInput[0])
+func (pac *packetType) ackCreateNew() *packetType {
+	packetPtr := unsafe.Pointer(&pac.data[0])
 	packet := C.trudpPacketACKcreateNew(packetPtr)
 	length := C.trudpPacketGetHeaderLength(packetPtr)
 	return &packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length), destoryF: true}
@@ -60,8 +60,8 @@ func (pac *packetType) ackToPingCreateNew() *packetType {
 }
 
 // resetCreateNew Create RSET package, it should be free with freeCreated
-func (pac *packetType) resetCreateNew(channel int) *packetType {
-	packet := C.trudpPacketRESETcreateNew(0, C.uint(channel))
+func (pac *packetType) resetCreateNew() *packetType {
+	packet := C.trudpPacketRESETcreateNew(0, C.uint(pac.getChannel()))
 	length := C.trudpPacketGetHeaderLength(nil)
 	return &packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length), destoryF: true}
 }
@@ -134,4 +134,9 @@ func (pac *packetType) getTimestamp() uint32 {
 func (pac *packetType) getTriptime() (triptime float32) {
 	triptime = float32(pac.trudp.getTimestamp()-pac.getTimestamp()) / 1000.0
 	return
+}
+
+// copy trudp packet
+func (pac *packetType) copy() *packetType {
+	return &packetType{trudp: pac.trudp, data: append([]byte(nil), pac.data...)}
 }
