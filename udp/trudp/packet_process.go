@@ -47,7 +47,7 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 			"trip time:", fmt.Sprintf("%.3f", tcd.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.triptimeMiddle), "ms")
 		// Remove packet from send queue
-		tcd.sendQueueProcess(func() { tcd.sendQueueRemove(pac) })
+		tcd.sendQueueCommand(func() { tcd.sendQueueRemove(pac) })
 
 	case RESET: // RESET packet received
 		pac.trudp.log(DEBUGv, "RESET     packet received, key:", key)
@@ -137,11 +137,11 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 	// previouse packets
 	case id > tcd.expectedID:
 		_, _, err := tcd.receiveQueueFind(id)
-		if err == nil {
+		if err != nil {
 			tcd.trudp.log(DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
 			tcd.receiveQueueAdd(packet)
 		} else {
-			tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
+			tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
 			// \TODO Set statistic REJECTED (already received) packet
 		}
 	}

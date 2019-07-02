@@ -27,7 +27,7 @@ func (trudp *TRUDP) getTimestamp() uint32 {
 }
 
 // dataCreateNew creates DATA package, it should be free with freeCreated
-func (pac *packetType) dataCreateNew(id uint, channel int, data []byte) *packetType {
+func (pac *packetType) dataCreateNew(id uint32, channel int, data []byte) *packetType {
 	var length C.size_t
 	packet := C.trudpPacketDATAcreateNew(C.uint32_t(id), C.uint(channel),
 		unsafe.Pointer(&data[0]), C.size_t(len(data)), &length)
@@ -94,7 +94,7 @@ func (packet *packetType) writeTo(tcd *channelData) {
 	data := packet.data
 	packet.trudp.conn.WriteTo(data, tcd.addr)
 	if packet.sendQueueF {
-		tcd.sendQueueProcess(func() { tcd.sendQueueAdd(packet) })
+		tcd.sendQueueCommand(func() { tcd.sendQueueAdd(packet) })
 	} else {
 		packet.destroy()
 	}
@@ -111,8 +111,8 @@ func (pac *packetType) getChannel() int {
 }
 
 // getID reurn packet id
-func (pac *packetType) getID() uint {
-	return uint(C.trudpPacketGetId(unsafe.Pointer(&pac.data[0])))
+func (pac *packetType) getID() uint32 {
+	return uint32(C.trudpPacketGetId(unsafe.Pointer(&pac.data[0])))
 }
 
 // getType reurn packet type
