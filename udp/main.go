@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/kirill-scherba/net-example-go/udp/trudp"
 )
@@ -14,6 +15,7 @@ func main() {
 	var (
 		rhost     string
 		rport     int
+		rchan     int
 		port      int
 		logLevel  string
 		noLogTime bool
@@ -23,13 +25,14 @@ func main() {
 	flag.IntVar(&port, "p", 0, "this host port (to remote hosts connect to this host)")
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
+	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.StringVar(&logLevel, "log", "DEBUGv", "application log level")
 	flag.Parse()
 
 	tru := trudp.Init(port)
 	tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 	if rport != 0 {
-		tcd := tru.ConnectChannel(rhost, rport, 1)
+		tcd := tru.ConnectChannel(rhost, rport, rchan)
 		tcd.SendTestMsg(true)
 	}
 	go func() {
@@ -37,7 +40,7 @@ func main() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
-				log.Println("(main) GOT_DATA: ", ev.Data, string(ev.Data))
+				log.Println("(main) GOT_DATA: ", ev.Data, string(ev.Data), time.Duration(ev.Tcd.TripTime()*1000)*time.Microsecond)
 
 			case trudp.SEND_DATA:
 				log.Println("(main) SEND_DATA:", ev.Data, string(ev.Data))
