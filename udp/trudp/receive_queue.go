@@ -52,8 +52,7 @@ func (tcd *channelData) receivedQueueProcess(packet *packetType) {
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
-		ch := packet.getChannel()
-		tcd.trudp.packet.resetCreateNew(ch).writeTo(tcd) // Send reset
+		packet.resetCreateNew().writeTo(tcd) // Send reset
 		// \TODO Send event "RESET was sent" to user level
 
 	// Already processed packet (id < expectedID)

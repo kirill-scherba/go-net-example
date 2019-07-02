@@ -16,7 +16,7 @@ const (
 )
 
 // process received packet
-func (pac *packetType) process( /*packet []byte,*/ addr net.Addr) (processed bool) {
+func (pac *packetType) process(addr net.Addr) (processed bool) {
 	processed = false
 
 	ch := pac.getChannel()
@@ -28,7 +28,7 @@ func (pac *packetType) process( /*packet []byte,*/ addr net.Addr) (processed boo
 
 	case DATA: // DATA packet received
 		// Create ACK packet and send it back to sender
-		pac.ackCreateNew(pac.data).writeTo(tcd)
+		pac.ackCreateNew().writeTo(tcd)
 		// Show log
 		pac.trudp.log(DEBUGv, "DATA      packet received, key:", key,
 			"id:", fmt.Sprintf("%4d", pac.getID()),
