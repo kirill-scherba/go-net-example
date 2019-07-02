@@ -48,7 +48,7 @@ func (tcd *channelData) reset() {
 	// Set tcd.expectedID = 1
 	tcd.expectedID = firstPacketID
 	// Send event "RESET was applied" to user level
-	tcd.trudp.sendEvent(tcd, RESET, nil)
+	tcd.trudp.sendEvent(tcd, RESET_LOCAL, nil)
 }
 
 // destroy close and destroy trudp channel
@@ -82,6 +82,7 @@ func (tcd *channelData) destroy() {
 		key := tcd.trudp.makeKey(tcd.addr, tcd.ch)
 		delete(tcd.trudp.tcdmap, key)
 		tcd.trudp.log(CONNECT, "channel with key", key, "disconnected")
+		tcd.trudp.sendEvent(nil, DISCONNECTED, []byte(key))
 	}()
 }
 
@@ -147,6 +148,7 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 	tcd.sendQueueProcess(nil)
 
 	trudp.log(CONNECT, "channel with key", key, "connected")
+	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
 
 	return
 }

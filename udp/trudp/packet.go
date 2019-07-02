@@ -51,11 +51,11 @@ func (pac *packetType) ackCreateNew(packetInput []byte) *packetType {
 }
 
 // ackToPingCreateNew Create ACK to ping package, it should be free with freeCreated
-func (pac *packetType) ackToPingCreateNew(packetInput []byte) *packetType {
-	packetPtr := unsafe.Pointer(&packetInput[0])
+func (pac *packetType) ackToPingCreateNew() *packetType {
+	packetPtr := unsafe.Pointer(&pac.data[0])
 	headerLength := C.trudpPacketGetHeaderLength(packetPtr)
 	packet := C.trudpPacketACKtoPINGcreateNew(packetPtr)
-	length := C.size_t(int(headerLength) + len(pac.getData(packetInput)))
+	length := C.size_t(int(headerLength) + len(pac.getData()))
 	return &packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length), destoryF: true}
 }
 
@@ -67,8 +67,8 @@ func (pac *packetType) resetCreateNew(channel int) *packetType {
 }
 
 // ackToResetCreateNew Create ACK to reset package, it should be free with freeCreated
-func (pac *packetType) ackToResetCreateNew(packetInput []byte) *packetType {
-	packetPtr := unsafe.Pointer(&packetInput[0])
+func (pac *packetType) ackToResetCreateNew() *packetType {
+	packetPtr := unsafe.Pointer(&pac.data[0])
 	packet := C.trudpPacketACKtoRESETcreateNew(packetPtr)
 	length := C.trudpPacketGetHeaderLength(packetPtr)
 	return &packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length), destoryF: true}
@@ -106,32 +106,32 @@ func (pac *packetType) check(packet []byte) bool {
 }
 
 // getChannel return trudp packet channel number
-func (pac *packetType) getChannel(packet []byte) int {
-	return int(C._trudpPacketGetChannel(unsafe.Pointer(&packet[0])))
+func (pac *packetType) getChannel() int {
+	return int(C._trudpPacketGetChannel(unsafe.Pointer(&pac.data[0])))
 }
 
 // getID reurn packet id
-func (pac *packetType) getID(packet []byte) uint {
-	return uint(C.trudpPacketGetId(unsafe.Pointer(&packet[0])))
+func (pac *packetType) getID() uint {
+	return uint(C.trudpPacketGetId(unsafe.Pointer(&pac.data[0])))
 }
 
 // getType reurn packet type
-func (pac *packetType) getType(packet []byte) int {
-	return int(C.trudpPacketGetType(unsafe.Pointer(&packet[0])))
+func (pac *packetType) getType() int {
+	return int(C.trudpPacketGetType(unsafe.Pointer(&pac.data[0])))
 }
 
 // getData return trudp packet data
-func (pac *packetType) getData(packet []byte) []byte {
-	return packet[int(C.trudpPacketGetHeaderLength(unsafe.Pointer(&packet[0]))):]
+func (pac *packetType) getData() []byte {
+	return pac.data[int(C.trudpPacketGetHeaderLength(unsafe.Pointer(&pac.data[0]))):]
 }
 
 // getTimestamp return Timestamp (32 byte) contains sending time of DATA and RESET messages
-func (pac *packetType) getTimestamp(packet []byte) uint32 {
-	return uint32(C.trudpPacketGetTimestamp(unsafe.Pointer(&packet[0])))
+func (pac *packetType) getTimestamp() uint32 {
+	return uint32(C.trudpPacketGetTimestamp(unsafe.Pointer(&pac.data[0])))
 }
 
-// getTriptime return packet triptime
-func (pac *packetType) getTriptime(packet []byte) (triptime float32) {
-	triptime = float32(pac.trudp.getTimestamp()-pac.getTimestamp(packet)) / 1000.0
+// getTriptime return packets triptime
+func (pac *packetType) getTriptime() (triptime float32) {
+	triptime = float32(pac.trudp.getTimestamp()-pac.getTimestamp()) / 1000.0
 	return
 }

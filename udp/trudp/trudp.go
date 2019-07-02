@@ -149,7 +149,9 @@ const (
 	 * @param data_length Length of send
 	 * @param user_data NULL
 	 */
-	PROCESS_SEND
+	SEND_DATA
+
+	RESET_LOCAL
 )
 
 // listenUDP Connect to UDP with selected port (the port incremented if busy)
@@ -260,7 +262,9 @@ func (trudp *TRUDP) Run() {
 
 		// Check trudp packet
 		case trudp.packet.check(buffer[:nRead]):
-			trudp.packet.process(buffer[:nRead], addr)
+			//trudp.packet.process(buffer[:nRead], addr)
+			packet := &packetType{trudp: trudp, data: buffer[:nRead]}
+			packet.process(addr)
 			// ch := trudp.packet.getChannel(buffer[:nRead])
 			// id := trudp.packet.getID(buffer[:nRead])
 			// tp := trudp.packet.getType(buffer[:nRead])

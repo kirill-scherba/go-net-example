@@ -3,6 +3,7 @@ package trudp
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -96,7 +97,9 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 					}
 					// \TODO send test data - remove it
 					if tcd.sendTestMsg {
-						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, []byte(helloMsg)).writeTo(tcd)
+						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
+						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
+						tcd.trudp.sendEvent(tcd, SEND_DATA, data)
 					}
 				}
 			}
@@ -134,9 +137,10 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 			tcd.sendQueue[i].resendAttempt++
 			tcd.sendQueue[i].arrivalTime = now.Add(t)
 			tcd.trudp.conn.WriteTo(sqd.packet.data, tcd.addr)
+			tcd.trudp.sendEvent(tcd, SEND_DATA, sqd.packet.getData())
 
 			tcd.trudp.log(DEBUG, "resend sendQueue packet with",
-				"id:", fmt.Sprintf("%4d", sqd.packet.getID(sqd.packet.data)),
+				"id:", fmt.Sprintf("%4d", sqd.packet.getID()),
 				"attempt:", sqd.resendAttempt,
 				"rtt:", t)
 		}
@@ -157,15 +161,15 @@ func (tcd *channelData) sendQueueAdd(packet *packetType) {
 		sendTime:    now,
 		arrivalTime: now.Add(rttTime * time.Millisecond)})
 
-	tcd.trudp.log(DEBUGv, "add to send queue, id", tcd.trudp.packet.getID(packet.data))
+	tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID())
 }
 
 // sendQueueFind find packet in sendQueue
-func (tcd *channelData) sendQueueFind(packet []byte) (idx int, sqd sendQueueData, id uint, err error) {
+func (tcd *channelData) sendQueueFind(packet *packetType) (idx int, sqd sendQueueData, id uint, err error) {
 	err = errors.New(fmt.Sprint("not found, packet id: ", id))
-	id = tcd.trudp.packet.getID(packet)
+	id = packet.getID()
 	for idx, sqd = range tcd.sendQueue {
-		if tcd.trudp.packet.getID(sqd.packet.data) == id {
+		if sqd.packet.getID() == id {
 			err = nil
 			break
 		}
@@ -174,7 +178,7 @@ func (tcd *channelData) sendQueueFind(packet []byte) (idx int, sqd sendQueueData
 }
 
 // sendQueueRemove remove packet from send queue
-func (tcd *channelData) sendQueueRemove(packet []byte) {
+func (tcd *channelData) sendQueueRemove(packet *packetType) {
 	idx, sqd, id, err := tcd.sendQueueFind(packet)
 	if err == nil {
 		sqd.packet.destroy()
