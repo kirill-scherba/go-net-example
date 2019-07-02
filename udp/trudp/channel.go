@@ -41,12 +41,14 @@ const (
 func (tcd *channelData) reset() {
 	// Clear sendQueue
 	tcd.sendQueueReset()
-	// \TODO Clear receivedQueue
+	// Clear receivedQueue
+	tcd.receiveQueueReset()
 	// Set tcd.id = 0
 	tcd.id = firstPacketID
 	// Set tcd.expectedID = 1
 	tcd.expectedID = firstPacketID
-	// \TODO Send event "RESET was applied" to user level
+	// Send event "RESET was applied" to user level
+	tcd.trudp.sendEvent(tcd, RESET, nil)
 }
 
 // destroy close and destroy trudp channel

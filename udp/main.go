@@ -26,19 +26,26 @@ func main() {
 	flag.StringVar(&logLevel, "log", "DEBUGv", "application log level")
 	flag.Parse()
 
-	conn := trudp.Init(port)
-	conn.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
+	tru := trudp.Init(port)
+	tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 	if rport != 0 {
-		tcd := conn.ConnectChannel(rhost, rport, 1)
+		tcd := tru.ConnectChannel(rhost, rport, 1)
 		tcd.SendTestMsg(true)
 	}
 	go func() {
-		for ev := range conn.Event {
+		for ev := range tru.Event {
 			switch ev.Event {
+
 			case trudp.GOT_DATA:
-				log.Println("(main) got data:", ev.Data, string(ev.Data))
+				log.Println("(main) GOT_DATA:", ev.Data, string(ev.Data))
+
+			case trudp.INITIALIZE:
+				log.Println("(main) INITIALIZE, listen at:", string(ev.Data))
+
+			case trudp.RESET:
+				log.Println("(main) RESET executed")
 			}
 		}
 	}()
-	conn.Run()
+	tru.Run()
 }

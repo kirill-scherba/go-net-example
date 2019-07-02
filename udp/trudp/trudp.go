@@ -209,6 +209,8 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.log(CONNECT, "start listenning at", conn.LocalAddr())
 	trudp.tickerCheck()
 
+	trudp.sendEvent(nil, INITIALIZE, []byte(conn.LocalAddr().String()))
+
 	return
 }
 

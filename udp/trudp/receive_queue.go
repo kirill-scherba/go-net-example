@@ -101,3 +101,11 @@ func (tcd *channelData) receiveQueueRemove(idx int) {
 	tcd.receiveQueue = append(tcd.receiveQueue[:idx], tcd.receiveQueue[idx+1:]...)
 	tcd.trudp.log(DEBUGv, "remove from receive queue, index", idx)
 }
+
+// receiveQueueReset resets (clear) send queue
+func (tcd *channelData) receiveQueueReset() {
+	// for _, sqd := range tcd.receiveQueue {
+	// 	sqd.packet.destroy()
+	// }
+	tcd.receiveQueue = tcd.receiveQueue[:0]
+}
