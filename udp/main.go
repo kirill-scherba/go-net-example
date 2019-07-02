@@ -19,6 +19,7 @@ func main() {
 		port      int
 		logLevel  string
 		noLogTime bool
+		sendTest  bool
 	)
 
 	flag.BoolVar(&noLogTime, "no_log_time", false, "don't show time in application log")
@@ -27,14 +28,30 @@ func main() {
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&logLevel, "log", "DEBUGv", "application log level")
+	flag.BoolVar(&sendTest, "send_test", false, "send test data")
 	flag.Parse()
 
 	tru := trudp.Init(port)
 	tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 	if rport != 0 {
 		tcd := tru.ConnectChannel(rhost, rport, rchan)
-		tcd.SendTestMsg(true)
+		// Auto sender
+		if sendTest {
+			tcd.SendTestMsg(true)
+		}
+		// Sender
+		f := func() {
+			const sleepTime = 1720
+			for {
+				time.Sleep(sleepTime * time.Microsecond)
+				tcd.WriteTo([]byte("Hello!"))
+			}
+		}
+		for i := 0; i < 2; i++ {
+			go f()
+		}
 	}
+	// Receiver
 	go func() {
 		for ev := range tru.Event {
 			switch ev.Event {

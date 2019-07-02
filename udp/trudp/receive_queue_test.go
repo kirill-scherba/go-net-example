@@ -17,7 +17,7 @@ func TestReceiveQueue(t *testing.T) {
 	// create 10 elements 0..9
 	t.Run("adding elements", func(t *testing.T) {
 		for i := 0; i < numElements; i++ {
-			packet := pac.dataCreateNew(uint(i), 0, []byte("hello"+strconv.Itoa(i))).copy()
+			packet := pac.dataCreateNew(uint32(i), 0, []byte("hello"+strconv.Itoa(i))).copy()
 			tcd.receiveQueueAdd(packet)
 		}
 	})
@@ -25,13 +25,13 @@ func TestReceiveQueue(t *testing.T) {
 	// find existing elements and check packet
 	t.Run("find all existing", func(t *testing.T) {
 		for id := 0; id < numElements; id++ {
-			idx, rqd, err := tcd.receiveQueueFind(uint(id))
+			idx, rqd, err := tcd.receiveQueueFind(uint32(id))
 			switch {
 
 			case err != nil:
 				t.Errorf("can't find existing element with id: %d", id)
 
-			case uint(idx) != rqd.packet.getID():
+			case uint32(idx) != rqd.packet.getID():
 				t.Errorf("wrong index: %d, should be: %d", idx, id)
 
 			case string(rqd.packet.getData()) != "hello"+strconv.Itoa(id):
@@ -43,7 +43,7 @@ func TestReceiveQueue(t *testing.T) {
 
 	// find and remove element then find it again
 	t.Run("find and remove", func(t *testing.T) {
-		id := uint(5)
+		id := uint32(5)
 		idx, _, err := tcd.receiveQueueFind(id)
 		if err != nil {
 			t.Errorf("does not existing tests element with id: %d", id)
@@ -60,7 +60,7 @@ func TestReceiveQueue(t *testing.T) {
 	t.Run("reset queue", func(t *testing.T) {
 		tcd.receiveQueueReset()
 		for id := 0; id < numElements; id++ {
-			_, _, err := tcd.receiveQueueFind(uint(id))
+			_, _, err := tcd.receiveQueueFind(uint32(id))
 			if err == nil {
 				t.Errorf("after reset was found does not existing element with id: %d", id)
 			}

@@ -18,7 +18,7 @@ func (tcd *channelData) receiveQueueAdd(packet *packetType) {
 }
 
 // receiveQueueFind find packet with selected id in receiveQueue
-func (tcd *channelData) receiveQueueFind(id uint) (idx int, rqd receiveQueueData, err error) {
+func (tcd *channelData) receiveQueueFind(id uint32) (idx int, rqd receiveQueueData, err error) {
 	err = errors.New(fmt.Sprint("not found, packet id: ", id))
 	for idx, rqd = range tcd.receiveQueue {
 		if rqd.packet.getID() == id {

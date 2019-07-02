@@ -14,9 +14,9 @@ type sendQueueData struct {
 	resendAttempt int
 }
 
-// sendQueueProcess receive messageas from channel and exequte it
+// sendQueueCommand receive messageas from channel and exequte it
 // in 'Send queue process command' worker
-func (tcd *channelData) sendQueueProcess(fnc func()) {
+func (tcd *channelData) sendQueueCommand(fnc func()) {
 
 	// Start trudp channel and sendQueue workers
 	if tcd.chSendQueue == nil {
@@ -63,7 +63,7 @@ func (tcd *channelData) sendQueueProcess(fnc func()) {
 					break for_l
 				default:
 					time.Sleep(t)
-					tcd.sendQueueProcess(func() { t = tcd.sendQueueResendProcess() })
+					tcd.sendQueueCommand(func() { t = tcd.sendQueueResendProcess() })
 				}
 			}
 			tcd.sendQueueReset()
@@ -165,7 +165,7 @@ func (tcd *channelData) sendQueueAdd(packet *packetType) {
 }
 
 // sendQueueFind find packet in sendQueue
-func (tcd *channelData) sendQueueFind(packet *packetType) (idx int, sqd sendQueueData, id uint, err error) {
+func (tcd *channelData) sendQueueFind(packet *packetType) (idx int, sqd sendQueueData, id uint32, err error) {
 	err = errors.New(fmt.Sprint("not found, packet id: ", id))
 	id = packet.getID()
 	for idx, sqd = range tcd.sendQueue {

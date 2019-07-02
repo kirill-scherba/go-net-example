@@ -3,6 +3,7 @@ package trudp
 import (
 	"net"
 	"strconv"
+	"sync/atomic"
 	"time"
 )
 
@@ -12,8 +13,8 @@ type channelData struct {
 	addr net.Addr // UDP address
 	ch   int      // TRUDP channel
 
-	id         uint // Last send packet ID
-	expectedID uint // Expected incoming ID
+	id         uint32 // Last send packet ID
+	expectedID uint32 // Expected incoming ID
 
 	sendTestMsg bool
 
@@ -87,9 +88,10 @@ func (tcd *channelData) destroy() {
 }
 
 // getId return new packe id
-func (tcd *channelData) getID() (id uint) {
-	id = tcd.id
-	tcd.id++
+func (tcd *channelData) getID() (id uint32) {
+	id = atomic.AddUint32(&tcd.id, 1) - 1
+	// id = tcd.id
+	// tcd.id++
 	return
 }
 
@@ -118,6 +120,12 @@ func (tcd *channelData) TripTime() float32 {
 	return tcd.triptime
 }
 
+// WriteTo send data to remote host
+func (tcd *channelData) WriteTo(data []byte) {
+	tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
+	tcd.trudp.sendEvent(tcd, SEND_DATA, data)
+}
+
 // makeKey return trudp channel key
 func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
 	return addr.String() + ":" + strconv.Itoa(ch)
@@ -143,14 +151,14 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 		id:               firstPacketID,
 		expectedID:       firstPacketID,
 		lastTimeReceived: time.Now(),
-		sendTestMsg:      true,
+		sendTestMsg:      false,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
 	trudp.tcdmap[key] = tcd
 
 	// Channels and sendQueue workers Init
-	tcd.sendQueueProcess(nil)
+	tcd.sendQueueCommand(nil)
 
 	trudp.log(CONNECT, "channel with key", key, "connected")
 	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
@@ -171,9 +179,9 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channe
 	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
 
 	// \TODO Just for test: Send hello to remote host
-	for i := 0; i < 3; i++ {
-		trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg)).writeTo(tcd)
-	}
+	// for i := 0; i < 3; i++ {
+	// 	trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg)).writeTo(tcd)
+	// }
 
 	return
 }
