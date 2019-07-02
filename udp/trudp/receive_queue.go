@@ -6,7 +6,7 @@ import (
 )
 
 type receiveQueueData struct {
-	packet *packetData //packet []byte
+	packet *packetType
 }
 
 const (
@@ -76,12 +76,10 @@ func (tcd *channelData) receivedQueueProcess(packet []byte) {
 }
 
 // receiveQueueAdd add packet to receive queue
-func (tcd *channelData) receiveQueueAdd(packet []byte) {
-	tcd.receiveQueue = append(tcd.receiveQueue, receiveQueueData{
-		packet: &packetData{packetType{trudp: tcd.trudp, data: packet}},
-	})
-
-	tcd.trudp.log(DEBUGv, "add to send queue, id", tcd.trudp.packet.getID(packet))
+func (tcd *channelData) receiveQueueAdd(data []byte) {
+	packet := &packetType{trudp: tcd.trudp, data: data}
+	tcd.receiveQueue = append(tcd.receiveQueue, receiveQueueData{packet: packet})
+	tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID(packet.data))
 }
 
 // receiveQueueFind find packet with selected id in receiveQueue
