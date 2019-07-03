@@ -1,8 +1,10 @@
 package trudp
 
 import (
+	"errors"
 	"net"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -26,9 +28,10 @@ type channelData struct {
 	sendQueue    []sendQueueData    // send queue
 	receiveQueue []receiveQueueData // received queue
 
-	chSendQueue chan func()  // channel for worker 'trudp process command'
-	stopWorkers [4]chan bool // channels to stop wokers
-	stoppedF    bool
+	chSendQueue chan func()    // channel for worker 'trudp process command'
+	stopWorkers [3]chan bool   // channels to stop wokers
+	wgWorkers   sync.WaitGroup // workers stop wait group
+	stoppedF    bool           // trudp channel stopped flag
 }
 
 // Workrs index
@@ -36,7 +39,7 @@ const (
 	wkProcessCommand = iota
 	wkResendProcessing
 	wkKeepAlive
-	wkStopped
+	//wkStopped
 )
 
 // reset exequte reset of this cannel
@@ -54,15 +57,16 @@ func (tcd *channelData) reset() {
 }
 
 // destroy close and destroy trudp channel
-func (tcd *channelData) destroy() {
+func (tcd *channelData) destroy(msgLevel int, msg string) {
+
+	// Disable repeatable 'destroy'
+	if tcd.stoppedF {
+		return
+	}
+	tcd.stoppedF = true
+	tcd.trudp.log(msgLevel, msg)
 
 	go func() {
-
-		// Disable repeatable 'destroy'
-		if tcd.stoppedF {
-			return
-		}
-		tcd.stoppedF = true
 
 		// Stop workers
 		tcd.stopWorkers[wkKeepAlive] <- true
@@ -70,9 +74,7 @@ func (tcd *channelData) destroy() {
 		tcd.stopWorkers[wkProcessCommand] <- true
 
 		// Wait wokers to stopped
-		for i := 0; i < len(tcd.stopWorkers)-1; i++ {
-			<-tcd.stopWorkers[wkStopped]
-		}
+		tcd.wgWorkers.Wait()
 
 		// Close workers channels
 		for i := 0; i < len(tcd.stopWorkers)-1; i++ {
@@ -91,8 +93,6 @@ func (tcd *channelData) destroy() {
 // getId return new packe id
 func (tcd *channelData) getID() (id uint32) {
 	id = atomic.AddUint32(&tcd.id, 1) - 1
-	// id = tcd.id
-	// tcd.id++
 	return
 }
 
@@ -123,9 +123,14 @@ func (tcd *channelData) TripTime() float32 {
 }
 
 // WriteTo send data to remote host
-func (tcd *channelData) WriteTo(data []byte) {
+func (tcd *channelData) WriteTo(data []byte) (err error) {
+	if tcd.stoppedF {
+		err = errors.New("channel closed")
+		return
+	}
 	tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
 	tcd.trudp.sendEvent(tcd, SEND_DATA, data)
+	return
 }
 
 // makeKey return trudp channel key
@@ -157,6 +162,8 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
+
+	// Add to channels map
 	trudp.tcdmap[key] = tcd
 
 	// Channels and sendQueue workers Init

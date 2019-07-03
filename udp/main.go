@@ -43,10 +43,14 @@ func main() {
 		// Sender
 		num := 0
 		f := func() {
-			const sleepTime = 2 * 1720
+			defer func() { log.Println("(main) channels sender stopped") }()
+			const sleepTime = 100 * 1720
 			for {
 				time.Sleep(sleepTime * time.Microsecond)
-				tcd.WriteTo([]byte("Hello-" + strconv.Itoa(num) + "!"))
+				err := tcd.WriteTo([]byte("Hello-" + strconv.Itoa(num) + "!"))
+				if err != nil {
+					return
+				}
 				num++
 			}
 		}
@@ -60,7 +64,7 @@ func main() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
-				log.Println("(main) GOT_DATA: " /*ev.Data,*/, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+				log.Println("(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 				if rport == 0 {
 					ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
 				}
