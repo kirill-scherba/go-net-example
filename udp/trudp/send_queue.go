@@ -29,68 +29,69 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 			tcd.stopWorkers[idx] = make(chan bool)
 		}
 
+		// Initialize workers stop wait group
+		tcd.wgWorkers.Add(len(tcd.stopWorkers))
+
+		// Workers star stop messages
+		startMsg := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" started") }
+		stopMsg := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" stopped"); tcd.wgWorkers.Done() }
+
 		// Send queue 'process command' worker. Exequte all concurent sendQueue
 		// commands.
 		go func() {
-			tcd.trudp.log(DEBUGv, "worker 'trudp process command' started")
-		for_l:
+			worker := "'trudp process command'"
+			startMsg(worker)
+			defer func() { stopMsg(worker) }()
 			for {
 				// Wait message from chSendQueue or stopWorkers channels
 				select {
 				case <-tcd.stopWorkers[wkProcessCommand]:
-					break for_l
+					return
 				case fun := <-tcd.chSendQueue:
 					// Exequte commands(functions) but skip nil, nil sends on Init
-					switch fun {
-					case nil:
-					default:
+					if fun != nil {
 						fun()
 					}
 				}
 			}
-			tcd.trudp.log(DEBUGv, "worker 'trudp process command' stopped")
-			tcd.stopWorkers[wkStopped] <- true
 		}()
 
 		// Send queue 'resend processing' worker
 		go func() {
+			worker := "'send queue resend processing'"
+			startMsg(worker)
 			var t time.Duration = defaultRTT * time.Millisecond
-			tcd.trudp.log(DEBUGv, "worker 'send queue resend processing' started")
-		for_l:
+			defer func() { tcd.sendQueueReset(); stopMsg(worker) }()
 			for {
 				select {
 				case <-tcd.stopWorkers[wkResendProcessing]:
-					break for_l
+					return
 				default:
 					time.Sleep(t)
 					tcd.sendQueueCommand(func() { t = tcd.sendQueueResendProcess() })
 				}
 			}
-			tcd.sendQueueReset()
-			tcd.trudp.log(DEBUGv, "worker 'send queue resend processing' stopped")
-			tcd.stopWorkers[wkStopped] <- true
 		}()
 
 		// Channel 'keep alive (send ping)' worker. Sleep during pingInterval
 		// constant and send ping if nothing received in sleep period. Destroy
 		// channel if peer does not answer long time = disconnectAfterTime constant
 		go func() {
+			worker := "'trudp keep alive (send ping)'"
 			slepTime := pingInterval * time.Millisecond
 			disconnectAfterTime := disconnectAfter * time.Millisecond
-			tcd.trudp.log(DEBUGv, "worker 'trudp keep alive (send ping)' started")
-		for_l:
+			startMsg(worker)
+			defer func() { stopMsg(worker) }()
 			for {
 				select {
 				case <-tcd.stopWorkers[wkKeepAlive]:
-					break for_l
+					return
 				default:
 					time.Sleep(slepTime)
 					// Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 					switch {
 					case time.Since(tcd.lastTimeReceived) >= disconnectAfterTime:
-						tcd.trudp.log(DEBUGv, "destroy this channel: does not answer long time", time.Since(tcd.lastTimeReceived))
-						tcd.destroy()
-						break
+						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time, since: ", time.Since(tcd.lastTimeReceived)))
 					case time.Since(tcd.lastTripTimeReceived) >= slepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 						tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
@@ -103,8 +104,6 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 					}
 				}
 			}
-			tcd.trudp.log(DEBUGv, "worker 'trudp keep alive (send ping)' stopped")
-			tcd.stopWorkers[wkStopped] <- true
 		}()
 
 	}
@@ -127,8 +126,8 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 			// Destroy this trudp channel if resendAttemp more than maxResendAttemp
 			if sqd.resendAttempt >= maxResendAttempt {
 				// Destroy this trudp channel
-				tcd.trudp.log(DEBUGv, "destroy this channel: too much resends happens", sqd.resendAttempt)
-				tcd.destroy()
+				//tcd.trudp.log(DEBUGv, "destroy this channel: too much resends happens", sqd.resendAttempt)
+				tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: too much resends happens: ", sqd.resendAttempt))
 				break
 			}
 			// Resend recort with arrivalTime less than Windows
