@@ -260,7 +260,7 @@ func (trudp *TRUDP) Run() {
 	for {
 		buffer := make([]byte, maxBufferSize)
 
-		nRead, addr, err := trudp.conn.ReadFrom(buffer)
+		nRead, addr, err := trudp.conn.ReadFromUDP(buffer)
 		if err != nil {
 			panic(err)
 		}
@@ -289,7 +289,7 @@ func (trudp *TRUDP) Run() {
 		// Process echo message Ping (send to Pong)
 		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
 			trudp.log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
-			trudp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr.(*net.UDPAddr))
+			trudp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr /*.(*net.UDPAddr)*/)
 
 		// Process echo answer message Pong (answer to Ping)
 		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:

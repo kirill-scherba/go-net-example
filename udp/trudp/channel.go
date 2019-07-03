@@ -12,8 +12,8 @@ import (
 type channelData struct {
 	trudp *TRUDP // link to trudp
 
-	addr net.Addr // UDP address
-	ch   int      // TRUDP channel
+	addr *net.UDPAddr // UDP address
+	ch   int          // TRUDP channel
 
 	id         uint32 // Last send packet ID
 	expectedID uint32 // Expected incoming ID
@@ -118,7 +118,7 @@ func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
 }
 
 // newChannelData create new TRUDP ChannelData or select existing
-func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key string) {
+func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData, key string) {
 
 	key = trudp.makeKey(addr, ch)
 

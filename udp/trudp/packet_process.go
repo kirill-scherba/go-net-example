@@ -16,7 +16,7 @@ const (
 )
 
 // process received packet
-func (pac *packetType) process(addr net.Addr) (processed bool) {
+func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	processed = false
 
 	ch := pac.getChannel()
