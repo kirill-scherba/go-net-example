@@ -90,14 +90,29 @@ func (packet *packetType) destroy() {
 // writeTo send packetData to trudp channel. Depend on type of created packet:
 // Data or Service. Send Data packet to trudp channel and save it to sendQueue
 // or Send Service packet to trudp channel and destroy it
-func (packet *packetType) writeTo(tcd *channelData) {
-	data := packet.data
-	packet.trudp.conn.WriteTo(data, tcd.addr)
-	if packet.sendQueueF {
-		tcd.sendQueueCommand(func() { tcd.sendQueueAdd(packet) })
-	} else {
-		packet.destroy()
+func (packet *packetType) writeToSafeUnsafe(tcd *channelData, safe bool) {
+	packet.trudp.conn.WriteTo(packet.data, tcd.addr)
+	sendEvent := func() {
+		tcd.sendQueueAdd(packet)
+		tcd.stat.send()
+		tcd.trudp.sendEvent(tcd, SEND_DATA, packet.getData())
 	}
+	switch {
+	case !packet.sendQueueF:
+		packet.destroy()
+	case safe:
+		tcd.sendQueueCommand(sendEvent)
+	case !safe:
+		sendEvent()
+	}
+}
+
+func (packet *packetType) writeToUnsafe(tcd *channelData) {
+	packet.writeToSafeUnsafe(tcd, false)
+}
+
+func (packet *packetType) writeTo(tcd *channelData) {
+	packet.writeToSafeUnsafe(tcd, true)
 }
 
 // Check TR-UDP packet and return true if packet valid

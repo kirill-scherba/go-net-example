@@ -9,13 +9,6 @@ import (
 	"time"
 )
 
-type channelStat struct {
-	triptime             float32   // Channels triptime in Millisecond
-	triptimeMiddle       float32   // Channels midle triptime in Millisecond
-	lastTimeReceived     time.Time // Time when last packet was received
-	lastTripTimeReceived time.Time // Time when last packet with triptime was received
-}
-
 type channelData struct {
 	trudp *TRUDP // link to trudp
 
@@ -100,22 +93,6 @@ func (tcd *channelData) getID() (id uint32) {
 	return
 }
 
-// setTriptime save triptime to the ChannelData
-func (tcd *channelData) setTriptime(triptime float32) {
-	tcd.stat.triptime = triptime
-	if tcd.stat.triptimeMiddle == 0 {
-		tcd.stat.triptimeMiddle = tcd.stat.triptime
-		return
-	}
-	tcd.stat.triptimeMiddle = (tcd.stat.triptimeMiddle*10 + tcd.stat.triptime) / 11
-	tcd.stat.lastTripTimeReceived = time.Now()
-}
-
-// setLastTimeReceived save last time received from channel to the ChannelData
-func (tcd *channelData) setLastTimeReceived() {
-	tcd.stat.lastTimeReceived = time.Now()
-}
-
 // SendTestMsg set sendTestMsg flag to send test message by interval
 func (tcd *channelData) SendTestMsg(sendTestMsg bool) {
 	tcd.sendTestMsg = sendTestMsg
@@ -133,7 +110,6 @@ func (tcd *channelData) WriteTo(data []byte) (err error) {
 		return
 	}
 	tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
-	tcd.trudp.sendEvent(tcd, SEND_DATA, data)
 	return
 }
 
@@ -161,7 +137,7 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 		ch:          ch,
 		id:          firstPacketID,
 		expectedID:  firstPacketID,
-		stat:        channelStat{lastTimeReceived: time.Now()},
+		stat:        channelStat{trudp: trudp, lastTimeReceived: time.Now()},
 		sendTestMsg: false,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)

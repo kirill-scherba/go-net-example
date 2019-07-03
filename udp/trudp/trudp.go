@@ -32,8 +32,18 @@ type TRUDP struct {
 	tcdmap   map[string]*channelData // channel data map
 	packet   *packetType             // packet functions holder
 	Event    chan *eventData         // User level event channel
+	packets  packetsStat             // TRUDP packets statistic
 }
 
+// trudpStat structure contain trudp statistic variables
+type packetsStat struct {
+	send    uint32 // Total packets send
+	ack     uint32 // Total ACK reseived
+	receive uint32 // Total packet reseived
+	dropped uint32 // Total packet droped
+}
+
+// eventData used as structure in sendEvent function
 type eventData struct {
 	Tcd   *channelData
 	Event int

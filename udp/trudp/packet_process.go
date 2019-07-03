@@ -21,14 +21,16 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 
 	ch := pac.getChannel()
 	tcd, key := pac.trudp.newChannelData(addr, ch)
-	tcd.setLastTimeReceived()
+	tcd.stat.setLastTimeReceived()
 
 	packetType := pac.getType()
 	switch packetType {
 
-	case DATA: // DATA packet received
+	// DATA packet received
+	case DATA:
 		// Create ACK packet and send it back to sender
 		pac.ackCreateNew().writeTo(tcd)
+		tcd.stat.received()
 		// Show log
 		pac.trudp.log(DEBUGv, "DATA      packet received, key:", key,
 			"id:", fmt.Sprintf("%4d", pac.getID()),
@@ -38,9 +40,11 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		// Process received queue
 		pac.packetDataProcess(tcd)
 
-	case ACK: // ACK-to-data packet received
+	// ACK-to-data packet received
+	case ACK:
 		// Set trip time to ChannelData
-		tcd.setTriptime(pac.getTriptime())
+		tcd.stat.setTriptime(pac.getTriptime())
+		tcd.stat.ackReceived()
 		// Show log
 		pac.trudp.log(DEBUGv, "ACK       packet received, key:", key,
 			"id:", fmt.Sprintf("%4d", pac.getID()),
@@ -49,16 +53,19 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		// Remove packet from send queue
 		tcd.sendQueueCommand(func() { tcd.sendQueueRemove(pac) })
 
-	case RESET: // RESET packet received
+	// RESET packet received
+	case RESET:
 		pac.trudp.log(DEBUGv, "RESET     packet received, key:", key)
 		pac.ackToResetCreateNew().writeTo(tcd)
 		tcd.reset()
 
-	case ACKReset: // ACK-to-reset packet received
+	// ACK-to-reset packet received
+	case ACKReset:
 		pac.trudp.log(DEBUGv, "ACK_RESET packet received, key:", key)
 		tcd.reset()
 
-	case PING: // PING packet received
+	// PING packet received
+	case PING:
 		// Create ACK to ping packet and send it back to sender
 		pac.ackToPingCreateNew().writeTo(tcd)
 		// Show log
@@ -67,15 +74,17 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 			"expected id:", tcd.expectedID,
 			"data:", pac.getData(), string(pac.getData()))
 
-	case ACKPing: // ACK-to-PING packet received
+	// ACK-to-PING packet received
+	case ACKPing:
 		// Set trip time to ChannelData
-		tcd.setTriptime(pac.getTriptime())
+		tcd.stat.setTriptime(pac.getTriptime())
 		pac.trudp.log(DEBUGv, "ACK_PING  packet received, key:", key,
 			"id:", fmt.Sprintf("%4d", pac.getID()),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 
-	default: // UNKNOWN packet received
+	// UNKNOWN packet received
+	default:
 		pac.trudp.log(DEBUGv, "UNKNOWN   packet received, key:", key, ", type:", packetType)
 	}
 
@@ -131,7 +140,8 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
-		// \TODO Set statistic REJECTED (already received) packet
+		// Set statistic REJECTED (already received) packet
+		tcd.stat.dropped()
 
 	// Packet with id more than expectedID placed to receive queue and wait
 	// previouse packets
@@ -143,6 +153,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 		} else {
 			tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
 			// \TODO Set statistic REJECTED (already received) packet
+			tcd.stat.dropped()
 		}
 	}
 }

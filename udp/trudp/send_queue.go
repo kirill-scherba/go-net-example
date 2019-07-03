@@ -100,12 +100,11 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 					if tcd.sendTestMsg {
 						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
 						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
-						tcd.trudp.sendEvent(tcd, SEND_DATA, data)
+						//tcd.trudp.sendEvent(tcd, SEND_DATA, data)
 					}
 				}
 			}
 		}()
-
 	}
 
 	// Send message to sendQueue 'process command' worker
@@ -118,7 +117,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 	rtt = defaultRTT * time.Millisecond
 	now := time.Now()
-	for i, sqd := range tcd.sendQueue {
+	for _, sqd := range tcd.sendQueue {
 		var t time.Duration
 		if !now.After(sqd.arrivalTime) {
 			t = time.Until(sqd.arrivalTime)
@@ -130,16 +129,12 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 				tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: too much resends happens: ", sqd.resendAttempt))
 				break
 			}
-			// Resend recort with arrivalTime less than Windows
+			// Resend record with arrivalTime less than Windows
 			t = time.Duration(defaultRTT+tcd.stat.triptimeMiddle) * time.Millisecond
-			tcd.sendQueue[i].sendTime = now
-			tcd.sendQueue[i].resendAttempt++
-			tcd.sendQueue[i].arrivalTime = now.Add(t)
-			tcd.trudp.conn.WriteTo(sqd.packet.data, tcd.addr)
-			tcd.trudp.sendEvent(tcd, SEND_DATA, sqd.packet.getData())
+			sqd.packet.writeToUnsafe(tcd)
 
 			tcd.trudp.log(DEBUG, "resend sendQueue packet with",
-				"id:", fmt.Sprintf("%4d", sqd.packet.getID()),
+				"id:", sqd.packet.getID(),
 				"attempt:", sqd.resendAttempt,
 				"rtt:", t)
 		}
@@ -151,16 +146,25 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 	return
 }
 
-// sendQueueAdd add packet to send queue
+// sendQueueAdd add or update send queue packet
 func (tcd *channelData) sendQueueAdd(packet *packetType) {
 	now := time.Now()
-	var rttTime time.Duration = defaultRTT
-	tcd.sendQueue = append(tcd.sendQueue, sendQueueData{
-		packet:      packet,
-		sendTime:    now,
-		arrivalTime: now.Add(rttTime * time.Millisecond)})
+	var rttTime time.Duration = defaultRTT + time.Duration(tcd.stat.triptimeMiddle)
+	arrivalTime := now.Add(rttTime * time.Millisecond)
 
-	tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID())
+	idx, _, _, err := tcd.sendQueueFind(packet)
+	if err != nil {
+		tcd.sendQueue = append(tcd.sendQueue, sendQueueData{
+			packet:      packet,
+			sendTime:    now,
+			arrivalTime: arrivalTime,
+		})
+		tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID())
+	} else {
+		tcd.sendQueue[idx].arrivalTime = arrivalTime
+		tcd.sendQueue[idx].resendAttempt++
+		tcd.trudp.log(DEBUGv, "update in send queue, id", packet.getID())
+	}
 }
 
 // sendQueueFind find packet in sendQueue
