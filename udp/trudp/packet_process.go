@@ -33,7 +33,7 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		tcd.stat.received()
 		// Show log
 		pac.trudp.log(DEBUGv, "DATA      packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getID()),
+			"id:", pac.getID(),
 			"expected id:", tcd.expectedID,
 			"data length:", len(pac.data),
 			"data:", pac.getData())
@@ -47,7 +47,7 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		tcd.stat.ackReceived()
 		// Show log
 		pac.trudp.log(DEBUGv, "ACK       packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getID()),
+			"id:", pac.getID(),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 		// Remove packet from send queue
@@ -70,7 +70,7 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		pac.ackToPingCreateNew().writeTo(tcd)
 		// Show log
 		pac.trudp.log(DEBUGv, "PING      packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getID()),
+			"id:", pac.getID(),
 			"expected id:", tcd.expectedID,
 			"data:", pac.getData(), string(pac.getData()))
 
@@ -79,7 +79,7 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		// Set trip time to ChannelData
 		tcd.stat.setTriptime(pac.getTriptime())
 		pac.trudp.log(DEBUGv, "ACK_PING  packet received, key:", key,
-			"id:", fmt.Sprintf("%4d", pac.getID()),
+			"id:", pac.getID(),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 

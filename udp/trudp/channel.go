@@ -104,13 +104,12 @@ func (tcd *channelData) TripTime() float32 {
 }
 
 // WriteTo send data to remote host
-func (tcd *channelData) WriteTo(data []byte) (err error) {
-	if tcd.stoppedF {
-		err = errors.New("channel closed")
-		return
+func (tcd *channelData) WriteTo(data []byte) error {
+	if !tcd.stoppedF {
+		tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
+		return nil
 	}
-	tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
-	return
+	return errors.New("channel closed")
 }
 
 // makeKey return trudp channel key

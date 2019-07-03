@@ -87,7 +87,7 @@ func (packet *packetType) destroy() {
 	}
 }
 
-// writeTo send packetData to trudp channel. Depend on type of created packet:
+// writeToSafeUnsafe send packetData to trudp channel. Depend on type of created packet:
 // Data or Service. Send Data packet to trudp channel and save it to sendQueue
 // or Send Service packet to trudp channel and destroy it
 func (packet *packetType) writeToSafeUnsafe(tcd *channelData, safe bool) {
