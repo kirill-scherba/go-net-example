@@ -44,8 +44,8 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		// Show log
 		pac.trudp.log(DEBUGv, "ACK       packet received, key:", key,
 			"id:", fmt.Sprintf("%4d", pac.getID()),
-			"trip time:", fmt.Sprintf("%.3f", tcd.triptime), "ms",
-			"trip time midle:", fmt.Sprintf("%.3f", tcd.triptimeMiddle), "ms")
+			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
+			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 		// Remove packet from send queue
 		tcd.sendQueueCommand(func() { tcd.sendQueueRemove(pac) })
 
@@ -72,8 +72,8 @@ func (pac *packetType) process(addr net.Addr) (processed bool) {
 		tcd.setTriptime(pac.getTriptime())
 		pac.trudp.log(DEBUGv, "ACK_PING  packet received, key:", key,
 			"id:", fmt.Sprintf("%4d", pac.getID()),
-			"trip time:", fmt.Sprintf("%.3f", tcd.triptime), "ms",
-			"trip time midle:", fmt.Sprintf("%.3f", tcd.triptimeMiddle), "ms")
+			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
+			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 
 	default: // UNKNOWN packet received
 		pac.trudp.log(DEBUGv, "UNKNOWN   packet received, key:", key, ", type:", packetType)

@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+type channelStat struct {
+	triptime             float32   // Channels triptime in Millisecond
+	triptimeMiddle       float32   // Channels midle triptime in Millisecond
+	lastTimeReceived     time.Time // Time when last packet was received
+	lastTripTimeReceived time.Time // Time when last packet with triptime was received
+}
+
 type channelData struct {
 	trudp *TRUDP // link to trudp
 
@@ -20,11 +27,6 @@ type channelData struct {
 
 	sendTestMsg bool
 
-	triptime             float32   // Channels triptime in Millisecond
-	triptimeMiddle       float32   // Channels midle triptime in Millisecond
-	lastTimeReceived     time.Time // Time when last packet was received
-	lastTripTimeReceived time.Time // Time when last packet with triptime was received
-
 	sendQueue    []sendQueueData    // send queue
 	receiveQueue []receiveQueueData // received queue
 
@@ -32,6 +34,8 @@ type channelData struct {
 	stopWorkers [3]chan bool   // channels to stop wokers
 	wgWorkers   sync.WaitGroup // workers stop wait group
 	stoppedF    bool           // trudp channel stopped flag
+
+	stat channelStat
 }
 
 // Workrs index
@@ -98,18 +102,18 @@ func (tcd *channelData) getID() (id uint32) {
 
 // setTriptime save triptime to the ChannelData
 func (tcd *channelData) setTriptime(triptime float32) {
-	tcd.triptime = triptime
-	if tcd.triptimeMiddle == 0 {
-		tcd.triptimeMiddle = tcd.triptime
+	tcd.stat.triptime = triptime
+	if tcd.stat.triptimeMiddle == 0 {
+		tcd.stat.triptimeMiddle = tcd.stat.triptime
 		return
 	}
-	tcd.triptimeMiddle = (tcd.triptimeMiddle*10 + tcd.triptime) / 11
-	tcd.lastTripTimeReceived = time.Now()
+	tcd.stat.triptimeMiddle = (tcd.stat.triptimeMiddle*10 + tcd.stat.triptime) / 11
+	tcd.stat.lastTripTimeReceived = time.Now()
 }
 
 // setLastTimeReceived save last time received from channel to the ChannelData
 func (tcd *channelData) setLastTimeReceived() {
-	tcd.lastTimeReceived = time.Now()
+	tcd.stat.lastTimeReceived = time.Now()
 }
 
 // SendTestMsg set sendTestMsg flag to send test message by interval
@@ -119,7 +123,7 @@ func (tcd *channelData) SendTestMsg(sendTestMsg bool) {
 
 // TripTime return current triptime (ms)
 func (tcd *channelData) TripTime() float32 {
-	return tcd.triptime
+	return tcd.stat.triptime
 }
 
 // WriteTo send data to remote host
@@ -152,13 +156,13 @@ func (trudp *TRUDP) newChannelData(addr net.Addr, ch int) (tcd *channelData, key
 
 	// Channel data create
 	tcd = &channelData{
-		trudp:            trudp,
-		addr:             addr,
-		ch:               ch,
-		id:               firstPacketID,
-		expectedID:       firstPacketID,
-		lastTimeReceived: time.Now(),
-		sendTestMsg:      false,
+		trudp:       trudp,
+		addr:        addr,
+		ch:          ch,
+		id:          firstPacketID,
+		expectedID:  firstPacketID,
+		stat:        channelStat{lastTimeReceived: time.Now()},
+		sendTestMsg: false,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)

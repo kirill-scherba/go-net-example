@@ -90,9 +90,9 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 					time.Sleep(slepTime)
 					// Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 					switch {
-					case time.Since(tcd.lastTimeReceived) >= disconnectAfterTime:
-						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time, since: ", time.Since(tcd.lastTimeReceived)))
-					case time.Since(tcd.lastTripTimeReceived) >= slepTime:
+					case time.Since(tcd.stat.lastTimeReceived) >= disconnectAfterTime:
+						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time, since: ", time.Since(tcd.stat.lastTimeReceived)))
+					case time.Since(tcd.stat.lastTripTimeReceived) >= slepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 						tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
 					}
@@ -131,7 +131,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 				break
 			}
 			// Resend recort with arrivalTime less than Windows
-			t = time.Duration(defaultRTT+tcd.triptimeMiddle) * time.Millisecond
+			t = time.Duration(defaultRTT+tcd.stat.triptimeMiddle) * time.Millisecond
 			tcd.sendQueue[i].sendTime = now
 			tcd.sendQueue[i].resendAttempt++
 			tcd.sendQueue[i].arrivalTime = now.Add(t)
