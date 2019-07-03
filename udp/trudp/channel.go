@@ -18,9 +18,10 @@ type channelData struct {
 
 	sendTestMsg bool
 
-	triptime         float32   // Channels triptime in Millisecond
-	triptimeMiddle   float32   // Channels midle triptime in Millisecond
-	lastTimeReceived time.Time // Time when last packet was received
+	triptime             float32   // Channels triptime in Millisecond
+	triptimeMiddle       float32   // Channels midle triptime in Millisecond
+	lastTimeReceived     time.Time // Time when last packet was received
+	lastTripTimeReceived time.Time // Time when last packet with triptime was received
 
 	sendQueue    []sendQueueData    // send queue
 	receiveQueue []receiveQueueData // received queue
@@ -103,6 +104,7 @@ func (tcd *channelData) setTriptime(triptime float32) {
 		return
 	}
 	tcd.triptimeMiddle = (tcd.triptimeMiddle*10 + tcd.triptime) / 11
+	tcd.lastTripTimeReceived = time.Now()
 }
 
 // setLastTimeReceived save last time received from channel to the ChannelData
