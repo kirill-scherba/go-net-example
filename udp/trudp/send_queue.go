@@ -85,13 +85,13 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 					break for_l
 				default:
 					time.Sleep(slepTime)
-					// Send ping if time since tcd.lastTimeReceived >= pingInterval
+					// Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 					switch {
 					case time.Since(tcd.lastTimeReceived) >= disconnectAfterTime:
 						tcd.trudp.log(DEBUGv, "destroy this channel: does not answer long time", time.Since(tcd.lastTimeReceived))
 						tcd.destroy()
 						break
-					case time.Since(tcd.lastTimeReceived) >= slepTime:
+					case time.Since(tcd.lastTripTimeReceived) >= slepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 						tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
 					}

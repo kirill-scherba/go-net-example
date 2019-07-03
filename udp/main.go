@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/kirill-scherba/net-example-go/udp/trudp"
@@ -40,11 +41,13 @@ func main() {
 			tcd.SendTestMsg(true)
 		}
 		// Sender
+		num := 0
 		f := func() {
-			const sleepTime = 100 // 1720
+			const sleepTime = 2 * 1720
 			for {
 				time.Sleep(sleepTime * time.Microsecond)
-				tcd.WriteTo([]byte("Hello!"))
+				tcd.WriteTo([]byte("Hello-" + strconv.Itoa(num) + "!"))
+				num++
 			}
 		}
 		for i := 0; i < 1; i++ {
@@ -57,14 +60,13 @@ func main() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
-				//log.Println("(main) GOT_DATA: " /*ev.Data,*/, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+				log.Println("(main) GOT_DATA: " /*ev.Data,*/, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 				if rport == 0 {
-					log.Println("(main) SEND ....")
-					ev.Tcd.WriteTo([]byte("Hello!"))
+					ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
 				}
 
 			case trudp.SEND_DATA:
-				//log.Println("(main) SEND_DATA:", ev.Data, string(ev.Data))
+				log.Println("(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 			case trudp.INITIALIZE:
 				log.Println("(main) INITIALIZE, listen at:", string(ev.Data))
