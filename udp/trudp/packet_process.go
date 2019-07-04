@@ -129,7 +129,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 	case id == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
 		tcd.reset()
-		// \TODO Send received data packet to user level
+		// \TODO Send event "RESET was done locally" to user level
 
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
@@ -152,7 +152,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 			tcd.receiveQueueAdd(packet)
 		} else {
 			tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
-			// \TODO Set statistic REJECTED (already received) packet
+			// Set statistic REJECTED (already received) packet
 			tcd.stat.dropped()
 		}
 	}

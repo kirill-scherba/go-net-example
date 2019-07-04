@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-// \TODO remane to trudpPacket
+// \TODO rename to trudpPacket
 type packetType struct {
 	trudp      *TRUDP
 	data       []byte
