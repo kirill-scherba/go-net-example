@@ -9,34 +9,40 @@ import (
 	"time"
 )
 
+// TRUDP channel data structure
 type channelData struct {
 	trudp *TRUDP // link to trudp
 
+	// Channels remote host address and channel number
 	addr *net.UDPAddr // UDP address
-	ch   int          // TRUDP channel
+	ch   int          // TRUDP channel number
 
+	// Channels current IDs
 	id         uint32 // Last send packet ID
 	expectedID uint32 // Expected incoming ID
 
-	sendTestMsg bool
-
+	// Channels packet queues
 	sendQueue    []sendQueueData    // send queue
 	receiveQueue []receiveQueueData // received queue
 
-	chSendQueue chan func()    // channel for worker 'trudp process command'
-	stopWorkers [3]chan bool   // channels to stop wokers
-	wgWorkers   sync.WaitGroup // workers stop wait group
-	stoppedF    bool           // trudp channel stopped flag
+	// Channel channels and waiting groups
+	chSendQueue   chan func()           // channel for worker 'trudp process command'
+	chStopWorkers [workersLen]chan bool // channels to stop wokers
+	wgWorkers     sync.WaitGroup        // workers stop wait group
 
+	// Channel flags
+	stoppedF     bool // trudp channel stopped flag
+	sendTestMsgF bool // Send test messages
+
+	// Channel statistic
 	stat channelStat
 }
 
-// Workrs index
+// Workers indexes costant
 const (
-	wkProcessCommand = iota
-	wkResendProcessing
-	wkKeepAlive
-	//wkStopped
+	wkProcessCommand = iota // Process command, Process sendQueue and Keepalive
+	// ksSomeOherWorker may be added here
+	workersLen // Number of workers
 )
 
 // reset exequte reset of this cannel
@@ -65,25 +71,30 @@ func (tcd *channelData) destroy(msgLevel int, msg string) {
 
 	go func() {
 
-		// Stop workers
-		tcd.stopWorkers[wkKeepAlive] <- true
-		tcd.stopWorkers[wkResendProcessing] <- true
-		tcd.stopWorkers[wkProcessCommand] <- true
+		// Stopping workers and
+		for idx, _ := range tcd.chStopWorkers {
+			tcd.chStopWorkers[idx] <- true
+		}
 
-		// Wait wokers to stopped
+		// Wait to stop workers
 		tcd.wgWorkers.Wait()
 
-		// Close workers channels
-		for i := 0; i < len(tcd.stopWorkers)-1; i++ {
-			close(tcd.stopWorkers[i])
+		// Close workers stop channel and chSendQueue channel
+		for idx, _ := range tcd.chStopWorkers {
+			close(tcd.chStopWorkers[idx])
 		}
 		close(tcd.chSendQueue)
+
+		// Clear channel queues (the receive queue was cleaned during stop workers)
+		tcd.receiveQueueReset()
+
+		// \TODO Clear/Correct TRUDP statistics data
 
 		// Remove trudp channel from channels map
 		key := tcd.trudp.makeKey(tcd.addr, tcd.ch)
 		delete(tcd.trudp.tcdmap, key)
 		tcd.trudp.log(CONNECT, "channel with key", key, "disconnected")
-		tcd.trudp.sendEvent(nil, DISCONNECTED, []byte(key))
+		tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(key))
 	}()
 }
 
@@ -93,9 +104,9 @@ func (tcd *channelData) getID() (id uint32) {
 	return
 }
 
-// SendTestMsg set sendTestMsg flag to send test message by interval
-func (tcd *channelData) SendTestMsg(sendTestMsg bool) {
-	tcd.sendTestMsg = sendTestMsg
+// SendTestMsg set sendTestMsgF flag to send test message by interval
+func (tcd *channelData) SendTestMsg(sendTestMsgF bool) {
+	tcd.sendTestMsgF = sendTestMsgF
 }
 
 // TripTime return current triptime (ms)
@@ -131,13 +142,13 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 
 	// Channel data create
 	tcd = &channelData{
-		trudp:       trudp,
-		addr:        addr,
-		ch:          ch,
-		id:          firstPacketID,
-		expectedID:  firstPacketID,
-		stat:        channelStat{trudp: trudp, lastTimeReceived: time.Now()},
-		sendTestMsg: false,
+		trudp:        trudp,
+		addr:         addr,
+		ch:           ch,
+		id:           firstPacketID,
+		expectedID:   firstPacketID,
+		stat:         channelStat{trudp: trudp, lastTimeReceived: time.Now()},
+		sendTestMsgF: false,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
@@ -156,20 +167,17 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 
 // ConnectChannel to remote host by UDP
 func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channelData) {
-
 	address := rhost + ":" + strconv.Itoa(rport)
 	rUDPAddr, err := net.ResolveUDPAddr(network, address)
 	if err != nil {
 		panic(err)
 	}
 	trudp.log(CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
-
 	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
-
-	// \TODO Just for test: Send hello to remote host
-	// for i := 0; i < 3; i++ {
-	// 	trudp.packet.dataCreateNew(tcd.getID(), ch, []byte(helloMsg)).writeTo(tcd)
-	// }
-
 	return
+}
+
+// CloseChannel close trudp channel
+func (tcd *channelData) CloseChannel() {
+	tcd.destroy(DEBUGv, "destroy this channel: closed by user")
 }

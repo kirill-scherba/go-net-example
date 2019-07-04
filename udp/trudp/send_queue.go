@@ -25,82 +25,60 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 
 		// Initialize channels
 		tcd.chSendQueue = make(chan func())
-		for idx, _ := range tcd.stopWorkers {
-			tcd.stopWorkers[idx] = make(chan bool)
+		for idx, _ := range tcd.chStopWorkers {
+			tcd.chStopWorkers[idx] = make(chan bool)
 		}
 
 		// Initialize workers stop wait group
-		tcd.wgWorkers.Add(len(tcd.stopWorkers))
+		tcd.wgWorkers.Add(len(tcd.chStopWorkers))
 
-		// Workers star stop messages
-		startMsg := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" started") }
-		stopMsg := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" stopped"); tcd.wgWorkers.Done() }
+		// Workers star stop functions
+		start := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" started") }
+		stop := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" stopped"); tcd.wgWorkers.Done() }
 
 		// Send queue 'process command' worker. Exequte all concurent sendQueue
 		// commands.
 		go func() {
 			worker := "'trudp process command'"
-			startMsg(worker)
-			defer func() { stopMsg(worker) }()
+			start(worker)
+			resendTime := defaultRTT * time.Millisecond
+			slepTime := pingInterval * time.Millisecond
+			disconnectTime := disconnectAfter * time.Millisecond
+			timerResend := time.After(resendTime)
+			timerKeep := time.NewTicker(slepTime)
+			defer func() { timerKeep.Stop(); tcd.sendQueueReset(); stop(worker) }()
 			for {
 				// Wait message from chSendQueue or stopWorkers channels
 				select {
-				case <-tcd.stopWorkers[wkProcessCommand]:
+
+				// Process Stop worker channel
+				case <-tcd.chStopWorkers[wkProcessCommand]:
 					return
+
+				// task 1: Execute coomands(functions) received from chSendQueue channel
 				case fun := <-tcd.chSendQueue:
-					// Exequte commands(functions) but skip nil, nil sends on Init
 					if fun != nil {
 						fun()
 					}
-				}
-			}
-		}()
 
-		// Send queue 'resend processing' worker
-		go func() {
-			worker := "'send queue resend processing'"
-			startMsg(worker)
-			var t time.Duration = defaultRTT * time.Millisecond
-			defer func() { tcd.sendQueueReset(); stopMsg(worker) }()
-			for {
-				select {
-				case <-tcd.stopWorkers[wkResendProcessing]:
-					return
-				default:
-					time.Sleep(t)
-					tcd.sendQueueCommand(func() { t = tcd.sendQueueResendProcess() })
-				}
-			}
-		}()
+				// task 2: Process sendQueue (resend packets from sendQueue)
+				case <-timerResend:
+					resendTime = tcd.sendQueueResendProcess()
+					timerResend = time.After(resendTime)
 
-		// Channel 'keep alive (send ping)' worker. Sleep during pingInterval
-		// constant and send ping if nothing received in sleep period. Destroy
-		// channel if peer does not answer long time = disconnectAfterTime constant
-		go func() {
-			worker := "'trudp keep alive (send ping)'"
-			slepTime := pingInterval * time.Millisecond
-			disconnectAfterTime := disconnectAfter * time.Millisecond
-			startMsg(worker)
-			defer func() { stopMsg(worker) }()
-			for {
-				select {
-				case <-tcd.stopWorkers[wkKeepAlive]:
-					return
-				default:
-					time.Sleep(slepTime)
-					// Send ping if time since tcd.lastTripTimeReceived >= pingInterval
+				// task 3: Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
+				case <-timerKeep.C:
 					switch {
-					case time.Since(tcd.stat.lastTimeReceived) >= disconnectAfterTime:
-						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time, since: ", time.Since(tcd.stat.lastTimeReceived)))
+					case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
+						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
 					case time.Since(tcd.stat.lastTripTimeReceived) >= slepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 						tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
 					}
 					// \TODO send test data - remove it
-					if tcd.sendTestMsg {
+					if tcd.sendTestMsgF {
 						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
-						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
-						//tcd.trudp.sendEvent(tcd, SEND_DATA, data)
+						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
 					}
 				}
 			}
@@ -111,9 +89,10 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 	tcd.chSendQueue <- fnc
 }
 
-// sendQueueResendProcess resend packet from send queue if it does not got
+// sendQueueResendProcess Resend packet from send queue if it does not got
 // ACK during selected time. Destroy channel if too much resends happens =
 // maxResendAttempt constant
+// \TODO check this resend and calculate new resend time algorithm
 func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 	rtt = defaultRTT * time.Millisecond
 	now := time.Now()
