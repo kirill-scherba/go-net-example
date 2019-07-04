@@ -92,6 +92,7 @@ func (packet *packetType) destroy() {
 // or Send Service packet to trudp channel and destroy it
 func (packet *packetType) writeToSafeUnsafe(tcd *channelData, safe bool) {
 	packet.trudp.conn.WriteTo(packet.data, tcd.addr)
+
 	sendEvent := func() {
 		tcd.sendQueueAdd(packet)
 		tcd.stat.send()

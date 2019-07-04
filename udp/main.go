@@ -13,6 +13,9 @@ import (
 func main() {
 	fmt.Println("UDP test application ver 1.0.0")
 
+	// trudp.BenchmarkSyscallUDP()
+	// return
+
 	var (
 		rhost     string
 		rport     int
@@ -44,10 +47,14 @@ func main() {
 		num := 0
 		f := func() {
 			defer func() { log.Println("(main) channels sender stopped") }()
-			const sleepTime = 100 * 1720
+			const sleepTime = 250
 			for {
 				time.Sleep(sleepTime * time.Microsecond)
-				err := tcd.WriteTo([]byte("Hello-" + strconv.Itoa(num) + "!"))
+				// if num%100 == 0 { // 100
+				// 	time.Sleep(500 * time.Microsecond) // 500
+				// }
+				data := []byte("Hello-" + strconv.Itoa(num) + "!")
+				err := tcd.WriteTo(data)
 				if err != nil {
 					return
 				}
