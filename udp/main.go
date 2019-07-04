@@ -82,7 +82,10 @@ func main() {
 				log.Println("(main) DISCONNECTED", string(ev.Data))
 
 			case trudp.RESET_LOCAL:
-				log.Println("(main) RESET_LOCAL executed")
+				log.Println("(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
+
+			case trudp.SEND_RESET:
+				log.Println("(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
 			}
 		}
 	}()

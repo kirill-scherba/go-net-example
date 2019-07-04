@@ -181,3 +181,7 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channe
 func (tcd *channelData) CloseChannel() {
 	tcd.destroy(DEBUGv, "destroy this channel: closed by user")
 }
+
+func (tcd *channelData) MakeKey() string {
+	return tcd.trudp.makeKey(tcd.addr, tcd.ch)
+}

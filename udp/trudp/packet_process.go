@@ -57,12 +57,12 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	case RESET:
 		pac.trudp.log(DEBUGv, "RESET     packet received, key:", key)
 		pac.ackToResetCreateNew().writeTo(tcd)
-		tcd.reset()
+		tcd.sendQueueCommand(func() { tcd.reset() })
 
 	// ACK-to-reset packet received
 	case ACKReset:
 		pac.trudp.log(DEBUGv, "ACK_RESET packet received, key:", key)
-		tcd.reset()
+		tcd.sendQueueCommand(func() { tcd.reset() })
 
 	// PING packet received
 	case PING:
@@ -128,14 +128,14 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
-		tcd.reset()
-		// \TODO Send event "RESET was done locally" to user level
+		tcd.sendQueueCommand(func() { tcd.reset() })
 
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
 		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
 		packet.resetCreateNew().writeTo(tcd) // Send reset
-		// \TODO Send event "RESET was sent" to user level
+		// Send event "RESET was sent" to user level
+		tcd.trudp.sendEvent(tcd, SEND_RESET, nil)
 
 	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:
