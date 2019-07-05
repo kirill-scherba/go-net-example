@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/kirill-scherba/net-example-go/udp/trudp"
 )
@@ -55,9 +56,9 @@ func main() {
 		num := 0
 		f := func() {
 			defer func() { log.Println("(main) channels sender stopped") }()
-			const sleepTime = 250
+			const sleepTime = 500
 			for {
-				// time.Sleep(sleepTime * time.Microsecond)
+				time.Sleep(sleepTime * time.Microsecond)
 				data := []byte("Hello-" + strconv.Itoa(num) + "!")
 				err := tcd.WriteTo(data)
 				if err != nil {
