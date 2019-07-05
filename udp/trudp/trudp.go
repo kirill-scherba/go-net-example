@@ -14,6 +14,7 @@ const (
 	disconnectAfter  = 3000 // (ms) disconnect afret in ms
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
+	chWriteSize      = 2048 // Size of write channele used to send messages from users level
 
 	helloMsg      = "hello"
 	echoMsg       = "ping"
@@ -31,7 +32,7 @@ type TRUDP struct {
 	logLog   bool                    // show time in trudp log
 	tcdmap   map[string]*channelData // channel data map
 	packet   *packetType             // packet functions holder
-	Event    chan *eventData         // User level event channel
+	chRead   chan *eventData         // User level event channel
 	packets  packetsStat             // TRUDP packets statistic
 }
 
@@ -215,7 +216,7 @@ func Init(port int) (trudp *TRUDP) {
 		packet:   &packetType{},
 	}
 	trudp.tcdmap = make(map[string]*channelData)
-	trudp.Event = make(chan *eventData, 2048)
+	trudp.chRead = make(chan *eventData, chWriteSize)
 	trudp.packet.trudp = trudp
 
 	trudp.log(CONNECT, "start listenning at", conn.LocalAddr())
@@ -228,7 +229,7 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
-	trudp.Event <- &eventData{tcd, event, data}
+	trudp.chRead <- &eventData{tcd, event, data}
 }
 
 // Connect to remote host by UDP
@@ -302,4 +303,9 @@ func (trudp *TRUDP) Run() {
 			trudp.log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 		}
 	}
+}
+
+// ChRead return channel to read trudp events
+func (trudp *TRUDP) ChRead() <-chan *eventData {
+	return trudp.chRead
 }

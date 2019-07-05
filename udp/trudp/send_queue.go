@@ -18,13 +18,20 @@ type sendQueueData struct {
 // in 'Send queue process command' worker
 func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 
+	// Return error if trudp channel already closed
+	if tcd.stoppedF {
+		err = errors.New("can't process command: the channel " + tcd.key + " already closed")
+		return
+	}
+
 	// Start trudp channel and sendQueue workers
-	if tcd.chSendQueue == nil {
+	if tcd.chProcessCommand == nil {
 
 		tcd.trudp.log(DEBUGv, "sendQueue channel created")
 
 		// Initialize channels
-		tcd.chSendQueue = make(chan func())
+		tcd.chWrite = make(chan *packetType, chWriteSize)
+		tcd.chProcessCommand = make(chan func())
 		for idx, _ := range tcd.chStopWorkers {
 			tcd.chStopWorkers[idx] = make(chan bool)
 		}
@@ -39,7 +46,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 		// Send queue 'process command' worker. Exequte all concurent sendQueue
 		// commands.
 		go func() {
-			worker := "'trudp process command'"
+			worker := "'process command'"
 			start(worker)
 			resendTime := defaultRTT * time.Millisecond
 			slepTime := pingInterval * time.Millisecond
@@ -56,7 +63,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 					return
 
 				// task 1: Execute coomands(functions) received from chSendQueue channel
-				case fun := <-tcd.chSendQueue:
+				case fun := <-tcd.chProcessCommand:
 					if fun != nil {
 						fun()
 					}
@@ -80,18 +87,39 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
 						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
 					}
+
+				// task 4: Got packet from chWrite (from user level) and write it to teonet channel
+				case packet := <-tcd.checkChWrite():
+					packet.writeToUnsafe(tcd)
 				}
 			}
 		}()
 	}
 
 	// Send message to sendQueue 'process command' worker
-	if !tcd.stoppedF {
-		tcd.chSendQueue <- fnc
-	} else {
-		err = errors.New("channel " + tcd.key + " already closed")
-	}
+	tcd.chProcessCommand <- fnc
 	return
+}
+
+// checkChWrite got chWrite or nil channel depend of sendQueue length
+func (tcd *channelData) checkChWrite() chan *packetType {
+	if len(tcd.sendQueue) < 10 {
+		return tcd.chWrite
+	} else {
+		return nil
+	}
+}
+
+// resetChWrite reset user write channel
+func (tcd *channelData) resetChWrite() {
+	for len(tcd.chWrite) > 0 {
+		select {
+		case packet, ok := <-tcd.chWrite:
+			if ok {
+				packet.destroy()
+			}
+		}
+	}
 }
 
 // sendQueueResendProcess Resend packet from send queue if it does not got

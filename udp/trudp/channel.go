@@ -27,9 +27,10 @@ type channelData struct {
 	receiveQueue []receiveQueueData // received queue
 
 	// Channel channels and waiting groups
-	chSendQueue   chan func()           // channel for worker 'trudp process command'
-	chStopWorkers [workersLen]chan bool // channels to stop wokers
-	wgWorkers     sync.WaitGroup        // workers stop wait group
+	chProcessCommand chan func()           // channel for worker 'process command'
+	chWrite          chan *packetType      // channel to write (used to send data from user level)
+	chStopWorkers    [workersLen]chan bool // channels to stop wokers
+	wgWorkers        sync.WaitGroup        // workers stop wait group
 
 	// Channel flags
 	stoppedF     bool // trudp channel stopped flag
@@ -48,6 +49,8 @@ const (
 
 // reset exequte reset of this cannel
 func (tcd *channelData) reset() {
+	// Clear user write channel
+	tcd.resetChWrite()
 	// Clear sendQueue
 	tcd.sendQueueReset()
 	// Clear receivedQueue
@@ -61,12 +64,14 @@ func (tcd *channelData) reset() {
 }
 
 // destroy close and destroy trudp channel
-func (tcd *channelData) destroy(msgLevel int, msg string) {
+func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 
 	// Disable repeatable 'destroy'
 	if tcd.stoppedF {
+		err = errors.New("can't destroy: the channel " + tcd.key + " already closed")
 		return
 	}
+
 	tcd.stoppedF = true
 	tcd.trudp.log(msgLevel, msg)
 
@@ -84,7 +89,11 @@ func (tcd *channelData) destroy(msgLevel int, msg string) {
 		for idx, _ := range tcd.chStopWorkers {
 			close(tcd.chStopWorkers[idx])
 		}
-		close(tcd.chSendQueue)
+		close(tcd.chProcessCommand)
+
+		// Free and close write channel
+		tcd.resetChWrite()
+		close(tcd.chWrite)
 
 		// Clear channel queues (the receive queue was cleaned during stop workers)
 		tcd.receiveQueueReset()
@@ -96,6 +105,8 @@ func (tcd *channelData) destroy(msgLevel int, msg string) {
 		tcd.trudp.log(CONNECT, "channel with key", tcd.key, "disconnected")
 		tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
 	}()
+
+	return
 }
 
 // getId return new packe id
@@ -115,12 +126,13 @@ func (tcd *channelData) TripTime() float32 {
 }
 
 // WriteTo send data to remote host
-func (tcd *channelData) WriteTo(data []byte) error {
-	if !tcd.stoppedF {
-		tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
-		return nil
+func (tcd *channelData) WriteTo(data []byte) (err error) {
+	if tcd.stoppedF {
+		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
+		return
 	}
-	return errors.New("channel closed")
+	tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).sendTo(tcd) // writeTo(tcd)
+	return
 }
 
 // makeKey return trudp channel key

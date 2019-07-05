@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"time"
 
 	"github.com/kirill-scherba/net-example-go/udp/trudp"
 )
 
 func main() {
 	fmt.Println("UDP test application ver 1.0.0")
-
-	// trudp.BenchmarkSyscallUDP()
-	// return
 
 	var (
 		rhost     string
@@ -49,10 +45,7 @@ func main() {
 			defer func() { log.Println("(main) channels sender stopped") }()
 			const sleepTime = 250
 			for {
-				time.Sleep(sleepTime * time.Microsecond)
-				// if num%100 == 0 { // 100
-				// 	time.Sleep(500 * time.Microsecond) // 500
-				// }
+				// time.Sleep(sleepTime * time.Microsecond)
 				data := []byte("Hello-" + strconv.Itoa(num) + "!")
 				err := tcd.WriteTo(data)
 				if err != nil {
@@ -67,7 +60,7 @@ func main() {
 	}
 	// Receiver
 	go func() {
-		for ev := range tru.Event {
+		for ev := range tru.ChRead() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:

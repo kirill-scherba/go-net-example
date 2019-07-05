@@ -5,6 +5,7 @@ package trudp
 //#include "packet.h"
 import "C"
 import (
+	"errors"
 	"unsafe"
 )
 
@@ -108,12 +109,24 @@ func (packet *packetType) writeToSafeUnsafe(tcd *channelData, safe bool) {
 	}
 }
 
+// writeToSafeUnsafe send packetData to trudp channel. Unsafe mode, see writeToSafeUnsafe
 func (packet *packetType) writeToUnsafe(tcd *channelData) {
 	packet.writeToSafeUnsafe(tcd, false)
 }
 
+// writeToSafeUnsafe send packetData to trudp channel. Safe mode, see writeToSafeUnsafe
 func (packet *packetType) writeTo(tcd *channelData) {
 	packet.writeToSafeUnsafe(tcd, true)
+}
+
+// sendTo send message to the chWrite channel to send
+func (packet *packetType) sendTo(tcd *channelData) (err error) {
+	if tcd.stoppedF {
+		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
+		return
+	}
+	tcd.chWrite <- packet
+	return
 }
 
 // Check TR-UDP packet and return true if packet valid
