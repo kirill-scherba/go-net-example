@@ -16,7 +16,7 @@ type sendQueueData struct {
 
 // sendQueueCommand receive messageas from channel and exequte it
 // in 'Send queue process command' worker
-func (tcd *channelData) sendQueueCommand(fnc func()) {
+func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 
 	// Start trudp channel and sendQueue workers
 	if tcd.chSendQueue == nil {
@@ -73,7 +73,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
 					case time.Since(tcd.stat.lastTripTimeReceived) >= slepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-						tcd.trudp.log(DEBUGv, "send ping to", tcd.trudp.makeKey(tcd.addr, tcd.ch))
+						tcd.trudp.log(DEBUGv, "send ping to", tcd.key)
 					}
 					// \TODO send test data - remove it
 					if tcd.sendTestMsgF {
@@ -86,7 +86,12 @@ func (tcd *channelData) sendQueueCommand(fnc func()) {
 	}
 
 	// Send message to sendQueue 'process command' worker
-	tcd.chSendQueue <- fnc
+	if !tcd.stoppedF {
+		tcd.chSendQueue <- fnc
+	} else {
+		err = errors.New("channel " + tcd.key + " already closed")
+	}
+	return
 }
 
 // sendQueueResendProcess Resend packet from send queue if it does not got

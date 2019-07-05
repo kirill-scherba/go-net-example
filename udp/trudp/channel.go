@@ -16,6 +16,7 @@ type channelData struct {
 	// Channels remote host address and channel number
 	addr *net.UDPAddr // UDP address
 	ch   int          // TRUDP channel number
+	key  string       // TRUDP channel key (address and channel string representation)
 
 	// Channels current IDs
 	id         uint32 // Last send packet ID
@@ -91,10 +92,9 @@ func (tcd *channelData) destroy(msgLevel int, msg string) {
 		// \TODO Clear/Correct TRUDP statistics data
 
 		// Remove trudp channel from channels map
-		key := tcd.trudp.makeKey(tcd.addr, tcd.ch)
-		delete(tcd.trudp.tcdmap, key)
-		tcd.trudp.log(CONNECT, "channel with key", key, "disconnected")
-		tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(key))
+		delete(tcd.trudp.tcdmap, tcd.key)
+		tcd.trudp.log(CONNECT, "channel with key", tcd.key, "disconnected")
+		tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
 	}()
 }
 
@@ -145,6 +145,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 		trudp:        trudp,
 		addr:         addr,
 		ch:           ch,
+		key:          key,
 		id:           firstPacketID,
 		expectedID:   firstPacketID,
 		stat:         channelStat{trudp: trudp, lastTimeReceived: time.Now()},
@@ -182,6 +183,7 @@ func (tcd *channelData) CloseChannel() {
 	tcd.destroy(DEBUGv, "destroy this channel: closed by user")
 }
 
+// MakeKey return trudp channel key
 func (tcd *channelData) MakeKey() string {
-	return tcd.trudp.makeKey(tcd.addr, tcd.ch)
+	return tcd.key
 }
