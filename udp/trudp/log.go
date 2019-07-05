@@ -30,7 +30,7 @@ const (
 // log shows log message in terminal
 func (trudp *TRUDP) log(level int, p ...interface{}) {
 	if level <= trudp.logLevel {
-		if trudp.logLog {
+		if trudp.logLogF {
 			log.Println(p...)
 		} else {
 			fmt.Println(p...)
@@ -40,11 +40,11 @@ func (trudp *TRUDP) log(level int, p ...interface{}) {
 
 // LogLevel sets TRUDP log level
 // Avalable level values: NONE, CONNECT, MESSAGE, DEBUG, DEBUGv, DEBUGvv
-func (trudp *TRUDP) LogLevel(level interface{}, logLog bool, flag int) {
+func (trudp *TRUDP) LogLevel(level interface{}, logLogF bool, flag int) {
 
 	// Set log type
-	trudp.logLog = logLog
-	if logLog {
+	trudp.logLogF = logLogF
+	if logLogF {
 		if flag == 0 {
 			flag = log.LstdFlags
 		}
@@ -79,7 +79,7 @@ func (trudp *TRUDP) LogLevel(level interface{}, logLog bool, flag int) {
 	}
 
 	// Show log level
-	fmt.Println("show time in log:", trudp.logLog)
+	fmt.Println("show time in log:", trudp.logLogF)
 	fmt.Println("log level:", trudp.LogLevelString())
 }
 

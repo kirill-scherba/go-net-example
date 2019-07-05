@@ -27,14 +27,26 @@ const (
 
 // TRUDP connection strucure
 type TRUDP struct {
-	conn     *net.UDPConn            // connector to send data
-	ticker   *time.Ticker            // timer ticler
-	logLevel int                     // trudp log level
-	logLog   bool                    // show time in trudp log
-	tcdmap   map[string]*channelData // channel data map
-	packet   *packetType             // packet functions holder
-	chRead   chan *eventData         // User level event channel
-	packets  packetsStat             // TRUDP packets statistic
+
+	// Listner address
+	conn *net.UDPConn // connector to send data
+
+	// Control maps, channels and function holder
+	tcdmap map[string]*channelData // channel data map
+	chRead chan *eventData         // User level event channel
+	packet *packetType             // packet functions holder
+	ticker *time.Ticker            // timer ticler
+
+	// Logger configuration
+	logLevel int  // trudp log level
+	logLogF  bool // show time in trudp log
+
+	// Statustic
+	packets packetsStat // TRUDP packets statistic
+
+	// Control Flags
+	// \TODO use this flag to on / off statistic window
+	showStatF bool // Show statistic
 }
 
 // trudpStat structure contain trudp statistic variables
@@ -213,7 +225,7 @@ func Init(port int) (trudp *TRUDP) {
 		conn:     conn,
 		ticker:   ticker,
 		logLevel: CONNECT,
-		logLog:   false,
+		logLogF:  false,
 		packet:   &packetType{},
 	}
 	trudp.tcdmap = make(map[string]*channelData)
