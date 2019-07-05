@@ -33,8 +33,9 @@ type channelData struct {
 	wgWorkers        sync.WaitGroup        // workers stop wait group
 
 	// Channel flags
-	stoppedF     bool // trudp channel stopped flag
+	stoppedF     bool // TRUDP channel stopped flag
 	sendTestMsgF bool // Send test messages
+	showStatF    bool // Show statistic
 
 	// Channel statistic
 	stat channelStat
@@ -120,6 +121,11 @@ func (tcd *channelData) SendTestMsg(sendTestMsgF bool) {
 	tcd.sendTestMsgF = sendTestMsgF
 }
 
+// ShowStatistic set showStatF to show trudp statistic window
+func (tcd *channelData) ShowStatistic(showStatF bool) {
+	tcd.showStatF = showStatF
+}
+
 // TripTime return current triptime (ms)
 func (tcd *channelData) TripTime() float32 {
 	return tcd.stat.triptime
@@ -152,6 +158,8 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 		return
 	}
 
+	now := time.Now()
+
 	// Channel data create
 	tcd = &channelData{
 		trudp:        trudp,
@@ -160,7 +168,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 		key:          key,
 		id:           firstPacketID,
 		expectedID:   firstPacketID,
-		stat:         channelStat{trudp: trudp, lastTimeReceived: time.Now()},
+		stat:         channelStat{trudp: trudp, timeStarted: now, lastTimeReceived: now},
 		sendTestMsgF: false,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)

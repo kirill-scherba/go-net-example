@@ -49,10 +49,13 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 			worker := "'process command'"
 			start(worker)
 			resendTime := defaultRTT * time.Millisecond
-			slepTime := pingInterval * time.Millisecond
+			statTime := statInterval * time.Millisecond
+			sleepTime := pingInterval * time.Millisecond
 			disconnectTime := disconnectAfter * time.Millisecond
 			timerResend := time.After(resendTime)
-			timerKeep := time.NewTicker(slepTime)
+			timerKeep := time.NewTicker(sleepTime)
+			timerStat := time.NewTicker(statTime)
+
 			defer func() { timerKeep.Stop(); tcd.sendQueueReset(); stop(worker) }()
 			for {
 				// Wait message from chSendQueue or stopWorkers channels
@@ -78,7 +81,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 					switch {
 					case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
 						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
-					case time.Since(tcd.stat.lastTripTimeReceived) >= slepTime:
+					case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 						tcd.trudp.log(DEBUGv, "send ping to", tcd.key)
 					}
@@ -91,6 +94,10 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 				// task 4: Got packet from chWrite (from user level) and write it to teonet channel
 				case packet := <-tcd.checkChWrite():
 					packet.writeToUnsafe(tcd)
+
+				// task 5: Print trudp statistic Windows
+				case <-tcd.checkShowStat(timerStat):
+					fmt.Print(tcd.stat.sprintln(tcd, 0, 0))
 				}
 			}
 		}()
@@ -101,13 +108,20 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 	return
 }
 
+// checkShowStat check statistic flag to show statistic
+func (tcd *channelData) checkShowStat(timerStat *time.Ticker) <-chan time.Time {
+	if tcd.showStatF {
+		return timerStat.C
+	}
+	return nil
+}
+
 // checkChWrite got chWrite or nil channel depend of sendQueue length
 func (tcd *channelData) checkChWrite() chan *packetType {
 	if len(tcd.sendQueue) < 10 {
 		return tcd.chWrite
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // resetChWrite reset user write channel

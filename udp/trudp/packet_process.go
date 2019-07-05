@@ -92,12 +92,15 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 }
 
 const (
-	_ANSI_NONE       = "\033[0m"
+	_ANSI_NONE = "\033[0m"
+	_ANSI_CLS  = "\033[2J"
+
 	_ANSI_RED        = "\033[22;31m"
 	_ANSI_LIGHTGREEN = "\033[01;32m"
 	_ANSI_LIGHTRED   = "\033[01;31m"
 	_ANSI_LIGHTBLUE  = "\033[01;34m"
 	_ANSI_YELLOW     = "\033[01;33m"
+	_ANSI_BROWN      = "\033[22;33m"
 )
 
 // packetDataProcess process received data packet, check receivedQueue and

@@ -14,6 +14,7 @@ const (
 	disconnectAfter  = 3000 // (ms) disconnect afret in ms
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
+	statInterval     = 250  // Interval to show statistic
 	chWriteSize      = 2048 // Size of write channele used to send messages from users level
 
 	helloMsg      = "hello"

@@ -13,13 +13,15 @@ func main() {
 	fmt.Println("UDP test application ver 1.0.0")
 
 	var (
-		rhost     string
-		rport     int
-		rchan     int
-		port      int
-		logLevel  string
+		rhost    string
+		rport    int
+		rchan    int
+		port     int
+		logLevel string
+
 		noLogTime bool
 		sendTest  bool
+		showStat  bool
 	)
 
 	flag.BoolVar(&noLogTime, "no_log_time", false, "don't show time in application log")
@@ -29,16 +31,26 @@ func main() {
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&logLevel, "log", "DEBUGv", "application log level")
 	flag.BoolVar(&sendTest, "send_test", false, "send test data")
+	flag.BoolVar(&showStat, "S", false, "show statistic")
 	flag.Parse()
 
 	tru := trudp.Init(port)
 	tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
+
+	// Connect to remote server flag
 	if rport != 0 {
 		tcd := tru.ConnectChannel(rhost, rport, rchan)
-		// Auto sender
+
+		// Auto sender flag
 		if sendTest {
 			tcd.SendTestMsg(true)
 		}
+
+		// Show statictic flag
+		if showStat {
+			tcd.ShowStatistic(true)
+		}
+
 		// Sender
 		num := 0
 		f := func() {
@@ -54,10 +66,11 @@ func main() {
 				num++
 			}
 		}
-		for i := 0; i < 1; i++ {
-			go f()
-		}
+		//for i := 0; i < 1; i++ {
+		go f()
+		//}
 	}
+
 	// Receiver
 	go func() {
 		for ev := range tru.ChRead() {
