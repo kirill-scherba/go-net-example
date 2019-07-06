@@ -128,7 +128,7 @@ func (tcd *channelData) resetChWrite() {
 // maxResendAttempt constant
 // \TODO check this resend and calculate new resend time algorithm
 func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
-	rtt = defaultRTT * time.Millisecond
+	rtt = (defaultRTT + time.Duration(tcd.stat.triptimeMiddle)) * time.Millisecond // defaultRTT * time.Millisecond
 	now := time.Now()
 	for _, sqd := range tcd.sendQueue {
 		var t time.Duration
@@ -154,9 +154,9 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 		}
 	}
 	// Next time to run sendQueueResendProcess
-	if len(tcd.sendQueue) > 0 {
-		rtt = tcd.sendQueue[0].arrivalTime.Sub(now)
-	}
+	// if len(tcd.sendQueue) > 0 {
+	// 	rtt = tcd.sendQueue[0].arrivalTime.Sub(now)
+	// }
 	return
 }
 
