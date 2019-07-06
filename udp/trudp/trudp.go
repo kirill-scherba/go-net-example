@@ -3,6 +3,7 @@ package trudp
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -42,7 +43,8 @@ type TRUDP struct {
 	logLogF  bool // show time in trudp log
 
 	// Statustic
-	packets packetsStat // TRUDP packets statistic
+	startTime time.Time   // TRUDP start running time
+	packets   packetsStat // TRUDP packets statistic
 
 	// Control Flags
 	// \TODO use this flag to on / off statistic window
@@ -211,12 +213,30 @@ func (trudp *TRUDP) runStatistic() {
 				continue
 			}
 			idx := 0
-			for _, tcd := range trudp.tcdmap {
-				var str string
-				tcd.sendQueueCommand(func() { str = tcd.stat.sprintln(tcd, idx+1, 0) })
-				fmt.Print(str)
-				idx++
+			t := time.Now()
+			tcd := &channelData{} // Empty Methods holder
+			//str := tcd.stat.statHeader(time.Since(trudp.startTime))
+			var str string
+
+			// Read trudp channels map keys to slice and sort it
+			keys := make([]string, len(trudp.tcdmap))
+			for key, _ := range trudp.tcdmap {
+				keys = append(keys, key)
 			}
+			sort.Strings(keys)
+
+			// Get trudp channels statistic string by sorted keys
+			for _, key := range keys {
+				tcd, ok := trudp.tcdmap[key]
+				if ok {
+					str += tcd.stat.statBody(tcd, idx, 0)
+					idx++
+				}
+			}
+
+			// Get fotter and print statistic string
+			str = tcd.stat.statHeader(time.Since(trudp.startTime), time.Since(t)) + str + tcd.stat.statFooter(idx)
+			fmt.Print(str)
 		}
 	}()
 }
@@ -231,11 +251,12 @@ func Init(port int) (trudp *TRUDP) {
 	ticker := time.NewTicker(statInterval * time.Millisecond)
 
 	trudp = &TRUDP{
-		conn:     conn,
-		ticker:   ticker,
-		logLevel: CONNECT,
-		logLogF:  false,
-		packet:   &packetType{},
+		conn:      conn,
+		ticker:    ticker,
+		logLevel:  CONNECT,
+		logLogF:   false,
+		packet:    &packetType{},
+		startTime: time.Now(),
 	}
 	trudp.tcdmap = make(map[string]*channelData)
 	trudp.chRead = make(chan *eventData, chWriteSize)

@@ -56,22 +56,34 @@ func (tcs *channelStat) send() {
 	tcs.packets.send++       // Channel packets send
 }
 
-func (tcs *channelStat) sprintln(tcd *channelData, idx, page int) (retstr string) {
-	timeSinceStart := float64(time.Since(tcs.timeStarted) * time.Second)
-	retstr = fmt.Sprintf(
-		//"%s%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d\n",
+func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) string {
+	return fmt.Sprintf(
 		/*_ANSI_CLS+*/
-
 		"\0337"+ // Save cursor
-			"\033[0;0H"+
-			"  List of channels:                                                                                                                                                        \n"+
+			"\033[0;0H"+ // Set cursor to the top
+			"TR-UDP statistics, port 8030, running time: %v, show statistic time: %v                       \n"+
+			"List of channels:                                                                                                                                                          \n"+
 			"---------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
 			"  # Key                          Send  Speed(p/s)   Total(mb) Trip time /  Wait(ms) |  Recv   Speed(p/s)  Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ \n"+
-			"---------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
-			"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d\n"+
+			"---------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
+		runningTime,
+		executionTime)
+}
+
+func (tcs *channelStat) statFooter(length int) string {
+	return fmt.Sprintf(
+		"---------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
 			"                                                                                                                                                                           \n"+
-			"\033[7;r"+
-			"\0338",
+			"\033[%d;r"+ // Setscroll mode
+			"\0338", // Restore cursor
+		8+length)
+}
+
+func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
+	timeSinceStart := float64(time.Since(tcs.timeStarted).Seconds())
+	retstr = fmt.Sprintf(
+		//"%s%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d\n",
+		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d \n",
 
 		idx+1,
 		len(tcd.key), tcd.key, // key_len, key,
