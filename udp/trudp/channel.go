@@ -74,7 +74,7 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 	}
 
 	tcd.stoppedF = true
-	tcd.trudp.log(msgLevel, msg)
+	tcd.trudp.Log(msgLevel, msg)
 
 	go func() {
 
@@ -103,7 +103,7 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 
 		// Remove trudp channel from channels map
 		delete(tcd.trudp.tcdmap, tcd.key)
-		tcd.trudp.log(CONNECT, "channel with key", tcd.key, "disconnected")
+		tcd.trudp.Log(CONNECT, "channel with key", tcd.key, "disconnected")
 		tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
 	}()
 
@@ -149,7 +149,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 	// Channel data select
 	tcd, ok := trudp.tcdmap[key]
 	if ok {
-		trudp.log(DEBUGvv, "the ChannelData with key", key, "selected")
+		trudp.Log(DEBUGvv, "the ChannelData with key", key, "selected")
 		return
 	}
 
@@ -175,7 +175,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 	// Channels and sendQueue workers Init
 	tcd.sendQueueCommand(nil)
 
-	trudp.log(CONNECT, "channel with key", key, "connected")
+	trudp.Log(CONNECT, "channel with key", key, "connected")
 	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
 
 	return
@@ -188,7 +188,7 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channe
 	if err != nil {
 		panic(err)
 	}
-	trudp.log(CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
+	trudp.Log(CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
 	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
 	return
 }

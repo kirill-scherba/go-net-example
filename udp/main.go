@@ -30,7 +30,7 @@ func main() {
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
-	flag.StringVar(&logLevel, "log", "DEBUGv", "application log level")
+	flag.StringVar(&logLevel, "log", "CONNECT", "application log level")
 	flag.BoolVar(&sendTest, "send_test", false, "send test data")
 	flag.BoolVar(&showStat, "S", false, "show statistic")
 	flag.Parse()
@@ -78,28 +78,28 @@ func main() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
-				log.Println("(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+				tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 				if rport == 0 {
 					ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
 				}
 
 			case trudp.SEND_DATA:
-				log.Println("(main) SEND_DATA:", ev.Data, string(ev.Data))
+				tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 			case trudp.INITIALIZE:
-				log.Println("(main) INITIALIZE, listen at:", string(ev.Data))
+				tru.Log(trudp.DEBUG, "(main) INITIALIZE, listen at:", string(ev.Data))
 
 			case trudp.CONNECTED:
-				log.Println("(main) CONNECTED", string(ev.Data))
+				tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
 
 			case trudp.DISCONNECTED:
-				log.Println("(main) DISCONNECTED", string(ev.Data))
+				tru.Log(trudp.CONNECT, "(main) DISCONNECTED", string(ev.Data))
 
 			case trudp.RESET_LOCAL:
-				log.Println("(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
+				tru.Log(trudp.DEBUG, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
 
 			case trudp.SEND_RESET:
-				log.Println("(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
+				tru.Log(trudp.DEBUG, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
 			}
 		}
 	}()

@@ -28,7 +28,7 @@ const (
 )
 
 // log shows log message in terminal
-func (trudp *TRUDP) log(level int, p ...interface{}) {
+func (trudp *TRUDP) Log(level int, p ...interface{}) {
 	if level <= trudp.logLevel {
 		if trudp.logLogF {
 			log.Println(p...)

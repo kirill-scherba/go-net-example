@@ -12,7 +12,7 @@ func TestReceiveQueue(t *testing.T) {
 	trudp := &TRUDP{}
 	pac := &packetType{trudp: trudp}
 	tcd := &channelData{trudp: trudp}
-	trudp.log(NONE, "TestReceiveQueue initialized")
+	trudp.Log(NONE, "TestReceiveQueue initialized")
 
 	// create 10 elements 0..9
 	t.Run("adding elements", func(t *testing.T) {

@@ -31,8 +31,8 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		// Create ACK packet and send it back to sender
 		pac.ackCreateNew().writeTo(tcd)
 		tcd.stat.received()
-		// Show log
-		pac.trudp.log(DEBUGv, "DATA      packet received, key:", key,
+		// Show Log
+		pac.trudp.Log(DEBUGv, "DATA      packet received, key:", key,
 			"id:", pac.getID(),
 			"expected id:", tcd.expectedID,
 			"data length:", len(pac.data),
@@ -45,8 +45,8 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		// Set trip time to ChannelData
 		tcd.stat.setTriptime(pac.getTriptime())
 		tcd.stat.ackReceived()
-		// Show log
-		pac.trudp.log(DEBUGv, "ACK       packet received, key:", key,
+		// Show Log
+		pac.trudp.Log(DEBUGv, "ACK       packet received, key:", key,
 			"id:", pac.getID(),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
@@ -55,21 +55,21 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 
 	// RESET packet received
 	case RESET:
-		pac.trudp.log(DEBUGv, "RESET     packet received, key:", key)
+		pac.trudp.Log(DEBUGv, "RESET     packet received, key:", key)
 		pac.ackToResetCreateNew().writeTo(tcd)
 		tcd.sendQueueCommand(func() { tcd.reset() })
 
 	// ACK-to-reset packet received
 	case ACKReset:
-		pac.trudp.log(DEBUGv, "ACK_RESET packet received, key:", key)
+		pac.trudp.Log(DEBUGv, "ACK_RESET packet received, key:", key)
 		tcd.sendQueueCommand(func() { tcd.reset() })
 
 	// PING packet received
 	case PING:
 		// Create ACK to ping packet and send it back to sender
 		pac.ackToPingCreateNew().writeTo(tcd)
-		// Show log
-		pac.trudp.log(DEBUGv, "PING      packet received, key:", key,
+		// Show Log
+		pac.trudp.Log(DEBUGv, "PING      packet received, key:", key,
 			"id:", pac.getID(),
 			"expected id:", tcd.expectedID,
 			"data:", pac.getData(), string(pac.getData()))
@@ -78,14 +78,14 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	case ACKPing:
 		// Set trip time to ChannelData
 		tcd.stat.setTriptime(pac.getTriptime())
-		pac.trudp.log(DEBUGv, "ACK_PING  packet received, key:", key,
+		pac.trudp.Log(DEBUGv, "ACK_PING  packet received, key:", key,
 			"id:", pac.getID(),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 
 	// UNKNOWN packet received
 	default:
-		pac.trudp.log(DEBUGv, "UNKNOWN   packet received, key:", key, ", type:", packetType)
+		pac.trudp.Log(DEBUGv, "UNKNOWN   packet received, key:", key, ", type:", packetType)
 	}
 
 	return
@@ -112,7 +112,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 	// Valid data packet
 	case id == tcd.expectedID:
 		tcd.expectedID++
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
+		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
 		// Send received data packet to user level
 		tcd.trudp.sendEvent(tcd, GOT_DATA, packet.getData())
 		// Check packets in received queue
@@ -122,7 +122,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 				break
 			}
 			tcd.expectedID++
-			tcd.trudp.log(DEBUGv, "find packet in receivedQueue, id:", rqd.packet.getID())
+			tcd.trudp.Log(DEBUGv, "find packet in receivedQueue, id:", rqd.packet.getID())
 			// Send received data packet to user level
 			tcd.trudp.sendEvent(tcd, GOT_DATA, rqd.packet.getData())
 			tcd.receiveQueueRemove(idx)
@@ -130,19 +130,19 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
+		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
 		tcd.sendQueueCommand(func() { tcd.reset() })
 
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
+		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
 		packet.resetCreateNew().writeTo(tcd) // Send reset
 		// Send event "RESET was sent" to user level
 		tcd.trudp.sendEvent(tcd, SEND_RESET, nil)
 
 	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:
-		tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
+		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
 		// Set statistic REJECTED (already received) packet
 		tcd.stat.dropped()
 
@@ -151,10 +151,10 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 	case id > tcd.expectedID:
 		_, _, err := tcd.receiveQueueFind(id)
 		if err != nil {
-			tcd.trudp.log(DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
+			tcd.trudp.Log(DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
 			tcd.receiveQueueAdd(packet)
 		} else {
-			tcd.trudp.log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
+			tcd.trudp.Log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
 			// Set statistic REJECTED (already received) packet
 			tcd.stat.dropped()
 		}

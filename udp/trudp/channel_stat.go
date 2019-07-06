@@ -83,7 +83,8 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 	timeSinceStart := float64(time.Since(tcs.timeStarted).Seconds())
 	retstr = fmt.Sprintf(
 		//"%s%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d\n",
-		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d \n",
+		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d \n"+
+			"",
 
 		idx+1,
 		len(tcd.key), tcd.key, // key_len, key,

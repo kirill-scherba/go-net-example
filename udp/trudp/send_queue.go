@@ -27,7 +27,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 	// Start trudp channel and sendQueue workers
 	if tcd.chProcessCommand == nil {
 
-		tcd.trudp.log(DEBUGv, "sendQueue channel created")
+		tcd.trudp.Log(DEBUGv, "sendQueue channel created")
 
 		// Initialize channels
 		tcd.chWrite = make(chan *packetType, chWriteSize)
@@ -40,8 +40,8 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 		tcd.wgWorkers.Add(len(tcd.chStopWorkers))
 
 		// Workers star stop functions
-		start := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" started") }
-		stop := func(name string) { tcd.trudp.log(DEBUGv, "worker "+name+" stopped"); tcd.wgWorkers.Done() }
+		start := func(name string) { tcd.trudp.Log(DEBUGv, "worker "+name+" started") }
+		stop := func(name string) { tcd.trudp.Log(DEBUGv, "worker "+name+" stopped"); tcd.wgWorkers.Done() }
 
 		// Send queue 'process command' worker. Exequte all concurent sendQueue
 		// commands.
@@ -81,7 +81,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
 					case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-						tcd.trudp.log(DEBUGv, "send ping to", tcd.key)
+						tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
 					}
 					// \TODO send test data - remove it
 					if tcd.sendTestMsgF {
@@ -105,7 +105,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 
 // checkChWrite got chWrite or nil channel depend of sendQueue length
 func (tcd *channelData) checkChWrite() chan *packetType {
-	if len(tcd.sendQueue) < 10 {
+	if len(tcd.sendQueue) < 16 && len(tcd.receiveQueue) < 16 {
 		return tcd.chWrite
 	}
 	return nil
@@ -134,11 +134,11 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 		var t time.Duration
 		if !now.After(sqd.arrivalTime) {
 			t = time.Until(sqd.arrivalTime)
+			break
 		} else {
 			// Destroy this trudp channel if resendAttemp more than maxResendAttemp
 			if sqd.resendAttempt >= maxResendAttempt {
 				// Destroy this trudp channel
-				//tcd.trudp.log(DEBUGv, "destroy this channel: too much resends happens", sqd.resendAttempt)
 				tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: too much resends happens: ", sqd.resendAttempt))
 				break
 			}
@@ -146,15 +146,16 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 			t = time.Duration(defaultRTT+tcd.stat.triptimeMiddle) * time.Millisecond
 			sqd.packet.writeToUnsafe(tcd)
 
-			tcd.trudp.log(DEBUG, "resend sendQueue packet with",
+			tcd.trudp.Log(DEBUG, "resend sendQueue packet with",
 				"id:", sqd.packet.getID(),
 				"attempt:", sqd.resendAttempt,
 				"rtt:", t)
+			//break
 		}
-		// Next time to run sendQueueResendProcess
-		if t < rtt {
-			rtt = t
-		}
+	}
+	// Next time to run sendQueueResendProcess
+	if len(tcd.sendQueue) > 0 {
+		rtt = tcd.sendQueue[0].arrivalTime.Sub(now)
 	}
 	return
 }
@@ -172,11 +173,11 @@ func (tcd *channelData) sendQueueAdd(packet *packetType) {
 			sendTime:    now,
 			arrivalTime: arrivalTime,
 		})
-		tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID())
+		tcd.trudp.Log(DEBUGv, "add to send queue, id", packet.getID())
 	} else {
 		tcd.sendQueue[idx].arrivalTime = arrivalTime
 		tcd.sendQueue[idx].resendAttempt++
-		tcd.trudp.log(DEBUGv, "update in send queue, id", packet.getID())
+		tcd.trudp.Log(DEBUGv, "update in send queue, id", packet.getID())
 	}
 }
 
@@ -199,7 +200,7 @@ func (tcd *channelData) sendQueueRemove(packet *packetType) {
 	if err == nil {
 		sqd.packet.destroy()
 		tcd.sendQueue = append(tcd.sendQueue[:idx], tcd.sendQueue[idx+1:]...)
-		tcd.trudp.log(DEBUGv, "remove from send queue, id", id)
+		tcd.trudp.Log(DEBUGv, "remove from send queue, id", id)
 	}
 }
 

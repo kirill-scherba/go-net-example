@@ -14,7 +14,7 @@ type receiveQueueData struct {
 func (tcd *channelData) receiveQueueAdd(packet *packetType) {
 	//packet := &packetType{trudp: tcd.trudp, data: data}
 	tcd.receiveQueue = append(tcd.receiveQueue, receiveQueueData{packet: packet})
-	tcd.trudp.log(DEBUGv, "add to send queue, id", packet.getID())
+	tcd.trudp.Log(DEBUGv, "add to send queue, id", packet.getID())
 }
 
 // receiveQueueFind find packet with selected id in receiveQueue
@@ -32,7 +32,7 @@ func (tcd *channelData) receiveQueueFind(id uint32) (idx int, rqd receiveQueueDa
 // receiveQueueRemove remove previousely found element from receive queue by index
 func (tcd *channelData) receiveQueueRemove(idx int) {
 	tcd.receiveQueue = append(tcd.receiveQueue[:idx], tcd.receiveQueue[idx+1:]...)
-	tcd.trudp.log(DEBUGv, "remove from receive queue, index", idx)
+	tcd.trudp.Log(DEBUGv, "remove from receive queue, index", idx)
 }
 
 // receiveQueueReset resets (clear) send queue

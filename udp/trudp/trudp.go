@@ -16,7 +16,7 @@ const (
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	statInterval     = 100  // Interval to show statistic
-	chWriteSize      = 2048 // Size of write channele used to send messages from users level
+	chWriteSize      = 1024 //2048 // Size of write channele used to send messages from users level
 
 	helloMsg      = "hello"
 	echoMsg       = "ping"
@@ -262,7 +262,7 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.chRead = make(chan *eventData, chWriteSize)
 	trudp.packet.trudp = trudp
 
-	trudp.log(CONNECT, "start listenning at", conn.LocalAddr())
+	trudp.Log(CONNECT, "start listenning at", conn.LocalAddr())
 	trudp.runStatistic()
 
 	trudp.sendEvent(nil, INITIALIZE, []byte(conn.LocalAddr().String()))
@@ -283,7 +283,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 	if err != nil {
 		panic(err)
 	}
-	trudp.log(CONNECT, "connecting to host", rUDPAddr)
+	trudp.Log(CONNECT, "connecting to host", rUDPAddr)
 
 	// Send hello to remote host
 	trudp.conn.WriteToUDP([]byte(helloMsg), rUDPAddr)
@@ -312,7 +312,7 @@ func (trudp *TRUDP) Run() {
 		switch {
 		// Empty packet
 		case nRead == 0:
-			trudp.log(DEBUGv, "empty paket received from:", addr)
+			trudp.Log(DEBUGv, "empty paket received from:", addr)
 
 		// Check trudp packet
 		case trudp.packet.check(buffer[:nRead]):
@@ -323,27 +323,27 @@ func (trudp *TRUDP) Run() {
 			// id := trudp.packet.getID(buffer[:nRead])
 			// tp := trudp.packet.getType(buffer[:nRead])
 			// data := trudp.packet.getData(buffer[:nRead])
-			// trudp.log(DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),
+			// trudp.Log(DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),
 			// 	", channel:", ch, "packet id:", id, "type:", tp)
 
 		// Process connect message
 		case nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg:
-			trudp.log(DEBUG, "got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+			trudp.Log(DEBUG, "got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 
 		// Process echo message Ping (send to Pong)
 		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
-			trudp.log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
+			trudp.Log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
 			trudp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr /*.(*net.UDPAddr)*/)
 
 		// Process echo answer message Pong (answer to Ping)
 		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
 			var ts time.Time
 			ts.UnmarshalBinary(buffer[len(echoAnswerMsg):nRead])
-			trudp.log(DEBUG, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
+			trudp.Log(DEBUG, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
 
 		// Process other messages
 		default:
-			trudp.log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+			trudp.Log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 		}
 	}
 }
