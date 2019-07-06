@@ -35,9 +35,9 @@ type channelData struct {
 	// Channel flags
 	stoppedF     bool // TRUDP channel stopped flag
 	sendTestMsgF bool // Send test messages
-	showStatF    bool // Show statistic
+	//showStatF    bool // Show statistic
 
-	// Channel statistic
+	// TRUDP channel statistic
 	stat channelStat
 }
 
@@ -119,11 +119,6 @@ func (tcd *channelData) getID() (id uint32) {
 // SendTestMsg set sendTestMsgF flag to send test message by interval
 func (tcd *channelData) SendTestMsg(sendTestMsgF bool) {
 	tcd.sendTestMsgF = sendTestMsgF
-}
-
-// ShowStatistic set showStatF to show trudp statistic window
-func (tcd *channelData) ShowStatistic(showStatF bool) {
-	tcd.showStatF = showStatF
 }
 
 // TripTime return current triptime (ms)

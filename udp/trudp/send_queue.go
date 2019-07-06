@@ -49,12 +49,10 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 			worker := "'process command'"
 			start(worker)
 			resendTime := defaultRTT * time.Millisecond
-			statTime := statInterval * time.Millisecond
 			sleepTime := pingInterval * time.Millisecond
 			disconnectTime := disconnectAfter * time.Millisecond
 			timerResend := time.After(resendTime)
 			timerKeep := time.NewTicker(sleepTime)
-			timerStat := time.NewTicker(statTime)
 
 			defer func() { timerKeep.Stop(); tcd.sendQueueReset(); stop(worker) }()
 			for {
@@ -95,9 +93,6 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 				case packet := <-tcd.checkChWrite():
 					packet.writeToUnsafe(tcd)
 
-				// task 5: Print trudp statistic Windows
-				case <-tcd.checkShowStat(timerStat):
-					fmt.Print(tcd.stat.sprintln(tcd, 0, 0))
 				}
 			}
 		}()
@@ -106,14 +101,6 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 	// Send message to sendQueue 'process command' worker
 	tcd.chProcessCommand <- fnc
 	return
-}
-
-// checkShowStat check statistic flag to show statistic
-func (tcd *channelData) checkShowStat(timerStat *time.Ticker) <-chan time.Time {
-	if tcd.showStatF {
-		return timerStat.C
-	}
-	return nil
 }
 
 // checkChWrite got chWrite or nil channel depend of sendQueue length

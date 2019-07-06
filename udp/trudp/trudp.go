@@ -14,7 +14,7 @@ const (
 	disconnectAfter  = 3000 // (ms) disconnect afret in ms
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
-	statInterval     = 250  // Interval to show statistic
+	statInterval     = 100  // Interval to show statistic
 	chWriteSize      = 2048 // Size of write channele used to send messages from users level
 
 	helloMsg      = "hello"
@@ -204,10 +204,19 @@ func listenUDP(port int) *net.UDPConn {
 }
 
 // TRUDP Ticker
-func (trudp *TRUDP) tickerCheck() {
+func (trudp *TRUDP) runStatistic() {
 	go func() {
-		for t := range trudp.ticker.C {
-			trudp.log(DEBUGvv, "tick at", t)
+		for range trudp.ticker.C {
+			if !trudp.showStatF {
+				continue
+			}
+			idx := 0
+			for _, tcd := range trudp.tcdmap {
+				var str string
+				tcd.sendQueueCommand(func() { str = tcd.stat.sprintln(tcd, idx+1, 0) })
+				fmt.Print(str)
+				idx++
+			}
 		}
 	}()
 }
@@ -219,7 +228,7 @@ func Init(port int) (trudp *TRUDP) {
 	conn := listenUDP(port)
 
 	// Start ticker
-	ticker := time.NewTicker(pingInterval * time.Millisecond)
+	ticker := time.NewTicker(statInterval * time.Millisecond)
 
 	trudp = &TRUDP{
 		conn:     conn,
@@ -233,7 +242,7 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.packet.trudp = trudp
 
 	trudp.log(CONNECT, "start listenning at", conn.LocalAddr())
-	trudp.tickerCheck()
+	trudp.runStatistic()
 
 	trudp.sendEvent(nil, INITIALIZE, []byte(conn.LocalAddr().String()))
 
@@ -321,4 +330,9 @@ func (trudp *TRUDP) Run() {
 // ChRead return channel to read trudp events
 func (trudp *TRUDP) ChRead() <-chan *eventData {
 	return trudp.chRead
+}
+
+// ShowStatistic set showStatF to show trudp statistic window
+func (trudp *TRUDP) ShowStatistic(showStatF bool) {
+	trudp.showStatF = showStatF
 }

@@ -38,6 +38,11 @@ func main() {
 	tru := trudp.Init(port)
 	tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 
+	// Show statictic flag
+	if showStat {
+		tru.ShowStatistic(true)
+	}
+
 	// Connect to remote server flag
 	if rport != 0 {
 		tcd := tru.ConnectChannel(rhost, rport, rchan)
@@ -45,11 +50,6 @@ func main() {
 		// Auto sender flag
 		if sendTest {
 			tcd.SendTestMsg(true)
-		}
-
-		// Show statictic flag
-		if showStat {
-			tcd.ShowStatistic(true)
 		}
 
 		// Sender
@@ -103,5 +103,7 @@ func main() {
 			}
 		}
 	}()
+
+	// Run trudp and start listen
 	tru.Run()
 }
