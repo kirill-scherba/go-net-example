@@ -33,9 +33,10 @@ func (tcs *channelStat) setLastTimeReceived() {
 }
 
 // received adds data packets received to statistic
-func (tcs *channelStat) received() {
-	tcs.trudp.packets.receive++ // Total data packets received
-	tcs.packets.receive++       // Channel data packets received
+func (tcs *channelStat) received(length int) {
+	tcs.trudp.packets.receive++                 // Total data packets received
+	tcs.packets.receive++                       // Channel data packets received
+	tcs.packets.receiveLength += uint64(length) // Length of packet
 }
 
 // ackReceived adds ack packets received to statistic
@@ -51,9 +52,10 @@ func (tcs *channelStat) dropped() {
 }
 
 // send adds data packets send to statistic
-func (tcs *channelStat) send() {
-	tcs.trudp.packets.send++ // Total packets send
-	tcs.packets.send++       // Channel packets send
+func (tcs *channelStat) send(length int) {
+	tcs.trudp.packets.send++                 // Total packets send
+	tcs.packets.send++                       // Channel packets send
+	tcs.packets.sendLength += uint64(length) // Length of packet
 }
 
 func (tcs *channelStat) repeat() {
@@ -69,7 +71,7 @@ func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) str
 			"TR-UDP statistics, port 8030, running time: %v, show statistic time: %v                       \n"+
 			"List of channels:                                                                                                                                                                 \n"+
 			"----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
-			"  # Key                          Send  Speed(p/s)   Total(mb) Trip time /  Wait(ms) |  Recv   Speed(p/s)  Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ     EQ \n"+
+			"  # Key                          Send   Speed(p/s)  Total(mb) Trip time /  Wait(ms) |  Recv   Speed(p/s)  Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ     EQ \n"+
 			"----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
 		runningTime,
 		executionTime)
@@ -110,13 +112,13 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		idx+1,                 // trudp channel number (in statistic screen)
 		len(tcd.key), tcd.key, // key len and key
 		tcs.packets.send, // packets send
-		float64(tcs.packets.send)/timeSinceStart, // send speed in packets/sec
-		float64(0),          // send speed in mb/sec
+		float64(tcs.packets.send)/timeSinceStart,    // send speed in packets/sec
+		float64(tcs.packets.sendLength)/(1024*1024), // send total in mb
 		tcs.triptime,        // trip time
 		tcs.triptimeMiddle,  // trip time middle
 		tcs.packets.receive, // packets receive
-		float64(tcs.packets.receive)/timeSinceStart, //  receive speed in packets/sec
-		float64(0),            // receive speed in mb/sec
+		float64(tcs.packets.receive)/timeSinceStart,    //  receive speed in packets/sec
+		float64(tcs.packets.receiveLength)/(1024*1024), // receive total in mb
 		tcs.packets.ack,       // packets ack receive
 		tcs.packets.repeat,    // packets repeat
 		repeatP(),             // packets repeat in %

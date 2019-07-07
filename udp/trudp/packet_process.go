@@ -30,7 +30,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	case DATA:
 		// Create ACK packet and send it back to sender
 		pac.ackCreateNew().writeTo(tcd)
-		tcd.stat.received()
+		tcd.stat.received(len(pac.data))
 		// Show Log
 		pac.trudp.Log(DEBUGv, "DATA      packet received, key:", key,
 			"id:", pac.getID(),

@@ -95,7 +95,7 @@ func (packet *packetType) writeToSafeUnsafe(tcd *channelData, safe bool) {
 
 	sendEvent := func() {
 		tcd.sendQueueAdd(packet)
-		tcd.stat.send()
+		tcd.stat.send(len(packet.data))
 		tcd.trudp.sendEvent(tcd, SEND_DATA, packet.getData())
 	}
 	switch {
