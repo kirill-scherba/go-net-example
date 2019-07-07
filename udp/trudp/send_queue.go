@@ -30,9 +30,9 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 		tcd.trudp.Log(DEBUGv, "sendQueue channel created")
 
 		// Initialize channels
-		tcd.chWrite = make(chan *packetType, chWriteSize)
+		tcd.chWrite = make(chan []byte, chWriteSize)
 		tcd.chProcessCommand = make(chan func())
-		for idx, _ := range tcd.chStopWorkers {
+		for idx := range tcd.chStopWorkers {
 			tcd.chStopWorkers[idx] = make(chan bool)
 		}
 
@@ -89,10 +89,9 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
 					}
 
-				// task 4: Got packet from chWrite (from user level) and write it to teonet channel
-				case packet := <-tcd.checkChWrite():
-					packet.writeToUnsafe(tcd)
-
+					// task 4: Got packet from chWrite (from user level) and write it to teonet channel
+				case data := <-tcd.checkChWrite():
+					tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
 				}
 			}
 		}()
@@ -104,7 +103,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 }
 
 // checkChWrite got chWrite or nil channel depend of sendQueue length
-func (tcd *channelData) checkChWrite() chan *packetType {
+func (tcd *channelData) checkChWrite() chan []byte /**packetType*/ {
 	if len(tcd.sendQueue) < 16 && len(tcd.receiveQueue) < 16 {
 		return tcd.chWrite
 	}
@@ -115,9 +114,9 @@ func (tcd *channelData) checkChWrite() chan *packetType {
 func (tcd *channelData) resetChWrite() {
 	for len(tcd.chWrite) > 0 {
 		select {
-		case packet, ok := <-tcd.chWrite:
+		case _, ok := <-tcd.chWrite:
 			if ok {
-				packet.destroy()
+				//packet.destroy()
 			}
 		}
 	}

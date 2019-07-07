@@ -28,7 +28,7 @@ type channelData struct {
 
 	// Channel channels and waiting groups
 	chProcessCommand chan func()           // channel for worker 'process command'
-	chWrite          chan *packetType      // channel to write (used to send data from user level)
+	chWrite          chan []byte           // channel to write (used to send data from user level)
 	chStopWorkers    [workersLen]chan bool // channels to stop wokers
 	wgWorkers        sync.WaitGroup        // workers stop wait group
 
@@ -132,7 +132,7 @@ func (tcd *channelData) WriteTo(data []byte) (err error) {
 		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
 		return
 	}
-	tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).sendTo(tcd) // writeTo(tcd)
+	tcd.chWrite <- data
 	return
 }
 
