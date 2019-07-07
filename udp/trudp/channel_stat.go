@@ -86,6 +86,23 @@ func (tcs *channelStat) statFooter(length int) string {
 
 func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
 	timeSinceStart := float64(time.Since(tcs.timeStarted).Seconds())
+	// Repeat in %
+	repeatP := func() (retval uint32) {
+		retval = 0
+		if tcs.packets.send > 0 {
+			retval = 100 * tcs.packets.repeat / tcs.packets.send
+		}
+		return
+	}
+	// Dropped in %
+	droppedP := func() (retval uint32) {
+		retval = 0
+		if tcs.packets.receive > 0 {
+			retval = 100 * tcs.packets.dropped / tcs.packets.receive
+		}
+		return
+	}
+
 	retstr = fmt.Sprintf(
 		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d %6d \n"+
 			"",
@@ -101,10 +118,10 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		float64(tcs.packets.receive)/timeSinceStart, //  receive speed in packets/sec
 		float64(0),            // receive speed in mb/sec
 		tcs.packets.ack,       // packets ack receive
-		tcs.packets.repeat,    // 0,                     // packets repeat
-		0,                     // packets repeat in %
+		tcs.packets.repeat,    // packets repeat
+		repeatP(),             // packets repeat in %
 		tcs.packets.dropped,   // packets drop
-		0,                     // packets drop in %
+		droppedP(),            // packets drop in %
 		len(tcd.sendQueue),    // sendQueueSize,
 		len(tcd.chWrite),      // writeQueueSize,
 		len(tcd.receiveQueue), // receiveQueueSize
