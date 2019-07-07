@@ -54,9 +54,10 @@ type TRUDP struct {
 // trudpStat structure contain trudp statistic variables
 type packetsStat struct {
 	send    uint32 // Total packets send
-	ack     uint32 // Total ACK reseived
-	receive uint32 // Total packet reseived
-	dropped uint32 // Total packet droped
+	ack     uint32 // Total ACKs reseived
+	receive uint32 // Total packets reseived
+	dropped uint32 // Total packets droped
+	repeat  uint32 // Total packets repeated
 }
 
 // eventData used as structure in sendEvent function

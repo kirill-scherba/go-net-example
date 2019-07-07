@@ -56,6 +56,11 @@ func (tcs *channelStat) send() {
 	tcs.packets.send++       // Channel packets send
 }
 
+func (tcs *channelStat) repeat() {
+	tcs.trudp.packets.repeat++ // Total packets repeat
+	tcs.packets.repeat++       // Channel packets repeat
+}
+
 func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) string {
 	return fmt.Sprintf(
 		/*_ANSI_CLS+*/
@@ -82,31 +87,28 @@ func (tcs *channelStat) statFooter(length int) string {
 func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
 	timeSinceStart := float64(time.Since(tcs.timeStarted).Seconds())
 	retstr = fmt.Sprintf(
-		//"%s%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d\n",
 		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d %6d \n"+
 			"",
 
-		idx+1,
-		len(tcd.key), tcd.key, // key_len, key,
-		tcs.packets.send, //tcd->stat.packets_send,
-		//(double)(1.0 * tcd->stat.send_speed / 1024.0),
-		float64(tcs.packets.send)/timeSinceStart, //(double)tcd->stat.packets_send / ((tsf - tcd->stat.started) / 1000000.0),
-		float64(0),          //float64(tcs.packets.send),                // tcd->stat.send_total,
-		tcs.triptime,        //  tcd->stat.triptime_last / 1000.0,
-		tcs.triptimeMiddle,  // tcd->stat.wait,
-		tcs.packets.receive, // tcd->stat.packets_receive,
-		//(double)(1.0 * tcd->stat.receive_speed / 1024.0),
-		float64(tcs.packets.receive)/timeSinceStart, //  (double)tcd->stat.packets_receive / ((tsf - tcd->stat.started) / 1000000.0),
-		float64(0),            //float64(tcs.packets.receive),                //	tcd->stat.receive_total,
-		tcs.packets.ack,       // tcd->stat.ack_receive,
-		0,                     // tcd->stat.packets_attempt,
-		0,                     // tcd->stat.packets_send ? 100 * tcd->stat.packets_attempt / tcd->stat.packets_send : 0,
-		tcs.packets.dropped,   //tcd->stat.packets_receive_dropped,
-		0,                     // tcd->stat.packets_receive ? 100 * tcd->stat.packets_receive_dropped / tcd->stat.packets_receive : 0,
+		idx+1,                 // trudp channel number (in statistic screen)
+		len(tcd.key), tcd.key, // key len and key
+		tcs.packets.send, // packets send
+		float64(tcs.packets.send)/timeSinceStart, // send speed in packets/sec
+		float64(0),          // send speed in mb/sec
+		tcs.triptime,        // trip time
+		tcs.triptimeMiddle,  // trip time middle
+		tcs.packets.receive, // packets receive
+		float64(tcs.packets.receive)/timeSinceStart, //  receive speed in packets/sec
+		float64(0),            // receive speed in mb/sec
+		tcs.packets.ack,       // packets ack receive
+		tcs.packets.repeat,    // 0,                     // packets repeat
+		0,                     // packets repeat in %
+		tcs.packets.dropped,   // packets drop
+		0,                     // packets drop in %
 		len(tcd.sendQueue),    // sendQueueSize,
 		len(tcd.chWrite),      // writeQueueSize,
-		len(tcd.receiveQueue), //receiveQueueSize)
-		len(tcd.trudp.chRead), //eventsQueueSize)
+		len(tcd.receiveQueue), // receiveQueueSize
+		len(tcd.trudp.chRead), // eventsQueueSize
 	)
 	return
 }

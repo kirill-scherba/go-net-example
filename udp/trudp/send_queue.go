@@ -30,9 +30,9 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 		tcd.trudp.Log(DEBUGv, "sendQueue channel created")
 
 		// Initialize channels
-		tcd.chWrite = make(chan []byte, chWriteSize)
+		tcd.chWrite = make(chan []byte /* *packetType*/, chWriteSize)
 		tcd.chProcessCommand = make(chan func())
-		for idx := range tcd.chStopWorkers {
+		for idx, _ := range tcd.chStopWorkers {
 			tcd.chStopWorkers[idx] = make(chan bool)
 		}
 
@@ -91,6 +91,8 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 
 					// task 4: Got packet from chWrite (from user level) and write it to teonet channel
 				case data := <-tcd.checkChWrite():
+
+					//packet.writeToUnsafe(tcd)
 					tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
 				}
 			}
@@ -144,12 +146,13 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 			// Resend record with arrivalTime less than Windows
 			t = time.Duration(defaultRTT+tcd.stat.triptimeMiddle) * time.Millisecond
 			sqd.packet.writeToUnsafe(tcd)
+			// Statistic
+			tcd.stat.repeat()
 
 			tcd.trudp.Log(DEBUG, "resend sendQueue packet with",
 				"id:", sqd.packet.getID(),
 				"attempt:", sqd.resendAttempt,
 				"rtt:", t)
-			//break
 		}
 	}
 	// Next time to run sendQueueResendProcess
