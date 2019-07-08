@@ -25,6 +25,7 @@ type channelData struct {
 	// Channels packet queues
 	sendQueue    []sendQueueData    // send queue
 	receiveQueue []receiveQueueData // received queue
+	maxQueueSize int                // maximum queue size
 
 	// Channel channels and waiting groups
 	chProcessCommand chan func()           // channel for worker 'process command'
@@ -166,6 +167,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 		expectedID:   firstPacketID,
 		stat:         channelStat{trudp: trudp, timeStarted: now, lastTimeReceived: now},
 		sendTestMsgF: false,
+		maxQueueSize: trudp.defaultQueueSize,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)

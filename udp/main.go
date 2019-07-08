@@ -13,11 +13,12 @@ func main() {
 	fmt.Println("UDP test application ver 1.0.0")
 
 	var (
-		rhost    string
-		rport    int
-		rchan    int
-		port     int
-		logLevel string
+		rhost        string
+		rport        int
+		rchan        int
+		port         int
+		logLevel     string
+		maxQueueSize int
 
 		// Control flags
 		noLogTime bool
@@ -33,6 +34,7 @@ func main() {
 	flag.StringVar(&logLevel, "log", "CONNECT", "application log level")
 	flag.BoolVar(&sendTest, "send_test", false, "send test data")
 	flag.BoolVar(&showStat, "S", false, "show statistic")
+	flag.IntVar(&maxQueueSize, "Q", trudp.DefaultQueueSize, "maximum send and receive queues size")
 	flag.Parse()
 
 	tru := trudp.Init(port)
@@ -42,6 +44,9 @@ func main() {
 	if showStat {
 		tru.ShowStatistic(true)
 	}
+
+	// Set default queue size
+	tru.SetDefaultQueueSize(maxQueueSize)
 
 	// Connect to remote server flag
 	if rport != 0 {

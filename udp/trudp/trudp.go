@@ -16,6 +16,7 @@ const (
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	statInterval     = 100  // Interval to show statistic
+	DefaultQueueSize = 16   // Default size of send and receive queue
 	chWriteSize      = 1024 //2048 // Size of write channele used to send messages from users level
 
 	helloMsg      = "hello"
@@ -45,6 +46,8 @@ type TRUDP struct {
 	// Statustic
 	startTime time.Time   // TRUDP start running time
 	packets   packetsStat // TRUDP packets statistic
+
+	defaultQueueSize int
 
 	// Control Flags
 	showStatF bool // Show statistic
@@ -360,4 +363,9 @@ func (trudp *TRUDP) ChRead() <-chan *eventData {
 // ShowStatistic set showStatF to show trudp statistic window
 func (trudp *TRUDP) ShowStatistic(showStatF bool) {
 	trudp.showStatF = showStatF
+}
+
+// SetDefaultQueueSize set maximum send and receive queues size
+func (trudp *TRUDP) SetDefaultQueueSize(defaultQueueSize int) {
+	trudp.defaultQueueSize = defaultQueueSize
 }
