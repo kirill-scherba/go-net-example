@@ -121,7 +121,9 @@ func (pac *packetType) packetDataProcess(tcd *channelData) {
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
 		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
-		tcd.sendQueueCommand(func() { tcd.reset(); pac.packetDataProcess(tcd) })
+		wait := make(chan bool)
+		tcd.sendQueueCommand(func() { tcd.reset(); pac.packetDataProcess(tcd); wait <- true })
+		<-wait
 
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
