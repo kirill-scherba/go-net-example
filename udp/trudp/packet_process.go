@@ -51,7 +51,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 		// Remove packet from send queue
-		tcd.sendQueueCommand(func() { tcd.sendQueueRemove(pac) })
+		go tcd.sendQueueCommand(func() { tcd.sendQueueRemove(pac) })
 
 	// RESET packet received
 	case RESET:

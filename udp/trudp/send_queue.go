@@ -89,10 +89,8 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
 					}
 
-					// task 4: Got packet from chWrite (from user level) and write it to teonet channel
+				// task 4: Got packet from chWrite (from user level) and write it to teonet channel
 				case data := <-tcd.checkChWrite():
-
-					//packet.writeToUnsafe(tcd)
 					tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
 				}
 			}
@@ -105,7 +103,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 }
 
 // checkChWrite got chWrite or nil channel depend of sendQueue length
-func (tcd *channelData) checkChWrite() chan []byte /**packetType*/ {
+func (tcd *channelData) checkChWrite() chan []byte {
 	if len(tcd.sendQueue) < 8 && len(tcd.receiveQueue) < 8 {
 		return tcd.chWrite
 	}
@@ -129,7 +127,7 @@ func (tcd *channelData) resetChWrite() {
 // maxResendAttempt constant
 // \TODO check this resend and calculate new resend time algorithm
 func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
-	rtt = (defaultRTT + time.Duration(tcd.stat.triptimeMiddle)) * time.Millisecond // defaultRTT * time.Millisecond
+	rtt = (defaultRTT + time.Duration(tcd.stat.triptimeMiddle)) * time.Millisecond
 	now := time.Now()
 	for _, sqd := range tcd.sendQueue {
 		var t time.Duration
