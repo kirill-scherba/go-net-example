@@ -101,10 +101,10 @@ func main() {
 				tru.Log(trudp.CONNECT, "(main) DISCONNECTED", string(ev.Data))
 
 			case trudp.RESET_LOCAL:
-				tru.Log(trudp.DEBUG, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
+				tru.Log(trudp.CONNECT, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
 
 			case trudp.SEND_RESET:
-				tru.Log(trudp.DEBUG, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
+				tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
 			}
 		}
 	}()
