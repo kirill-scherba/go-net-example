@@ -47,19 +47,20 @@ type TRUDP struct {
 	packets   packetsStat // TRUDP packets statistic
 
 	// Control Flags
-	// \TODO use this flag to on / off statistic window
 	showStatF bool // Show statistic
 }
 
 // trudpStat structure contain trudp statistic variables
 type packetsStat struct {
-	send          uint32 // Total packets send
-	sendLength    uint64 // Total send in bytes
-	ack           uint32 // Total ACK reseived
-	receive       uint32 // Total packet reseived
-	receiveLength uint64 // Total reseived in bytes
-	dropped       uint32 // Total packet droped
-	repeat        uint32 // Total packet repeated
+	send          uint32        // Total packets send
+	sendLength    uint64        // Total send in bytes
+	ack           uint32        // Total ACK reseived
+	receive       uint32        // Total packet reseived
+	receiveLength uint64        // Total reseived in bytes
+	dropped       uint32        // Total packet droped
+	repeat        uint32        // Total packet repeated
+	sendRT        realTimeSpeed // Type to calculate send real time speed
+	receiveRT     realTimeSpeed // Type to calculate receive real time speed
 }
 
 // eventData used as structure in sendEvent function
@@ -217,13 +218,12 @@ func (trudp *TRUDP) runStatistic() {
 			}
 			idx := 0
 			t := time.Now()
-			tcd := &channelData{} // Empty Methods holder
 			//str := tcd.stat.statHeader(time.Since(trudp.startTime))
 			var str string
 
 			// Read trudp channels map keys to slice and sort it
 			keys := make([]string, len(trudp.tcdmap))
-			for key, _ := range trudp.tcdmap {
+			for key := range trudp.tcdmap {
 				keys = append(keys, key)
 			}
 			sort.Strings(keys)
@@ -238,7 +238,8 @@ func (trudp *TRUDP) runStatistic() {
 			}
 
 			// Get fotter and print statistic string
-			str = tcd.stat.statHeader(time.Since(trudp.startTime), time.Since(t)) + str + tcd.stat.statFooter(idx)
+			tcs := &channelStat{trudp: trudp} // Empty Methods holder
+			str = tcs.statHeader(time.Since(trudp.startTime), time.Since(t)) + str + tcs.statFooter(idx)
 			fmt.Print(str)
 		}
 	}()

@@ -105,8 +105,8 @@ const (
 
 // packetDataProcess process received data packet, check receivedQueue and
 // send received data and events to user level
-func (packet *packetType) packetDataProcess(tcd *channelData) {
-	id := packet.getID()
+func (pac *packetType) packetDataProcess(tcd *channelData) {
+	id := pac.getID()
 	switch {
 
 	// Valid data packet
@@ -114,7 +114,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 		tcd.expectedID++
 		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
 		// Send received data packet to user level
-		tcd.trudp.sendEvent(tcd, GOT_DATA, packet.getData())
+		tcd.trudp.sendEvent(tcd, GOT_DATA, pac.getData())
 		// Check packets in received queue
 		for {
 			idx, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
@@ -136,7 +136,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
 		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
-		packet.resetCreateNew().writeTo(tcd) // Send reset
+		pac.resetCreateNew().writeTo(tcd) // Send reset
 		// Send event "RESET was sent" to user level
 		tcd.trudp.sendEvent(tcd, SEND_RESET, nil)
 
@@ -152,7 +152,7 @@ func (packet *packetType) packetDataProcess(tcd *channelData) {
 		_, _, err := tcd.receiveQueueFind(id)
 		if err != nil {
 			tcd.trudp.Log(DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
-			tcd.receiveQueueAdd(packet)
+			tcd.receiveQueueAdd(pac)
 		} else {
 			tcd.trudp.Log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
 			// Set statistic REJECTED (already received) packet

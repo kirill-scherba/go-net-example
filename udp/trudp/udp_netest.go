@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// BenchmarkSyscallUDP test function to connect to UDP with syscall packet
 func BenchmarkSyscallUDP() { //t *testing.B) {
 
 	fmt.Println("BenchmarkSyscallUDP initialized")

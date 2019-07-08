@@ -60,6 +60,7 @@ func (tcd *channelData) reset() {
 	tcd.id = firstPacketID
 	// Set tcd.expectedID = 1
 	tcd.expectedID = firstPacketID
+	// \TODO reset trudp channel statistic
 	// Send event "RESET was applied" to user level
 	tcd.trudp.sendEvent(tcd, RESET_LOCAL, nil)
 }
@@ -79,7 +80,7 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 	go func() {
 
 		// Stopping workers and
-		for idx, _ := range tcd.chStopWorkers {
+		for idx := range tcd.chStopWorkers {
 			tcd.chStopWorkers[idx] <- true
 		}
 
@@ -87,7 +88,7 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 		tcd.wgWorkers.Wait()
 
 		// Close workers stop channel and chSendQueue channel
-		for idx, _ := range tcd.chStopWorkers {
+		for idx := range tcd.chStopWorkers {
 			close(tcd.chStopWorkers[idx])
 		}
 		close(tcd.chProcessCommand)
@@ -99,7 +100,7 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 		// Clear channel queues (the receive queue was cleaned during stop workers)
 		tcd.receiveQueueReset()
 
-		// \TODO Clear/Correct TRUDP statistics data
+		// \TODO clear/correct TRUDP statistics data
 
 		// Remove trudp channel from channels map
 		delete(tcd.trudp.tcdmap, tcd.key)

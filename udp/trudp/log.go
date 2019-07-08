@@ -27,7 +27,7 @@ const (
 	strUNKNOWN = "UNKNOWN"
 )
 
-// log shows log message in terminal
+// Log shows log message in terminal
 func (trudp *TRUDP) Log(level int, p ...interface{}) {
 	if level <= trudp.logLevel {
 		if trudp.logLogF {
