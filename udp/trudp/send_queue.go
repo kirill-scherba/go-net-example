@@ -134,7 +134,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 	for _, sqd := range tcd.sendQueue {
 		var t time.Duration
 		if !now.After(sqd.arrivalTime) {
-			t = time.Until(sqd.arrivalTime)
+			//t = time.Until(sqd.arrivalTime)
 			break
 		} else {
 			// Destroy this trudp channel if resendAttemp more than maxResendAttemp
