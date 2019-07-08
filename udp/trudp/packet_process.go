@@ -113,20 +113,10 @@ func (pac *packetType) packetDataProcess(tcd *channelData) {
 	case id == tcd.expectedID:
 		tcd.expectedID++
 		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
-		// Send received data packet to user level
+		// Send received packet data to user level
 		tcd.trudp.sendEvent(tcd, GOT_DATA, pac.getData())
-		// Check packets in received queue
-		for {
-			idx, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
-			if err != nil {
-				break
-			}
-			tcd.expectedID++
-			tcd.trudp.Log(DEBUGv, "find packet in receivedQueue, id:", rqd.packet.getID())
-			// Send received data packet to user level
-			tcd.trudp.sendEvent(tcd, GOT_DATA, rqd.packet.getData())
-			tcd.receiveQueueRemove(idx)
-		}
+		// Check packets in received queue and send it data to user level
+		tcd.receiveQueueProcess(func(data []byte) { tcd.trudp.sendEvent(tcd, GOT_DATA, data) })
 
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:

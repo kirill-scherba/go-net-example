@@ -42,3 +42,19 @@ func (tcd *channelData) receiveQueueReset() {
 	// }
 	tcd.receiveQueue = tcd.receiveQueue[:0]
 }
+
+// receiveQueueProcess find packets in received queue sendEvent and remove packet
+func (tcd *channelData) receiveQueueProcess(sendEvent func(data []byte)) {
+	for {
+		idx, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
+		if err != nil {
+			break
+		}
+		tcd.expectedID++
+		tcd.trudp.Log(DEBUGv, "find packet in receivedQueue, id:", rqd.packet.getID())
+		// Send received data packet to user level
+		//tcd.trudp.sendEvent(tcd, GOT_DATA, rqd.packet.getData())
+		sendEvent(rqd.packet.getData())
+		tcd.receiveQueueRemove(idx)
+	}
+}
