@@ -16,6 +16,37 @@ type channelStat struct {
 	lastTripTimeReceived time.Time   // Time when last packet with triptime was received
 }
 
+// realTimeSpeed type to calculate real time speed
+type realTimeSpeed struct {
+	secArr      [10][2]int // Secondes array
+	lastIDX     int        // Last secundes array index
+	speedPacSec int        // Speed in pacets/second
+	speedMbSec  float32    // Speed in mb/second
+}
+
+// calculate function calculate real time packets speed in pac/sec and mb/sec
+func (realTime *realTimeSpeed) calculate(length int) {
+	now := time.Now()
+	nsec := now.UnixNano()
+	millis := nsec / 1000000
+	currentIdx := int((millis / 100) % 10)
+	if realTime.lastIDX != currentIdx {
+		realTime.lastIDX = currentIdx
+		realTime.secArr[currentIdx][0] = 0
+		realTime.secArr[currentIdx][1] = 0
+	}
+	realTime.secArr[currentIdx][0]++
+	realTime.secArr[currentIdx][1] += length
+	realTime.speedPacSec, realTime.speedMbSec = func() (speedPacSec int, speedMbSec float32) {
+		for _, v := range realTime.secArr {
+			speedPacSec += v[0]
+			speedMbSec += float32(v[1])
+		}
+		speedMbSec = speedMbSec / float32(1024*1024)
+		return
+	}()
+}
+
 // setTriptime save triptime to the ChannelData
 func (tcs *channelStat) setTriptime(triptime float32) {
 	tcs.triptime = triptime
@@ -37,6 +68,7 @@ func (tcs *channelStat) received(length int) {
 	tcs.trudp.packets.receive++                 // Total data packets received
 	tcs.packets.receive++                       // Channel data packets received
 	tcs.packets.receiveLength += uint64(length) // Length of packet
+	tcs.packets.receiveRT.calculate(length)     // Calculate received real time speed
 }
 
 // ackReceived adds ack packets received to statistic
@@ -56,39 +88,50 @@ func (tcs *channelStat) send(length int) {
 	tcs.trudp.packets.send++                 // Total packets send
 	tcs.packets.send++                       // Channel packets send
 	tcs.packets.sendLength += uint64(length) // Length of packet
+	tcs.packets.sendRT.calculate(length)     // Calculate send real time speed
 }
 
+// repeat adds data packets repeat to statistic
 func (tcs *channelStat) repeat() {
 	tcs.trudp.packets.repeat++ // Total packets repeat
 	tcs.packets.repeat++       // Channel packets repeat
 }
 
+// statHeader return statistic header string
 func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) string {
+	var addr string
+	//if tcs.trudp != nil && tcs.trudp.conn != nil {
+	addr = tcs.trudp.conn.LocalAddr().String()
+	//}
 	return fmt.Sprintf(
 		/*_ANSI_CLS+*/
 		"\0337"+ // Save cursor
 			"\033[0;0H"+ // Set cursor to the top
-			"TR-UDP statistics, port 8030, running time: %v, show statistic time: %v                       \n"+
-			"List of channels:                                                                                                                                                                 \n"+
-			"----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
-			"  # Key                          Send   Speed(p/s)  Total(mb) Trip time /  Wait(ms) |  Recv   Speed(p/s)  Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ     EQ \n"+
-			"----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
+			"TR-UDP statistics, addr: %s, running time: %20v, show statistic time: %v                       \n"+
+			"List of channels:                                                                                                                                                             \n"+
+			"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
+			"  # Key                          Send   Pac/sec   Total(mb) Trip time /  Wait(ms) |  Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ     EQ \n"+
+			"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
+		addr,
 		runningTime,
 		executionTime)
 }
 
+// statFooter return statistic futer string
 func (tcs *channelStat) statFooter(length int) string {
 	return fmt.Sprintf(
-		"----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
-			"                                                                                                                                                                                  \n"+
+		"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
+			"                                                                                                                                                                              \n"+
 			"\033[%d;r"+ // Setscroll mode
 			"\0338", // Restore cursor
 		8+length)
 }
 
+// statBody return one channel statistic body string
 func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
-	timeSinceStart := float64(time.Since(tcs.timeStarted).Seconds())
-	// Repeat in %
+
+	//timeSinceStart := float64(time.Since(tcs.timeStarted).Seconds())
+	// Return repeat packets in %
 	repeatP := func() (retval uint32) {
 		retval = 0
 		if tcs.packets.send > 0 {
@@ -96,7 +139,7 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		}
 		return
 	}
-	// Dropped in %
+	// Return dropped packets in %
 	droppedP := func() (retval uint32) {
 		retval = 0
 		if tcs.packets.receive > 0 {
@@ -106,28 +149,28 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 	}
 
 	retstr = fmt.Sprintf(
-		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d %11.3f %10.3f  %9.3f /%9.3f %8d %11.3f %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d %6d \n"+
+		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f  %9.3f /%9.3f %8d  %8d %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d %6d \n"+
 			"",
 
 		idx+1,                 // trudp channel number (in statistic screen)
 		len(tcd.key), tcd.key, // key len and key
-		tcs.packets.send, // packets send
-		float64(tcs.packets.send)/timeSinceStart,    // send speed in packets/sec
-		float64(tcs.packets.sendLength)/(1024*1024), // send total in mb
-		tcs.triptime,        // trip time
-		tcs.triptimeMiddle,  // trip time middle
-		tcs.packets.receive, // packets receive
-		float64(tcs.packets.receive)/timeSinceStart,    //  receive speed in packets/sec
+		tcs.packets.send,                               // packets send
+		tcs.packets.sendRT.speedPacSec,                 // float64(tcs.packets.send)/timeSinceStart, // send speed in packets/sec
+		float64(tcs.packets.sendLength)/(1024*1024),    // send total in mb
+		tcs.triptime,                                   // trip time
+		tcs.triptimeMiddle,                             // trip time middle
+		tcs.packets.receive,                            // packets receive
+		tcs.packets.receiveRT.speedPacSec,              // float64(tcs.packets.receive)/timeSinceStart,    // receive speed in packets/sec
 		float64(tcs.packets.receiveLength)/(1024*1024), // receive total in mb
-		tcs.packets.ack,       // packets ack receive
-		tcs.packets.repeat,    // packets repeat
-		repeatP(),             // packets repeat in %
-		tcs.packets.dropped,   // packets drop
-		droppedP(),            // packets drop in %
-		len(tcd.sendQueue),    // sendQueueSize,
-		len(tcd.chWrite),      // writeQueueSize,
-		len(tcd.receiveQueue), // receiveQueueSize
-		len(tcd.trudp.chRead), // eventsQueueSize
+		tcs.packets.ack,                                // packets ack receive
+		tcs.packets.repeat,                             // packets repeat
+		repeatP(),                                      // packets repeat in %
+		tcs.packets.dropped,                            // packets drop
+		droppedP(),                                     // packets drop in %
+		len(tcd.sendQueue),                             // sendQueueSize,
+		len(tcd.chWrite),                               // writeQueueSize,
+		len(tcd.receiveQueue),                          // receiveQueueSize
+		len(tcd.trudp.chRead),                          // eventsQueueSize
 	)
 	return
 }

@@ -106,7 +106,7 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 
 // checkChWrite got chWrite or nil channel depend of sendQueue length
 func (tcd *channelData) checkChWrite() chan []byte /**packetType*/ {
-	if len(tcd.sendQueue) < 16 && len(tcd.receiveQueue) < 16 {
+	if len(tcd.sendQueue) < 8 && len(tcd.receiveQueue) < 8 {
 		return tcd.chWrite
 	}
 	return nil
