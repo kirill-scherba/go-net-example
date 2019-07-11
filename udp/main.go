@@ -27,6 +27,7 @@ func main() {
 		showStat  bool
 	)
 
+	flag.IntVar(&maxQueueSize, "Q", trudp.DefaultQueueSize, "maximum send and receive queues size")
 	flag.BoolVar(&noLogTime, "no_log_time", false, "don't show time in application log")
 	flag.IntVar(&port, "p", 0, "this host port (to remote hosts connect to this host)")
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
@@ -35,7 +36,6 @@ func main() {
 	flag.StringVar(&logLevel, "log", "CONNECT", "application log level")
 	flag.BoolVar(&sendTest, "send_test", false, "send test data")
 	flag.BoolVar(&showStat, "S", false, "show statistic")
-	flag.IntVar(&maxQueueSize, "Q", trudp.DefaultQueueSize, "maximum send and receive queues size")
 	flag.Parse()
 
 	tru := trudp.Init(port)
@@ -49,33 +49,40 @@ func main() {
 	// Set default queue size
 	tru.SetDefaultQueueSize(maxQueueSize)
 
-	// Connect to remote server flag
+	// Connect to remote server flag and send data when connected
 	if rport != 0 {
-		tcd := tru.ConnectChannel(rhost, rport, rchan)
-
-		// Auto sender flag
-		if sendTest {
-			tcd.SendTestMsg(true)
-		}
-
-		// Sender
-		num := 0
-		f := func() {
-			defer func() { log.Println("(main) channels sender stopped") }()
-			const sleepTime = 250
+		go func() {
+			// Try to connect to remote hosr every 5 seconds
 			for {
-				time.Sleep(sleepTime * time.Microsecond)
-				data := []byte("Hello-" + strconv.Itoa(num) + "!")
-				err := tcd.WriteTo(data)
-				if err != nil {
-					return
+				tcd := tru.ConnectChannel(rhost, rport, rchan)
+
+				// Auto sender flag
+				if sendTest {
+					tcd.SendTestMsg(true)
 				}
-				num++
+
+				// Sender
+				func() {
+					num := 0
+					const sleepTime = 0
+					for {
+						if sleepTime > 0 {
+							time.Sleep(sleepTime * time.Microsecond)
+						}
+						data := []byte("Hello-" + strconv.Itoa(num) + "!")
+						err := tcd.WriteTo(data)
+						if err != nil {
+							break
+						}
+						num++
+					}
+					tru.Log(trudp.CONNECT, "(main) channels sender stopped")
+				}()
+
+				time.Sleep(5 * time.Second)
+				tru.Log(trudp.CONNECT, "(main) reconnect")
 			}
-		}
-		//for i := 0; i < 1; i++ {
-		go f()
-		//}
+		}()
 	}
 
 	// Receiver
@@ -85,6 +92,7 @@ func main() {
 
 			case trudp.GOT_DATA:
 				tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+				// Send answer if this host not connected to remote hosr
 				if rport == 0 {
 					ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
 				}
