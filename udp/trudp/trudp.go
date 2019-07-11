@@ -16,8 +16,10 @@ const (
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	statInterval     = 100  // Interval to show statistic
-	DefaultQueueSize = 16   // Default size of send and receive queue
 	chWriteSize      = 1024 //2048 // Size of write channele used to send messages from users level
+
+	// Default size of send and receive queue
+	DefaultQueueSize = 16
 
 	helloMsg      = "hello"
 	echoMsg       = "ping"
@@ -279,7 +281,12 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
-	trudp.chRead <- &eventData{tcd, event, data}
+	//trudp.chRead <- &eventData{tcd, event, data}
+	if len(trudp.chRead) < chWriteSize {
+		trudp.chRead <- &eventData{tcd, event, data}
+	} else {
+		go func() { trudp.chRead <- &eventData{tcd, event, data} }()
+	}
 }
 
 // Connect to remote host by UDP
