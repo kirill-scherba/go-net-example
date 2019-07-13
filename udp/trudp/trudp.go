@@ -16,7 +16,8 @@ const (
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	statInterval     = 100  // Interval to show statistic
-	chWriteSize      = 1024 //2048 // Size of write channele used to send messages from users level
+	chWriteSize      = 16   // Size of write channele used to send data from users level and than send it to remote host
+	chReadSize       = 2    // Size or read channel used to send messages to user level
 
 	// Default size of send and receive queue
 	DefaultQueueSize = 16
@@ -268,7 +269,7 @@ func Init(port int) (trudp *TRUDP) {
 		startTime: time.Now(),
 	}
 	trudp.tcdmap = make(map[string]*channelData)
-	trudp.chRead = make(chan *eventData, chWriteSize)
+	trudp.chRead = make(chan *eventData, chReadSize)
 	trudp.packet.trudp = trudp
 
 	trudp.Log(CONNECT, "start listenning at", conn.LocalAddr())
@@ -281,12 +282,12 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
-	//trudp.chRead <- &eventData{tcd, event, data}
-	if len(trudp.chRead) < chWriteSize {
-		trudp.chRead <- &eventData{tcd, event, data}
-	} else {
-		go func() { trudp.chRead <- &eventData{tcd, event, data} }()
-	}
+	trudp.chRead <- &eventData{tcd, event, data}
+	// if len(trudp.chRead) < chWriteSize {
+	// 	trudp.chRead <- &eventData{tcd, event, data}
+	// } else {
+	//go func() { trudp.chRead <- &eventData{tcd, event, data} }()
+	// }
 }
 
 // Connect to remote host by UDP
