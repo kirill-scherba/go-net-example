@@ -41,6 +41,7 @@ type TRUDP struct {
 	chRead chan *eventData         // User level event channel
 	packet *packetType             // packet functions holder
 	ticker *time.Ticker            // timer ticler
+	proc   *process
 
 	// Logger configuration
 	logLevel int  // trudp log level
@@ -316,7 +317,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 // Run waits some data received from UDP port and procces it
 func (trudp *TRUDP) Run() {
 
-	proc := new(process).init()
+	trudp.proc = new(process).init()
 
 	for {
 		buffer := make([]byte, maxBufferSize)
@@ -336,7 +337,7 @@ func (trudp *TRUDP) Run() {
 			//trudp.packet.process(buffer[:nRead], addr)
 			packet := &packetType{trudp: trudp, data: buffer[:nRead]}
 			//packet.process(addr)
-			proc.chanRead <- readType{addr, packet}
+			trudp.proc.chanRead <- readType{addr, packet}
 			// ch := trudp.packet.getChannel(buffer[:nRead])
 			// id := trudp.packet.getID(buffer[:nRead])
 			// tp := trudp.packet.getType(buffer[:nRead])
