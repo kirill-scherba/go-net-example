@@ -13,7 +13,8 @@ import (
 
 // process data structure
 type process struct {
-	chanWrite   chan []byte      // channel to write (used to send data from user level)
+	trudp       *TRUDP           // link to trudp
+	chanWrite   chan writeType   // channel to write (used to send data from user level)
 	chanRead    chan readType    // channel to read (used to process packets received from udp)
 	timerKeep   *time.Ticker     // keep alive timer
 	timerResend <-chan time.Time // resend packet from send queue timer
@@ -23,6 +24,12 @@ type process struct {
 type readType struct {
 	addr   *net.UDPAddr
 	packet *packetType
+}
+
+// read channel data structure
+type writeType struct {
+	tcd  *channelData
+	data []byte
 }
 
 // init
@@ -35,7 +42,7 @@ func (proc *process) init() *process {
 
 	// Init channels and timers
 	proc.chanRead = make(chan readType)
-	proc.chanWrite = make(chan []byte)
+	proc.chanWrite = make(chan writeType)
 	//
 	proc.timerResend = time.After(resendTime)
 	proc.timerKeep = time.NewTicker(pingTime)
@@ -54,11 +61,19 @@ func (proc *process) init() *process {
 
 			// Process write packet (received from user level, need write to udp)
 			case <-proc.chanWrite:
+				//writePac.tcd.trudp.packet.dataCreateNew(writePac.tcd.getID(), writePac.tcd.ch, writePac.data).writeToUnsafe(writePac.tcd)
 
 			case <-proc.timerKeep.C:
-			case <-proc.timerResend:
-				proc.timerResend = time.After(resendTime) // Set new timer value
 
+			case <-proc.timerResend:
+				resendTime = 0
+				for _, tcd := range proc.trudp.tcdmap {
+					rt := tcd.sendQueueResendProcess()
+					if resendTime == 0 || rt < resendTime {
+						resendTime = rt
+					}
+				}
+				proc.timerResend = time.After(resendTime) // Set new timer value
 			}
 		}
 	}()

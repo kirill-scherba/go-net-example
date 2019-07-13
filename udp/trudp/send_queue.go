@@ -71,8 +71,8 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 
 				// task 2: Process sendQueue (resend packets from sendQueue)
 				case <-timerResend:
-					resendTime = tcd.sendQueueResendProcess()
-					timerResend = time.After(resendTime)
+					// resendTime = tcd.sendQueueResendProcess()
+					// timerResend = time.After(resendTime)
 
 				// task 3: Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 				case <-timerKeep.C:
