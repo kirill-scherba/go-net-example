@@ -316,6 +316,8 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 // Run waits some data received from UDP port and procces it
 func (trudp *TRUDP) Run() {
 
+	proc := new(process).init()
+
 	for {
 		buffer := make([]byte, maxBufferSize)
 
@@ -333,7 +335,8 @@ func (trudp *TRUDP) Run() {
 		case trudp.packet.check(buffer[:nRead]):
 			//trudp.packet.process(buffer[:nRead], addr)
 			packet := &packetType{trudp: trudp, data: buffer[:nRead]}
-			packet.process(addr)
+			//packet.process(addr)
+			proc.chanRead <- readType{addr, packet}
 			// ch := trudp.packet.getChannel(buffer[:nRead])
 			// id := trudp.packet.getID(buffer[:nRead])
 			// tp := trudp.packet.getType(buffer[:nRead])
