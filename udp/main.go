@@ -28,13 +28,13 @@ func main() {
 	)
 
 	flag.IntVar(&maxQueueSize, "Q", trudp.DefaultQueueSize, "maximum send and receive queues size")
-	flag.BoolVar(&noLogTime, "no_log_time", false, "don't show time in application log")
+	flag.BoolVar(&noLogTime, "no-log-time", false, "don't show time in application log")
 	flag.IntVar(&port, "p", 0, "this host port (to remote hosts connect to this host)")
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&logLevel, "log", "CONNECT", "application log level")
-	flag.BoolVar(&sendTest, "send_test", false, "send test data")
+	flag.BoolVar(&sendTest, "send-test", false, "send test data")
 	flag.BoolVar(&showStat, "S", false, "show statistic")
 	flag.Parse()
 
@@ -87,6 +87,7 @@ func main() {
 
 	// Receiver
 	go func() {
+		//infly := 0
 		for ev := range tru.ChRead() {
 			switch ev.Event {
 
@@ -94,7 +95,8 @@ func main() {
 				tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 				// Send answer if this host not connected to remote hosr
 				if rport == 0 {
-					ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
+					//ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
+					go func() { ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer")) }()
 				}
 
 			case trudp.SEND_DATA:
@@ -115,6 +117,7 @@ func main() {
 			case trudp.SEND_RESET:
 				tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
 			}
+			//fmt.Println(infly)
 		}
 	}()
 
