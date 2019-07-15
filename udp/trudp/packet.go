@@ -101,7 +101,8 @@ func (pac *packetType) writeToSafeUnsafe(tcd *channelData, safe bool) {
 	case !pac.sendQueueF:
 		pac.destroy()
 	case safe:
-		tcd.sendQueueCommand(sendEvent)
+		//tcd.sendQueueCommand(sendEvent)
+		sendEvent()
 	case !safe:
 		sendEvent()
 	}

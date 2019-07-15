@@ -1,7 +1,9 @@
 package trudp
 
 import (
+	"fmt"
 	"net"
+	"strconv"
 	"time"
 )
 
@@ -33,12 +35,15 @@ type writeType struct {
 }
 
 // init
-func (proc *process) init() *process {
+func (proc *process) init(trudp *TRUDP) *process {
+
+	proc.trudp = trudp
 
 	// Set time variables
+	disconnectTime := disconnectAfter * time.Millisecond
+	sleepTime := pingInterval * time.Millisecond
 	resendTime := defaultRTT * time.Millisecond
 	pingTime := pingInterval * time.Millisecond
-	//disconnectTime := disconnectAfter * time.Millisecond
 
 	// Init channels and timers
 	proc.chanRead = make(chan readType)
@@ -63,13 +68,29 @@ func (proc *process) init() *process {
 			case <-proc.chanWrite:
 				//writePac.tcd.trudp.packet.dataCreateNew(writePac.tcd.getID(), writePac.tcd.ch, writePac.data).writeToUnsafe(writePac.tcd)
 
+			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 			case <-proc.timerKeep.C:
+				for _, tcd := range proc.trudp.tcdmap {
+					switch {
+					case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
+						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
+					case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
+						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+						tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
+					}
+					// \TODO send test data - remove it
+					if tcd.sendTestMsgF {
+						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
+						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
+					}
+				}
 
+			// Process send queue (resend packets from send queue)
 			case <-proc.timerResend:
-				resendTime = 0
+				resendTime = defaultRTT * time.Millisecond
 				for _, tcd := range proc.trudp.tcdmap {
 					rt := tcd.sendQueueResendProcess()
-					if resendTime == 0 || rt < resendTime {
+					if rt < resendTime {
 						resendTime = rt
 					}
 				}

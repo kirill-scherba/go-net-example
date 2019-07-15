@@ -3,7 +3,6 @@ package trudp
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 )
 
@@ -48,13 +47,13 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 		go func() {
 			worker := "'process command'"
 			start(worker)
-			resendTime := defaultRTT * time.Millisecond
-			sleepTime := pingInterval * time.Millisecond
-			disconnectTime := disconnectAfter * time.Millisecond
-			timerResend := time.After(resendTime)
-			timerKeep := time.NewTicker(sleepTime)
+			//resendTime := defaultRTT * time.Millisecond
+			//sleepTime := pingInterval * time.Millisecond
+			//disconnectTime := disconnectAfter * time.Millisecond
+			//timerResend := time.After(resendTime)
+			//timerKeep := time.NewTicker(sleepTime)
 
-			defer func() { timerKeep.Stop(); tcd.sendQueueReset(); stop(worker) }()
+			defer func() { /*timerKeep.Stop();*/ tcd.sendQueueReset(); stop(worker) }()
 			for {
 				// Wait message from chSendQueue or stopWorkers channels
 				select {
@@ -70,24 +69,24 @@ func (tcd *channelData) sendQueueCommand(fnc func()) (err error) {
 					}
 
 				// task 2: Process sendQueue (resend packets from sendQueue)
-				case <-timerResend:
-					// resendTime = tcd.sendQueueResendProcess()
-					// timerResend = time.After(resendTime)
+				//case <-timerResend:
+				// resendTime = tcd.sendQueueResendProcess()
+				// timerResend = time.After(resendTime)
 
 				// task 3: Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
-				case <-timerKeep.C:
-					switch {
-					case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
-						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
-					case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
-						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-						tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
-					}
-					// \TODO send test data - remove it
-					if tcd.sendTestMsgF {
-						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
-						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
-					}
+				//case <-timerKeep.C:
+				// switch {
+				// case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
+				// 	tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
+				// case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
+				// 	tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+				// 	tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
+				// }
+				// // \TODO send test data - remove it
+				// if tcd.sendTestMsgF {
+				// 	data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
+				// 	tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
+				// }
 
 				// task 4: Got packet from chWrite (from user level) and write it to teonet channel
 				case data := <-tcd.checkChWrite():
