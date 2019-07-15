@@ -134,8 +134,8 @@ func (tcd *channelData) WriteTo(data []byte) (err error) {
 		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
 		return
 	}
-	tcd.chWrite <- data
-	//tcd.trudp.proc.chanWrite <- writeType{tcd, data}
+	//tcd.chWrite <- data
+	tcd.trudp.proc.chanWrite <- writeType{tcd, data}
 	return
 }
 
