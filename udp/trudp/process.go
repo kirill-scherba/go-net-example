@@ -52,11 +52,12 @@ func (proc *process) init(trudp *TRUDP) *process {
 	proc.timerResend = time.After(resendTime)
 	proc.timerKeep = time.NewTicker(pingTime)
 
-	// Do it on return
-	defer func() { proc.timerKeep.Stop() }()
-
 	// Module worker
 	go func() {
+
+		// Do it on return
+		defer func() { proc.timerKeep.Stop() }()
+
 		for {
 			select {
 
@@ -65,8 +66,9 @@ func (proc *process) init(trudp *TRUDP) *process {
 				readPac.packet.process(readPac.addr)
 
 			// Process write packet (received from user level, need write to udp)
-			case <-proc.chanWrite:
-				//writePac.tcd.trudp.packet.dataCreateNew(writePac.tcd.getID(), writePac.tcd.ch, writePac.data).writeToUnsafe(writePac.tcd)
+			case writePac := <-proc.chanWrite:
+				tcd := writePac.tcd
+				trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeToUnsafe(tcd)
 
 			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 			case <-proc.timerKeep.C:
