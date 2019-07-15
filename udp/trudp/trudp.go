@@ -317,7 +317,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 // Run waits some data received from UDP port and procces it
 func (trudp *TRUDP) Run() {
 
-	trudp.proc = new(process).init()
+	trudp.proc = new(process).init(trudp)
 
 	for {
 		buffer := make([]byte, maxBufferSize)
