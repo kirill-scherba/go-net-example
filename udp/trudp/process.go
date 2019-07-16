@@ -3,6 +3,7 @@ package trudp
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -16,11 +17,12 @@ import (
 
 // process data structure
 type process struct {
-	trudp       *TRUDP           // link to trudp
-	chanWrite   chan writeType   // channel to write (used to send data from user level)
-	chanRead    chan readType    // channel to read (used to process packets received from udp)
-	timerKeep   *time.Ticker     // keep alive timer
-	timerResend <-chan time.Time // resend packet from send queue timer
+	trudp          *TRUDP           // link to trudp
+	chanWrite      chan writeType   // channel to write (used to send data from user level)
+	chanRead       chan readType    // channel to read (used to process packets received from udp)
+	timerKeep      *time.Ticker     // keep alive timer
+	timerResend    <-chan time.Time // resend packet from send queue timer
+	timerStatistic *time.Ticker     // statistic show ticker
 }
 
 // read channel data structure
@@ -46,11 +48,13 @@ func (proc *process) init(trudp *TRUDP) *process {
 	sleepTime := pingInterval * time.Millisecond
 	resendTime := defaultRTT * time.Millisecond
 	pingTime := pingInterval * time.Millisecond
+	statTime := statInterval * time.Millisecond
 
 	// Init channels and timers
-	proc.chanRead = make(chan readType, chReadSize)
 	proc.chanWrite = make(chan writeType, chWriteSize)
+	proc.chanRead = make(chan readType, chReadSize)
 	//
+	proc.timerStatistic = time.NewTicker(statTime)
 	proc.timerResend = time.After(resendTime)
 	proc.timerKeep = time.NewTicker(pingTime)
 
@@ -58,7 +62,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 	go func() {
 
 		// Do it on return
-		defer func() { proc.timerKeep.Stop() }()
+		defer func() { proc.timerKeep.Stop(); proc.timerStatistic.Stop() }()
 
 		for {
 			select {
@@ -105,6 +109,10 @@ func (proc *process) init(trudp *TRUDP) *process {
 					}
 				}
 				proc.timerResend = time.After(resendTime) // Set new timer value
+
+			// Process statistic show
+			case <-proc.timerStatistic.C:
+				proc.showStatistic()
 			}
 		}
 	}()
@@ -138,6 +146,39 @@ func (proc *process) writeQueueReset(tcd *channelData) {
 		writePac.chanAnswer <- false
 	}
 	tcd.writeQueue = tcd.writeQueue[:0]
+}
+
+func (proc *process) showStatistic() {
+	trudp := proc.trudp
+	if !trudp.showStatF {
+		return
+	}
+	//go func() {
+	idx := 0
+	t := time.Now()
+	//str := tcd.stat.statHeader(time.Since(trudp.startTime))
+	var str string
+
+	// Read trudp channels map keys to slice and sort it
+	keys := make([]string, len(trudp.tcdmap))
+	for key := range trudp.tcdmap {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	// Get trudp channels statistic string by sorted keys
+	for _, key := range keys {
+		tcd, ok := trudp.tcdmap[key]
+		if ok {
+			str += tcd.stat.statBody(tcd, idx, 0)
+			idx++
+		}
+	}
+
+	// Get fotter and print statistic string
+	tcs := &channelStat{trudp: trudp} // Empty Methods holder
+	str = tcs.statHeader(time.Since(trudp.startTime), time.Since(t)) + str + tcs.statFooter(idx)
+	fmt.Print(str)
 }
 
 // destroy

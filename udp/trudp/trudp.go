@@ -3,7 +3,6 @@ package trudp
 import (
 	"fmt"
 	"net"
-	"sort"
 	"strconv"
 	"time"
 )
@@ -20,7 +19,7 @@ const (
 	chWriteSize      = 16   // Size of write channele used to send data from users level and than send it to remote host
 	chEventSize      = 16   // Size or read channel used to send messages to user level
 
-	// Default size of send and receive queue
+	// DefaultQueueSize is size of send and receive queue
 	DefaultQueueSize = 16
 
 	helloMsg      = "hello"
@@ -217,54 +216,14 @@ func listenUDP(port int) *net.UDPConn {
 	return conn
 }
 
-// TRUDP Ticker
-func (trudp *TRUDP) runStatistic() {
-	go func() {
-		for range trudp.ticker.C {
-			if !trudp.showStatF {
-				continue
-			}
-			idx := 0
-			t := time.Now()
-			//str := tcd.stat.statHeader(time.Since(trudp.startTime))
-			var str string
-
-			// Read trudp channels map keys to slice and sort it
-			keys := make([]string, len(trudp.tcdmap))
-			for key := range trudp.tcdmap {
-				keys = append(keys, key)
-			}
-			sort.Strings(keys)
-
-			// Get trudp channels statistic string by sorted keys
-			for _, key := range keys {
-				tcd, ok := trudp.tcdmap[key]
-				if ok {
-					str += tcd.stat.statBody(tcd, idx, 0)
-					idx++
-				}
-			}
-
-			// Get fotter and print statistic string
-			tcs := &channelStat{trudp: trudp} // Empty Methods holder
-			str = tcs.statHeader(time.Since(trudp.startTime), time.Since(t)) + str + tcs.statFooter(idx)
-			fmt.Print(str)
-		}
-	}()
-}
-
 // Init start trudp connection
 func Init(port int) (trudp *TRUDP) {
 
 	// Connect to UDP
 	conn := listenUDP(port)
 
-	// Start ticker
-	ticker := time.NewTicker(statInterval * time.Millisecond)
-
 	trudp = &TRUDP{
 		conn:      conn,
-		ticker:    ticker,
 		logLevel:  CONNECT,
 		logLogF:   false,
 		packet:    &packetType{},
@@ -275,7 +234,6 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.packet.trudp = trudp
 
 	trudp.Log(CONNECT, "start listenning at", conn.LocalAddr())
-	trudp.runStatistic()
 
 	trudp.sendEvent(nil, INITIALIZE, []byte(conn.LocalAddr().String()))
 
@@ -363,7 +321,7 @@ func (trudp *TRUDP) Run() {
 	}
 }
 
-// ChRead return channel to read trudp events
+// ChEvent return channel to read trudp events
 func (trudp *TRUDP) ChEvent() <-chan *eventData {
 	return trudp.chanEvent
 }
