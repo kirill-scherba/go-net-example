@@ -16,8 +16,9 @@ const (
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	statInterval     = 100  // Interval to show statistic
+	chReadSize       = 64   // Size of read channele used to got data from udp
 	chWriteSize      = 16   // Size of write channele used to send data from users level and than send it to remote host
-	chReadSize       = 2    // Size or read channel used to send messages to user level
+	chEventSize      = 16   // Size or read channel used to send messages to user level
 
 	// Default size of send and receive queue
 	DefaultQueueSize = 16
@@ -37,11 +38,11 @@ type TRUDP struct {
 	conn *net.UDPConn // connector to send data
 
 	// Control maps, channels and function holder
-	tcdmap map[string]*channelData // channel data map
-	chRead chan *eventData         // User level event channel
-	packet *packetType             // packet functions holder
-	ticker *time.Ticker            // timer ticler
-	proc   *process
+	tcdmap    map[string]*channelData // channel data map
+	chanEvent chan *eventData         // User level event channel
+	packet    *packetType             // packet functions holder
+	ticker    *time.Ticker            // timer ticler
+	proc      *process
 
 	// Logger configuration
 	logLevel int  // trudp log level
@@ -270,7 +271,7 @@ func Init(port int) (trudp *TRUDP) {
 		startTime: time.Now(),
 	}
 	trudp.tcdmap = make(map[string]*channelData)
-	trudp.chRead = make(chan *eventData, chReadSize)
+	trudp.chanEvent = make(chan *eventData, chEventSize)
 	trudp.packet.trudp = trudp
 
 	trudp.Log(CONNECT, "start listenning at", conn.LocalAddr())
@@ -283,12 +284,7 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
-	trudp.chRead <- &eventData{tcd, event, data}
-	// if len(trudp.chRead) < chWriteSize {
-	// 	trudp.chRead <- &eventData{tcd, event, data}
-	// } else {
-	//go func() { trudp.chRead <- &eventData{tcd, event, data} }()
-	// }
+	trudp.chanEvent <- &eventData{tcd, event, data}
 }
 
 // Connect to remote host by UDP
@@ -368,8 +364,8 @@ func (trudp *TRUDP) Run() {
 }
 
 // ChRead return channel to read trudp events
-func (trudp *TRUDP) ChRead() <-chan *eventData {
-	return trudp.chRead
+func (trudp *TRUDP) ChEvent() <-chan *eventData {
+	return trudp.chanEvent
 }
 
 // ShowStatistic set showStatF to show trudp statistic window

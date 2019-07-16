@@ -87,15 +87,13 @@ func main() {
 
 	// Receiver
 	go func() {
-		//infly := 0
-		for ev := range tru.ChRead() {
+		for ev := range tru.ChEvent() {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
 				tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 				// Send answer if this host not connected to remote hosr
 				if rport == 0 {
-					//ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
 					go func() { ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer")) }()
 				}
 
@@ -117,7 +115,6 @@ func main() {
 			case trudp.SEND_RESET:
 				tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
 			}
-			//fmt.Println(infly)
 		}
 	}()
 
