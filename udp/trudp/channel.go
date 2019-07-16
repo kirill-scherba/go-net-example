@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -28,16 +27,9 @@ type channelData struct {
 	writeQueue   []writeType        // write queue
 	maxQueueSize int                // maximum queue size
 
-	// Channel channels and waiting groups
-	chProcessCommand chan func()           // channel for worker 'process command'
-	chWrite          chan []byte           // channel to write (used to send data from user level)
-	chStopWorkers    [workersLen]chan bool // channels to stop wokers
-	wgWorkers        sync.WaitGroup        // workers stop wait group
-
 	// Channel flags
 	stoppedF     bool // TRUDP channel stopped flag
 	sendTestMsgF bool // Send test messages
-	//showStatF    bool // Show statistic
 
 	// TRUDP channel statistic
 	stat channelStat
@@ -52,8 +44,6 @@ const (
 
 // reset exequte reset of this cannel
 func (tcd *channelData) reset() {
-	// Clear user write channel
-	tcd.resetChWrite()
 	// Clear sendQueue
 	tcd.sendQueueReset()
 	// Clear receivedQueue
@@ -81,39 +71,21 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 	tcd.stoppedF = true
 	tcd.trudp.Log(msgLevel, msg)
 
-	go func() {
+	// Clear receive queue
+	tcd.sendQueueReset()
 
-		// Stopping workers and
-		for idx := range tcd.chStopWorkers {
-			tcd.chStopWorkers[idx] <- true
-		}
+	// Clear receive queue
+	tcd.receiveQueueReset()
 
-		// Wait to stop workers
-		tcd.wgWorkers.Wait()
+	// Clear write queue
+	tcd.trudp.proc.writeQueueReset(tcd)
 
-		// Close workers stop channel and chSendQueue channel
-		for idx := range tcd.chStopWorkers {
-			close(tcd.chStopWorkers[idx])
-		}
-		close(tcd.chProcessCommand)
+	// \TODO clear/correct TRUDP statistics data
 
-		// Free and close write channel
-		tcd.resetChWrite()
-		close(tcd.chWrite)
-
-		// Clear channel queues (the receive queue was cleaned during stop workers)
-		tcd.receiveQueueReset()
-
-		// Clear write queue
-		tcd.trudp.proc.writeQueueReset(tcd)
-
-		// \TODO clear/correct TRUDP statistics data
-
-		// Remove trudp channel from channels map
-		delete(tcd.trudp.tcdmap, tcd.key)
-		tcd.trudp.Log(CONNECT, "channel with key", tcd.key, "disconnected")
-		tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
-	}()
+	// Remove trudp channel from channels map
+	delete(tcd.trudp.tcdmap, tcd.key)
+	tcd.trudp.Log(CONNECT, "channel with key", tcd.key, "disconnected")
+	tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
 
 	return
 }
@@ -180,12 +152,10 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
+	tcd.writeQueue = make([]writeType, 0)
 
 	// Add to channels map
 	trudp.tcdmap[key] = tcd
-
-	// Channels and sendQueue workers Init
-	tcd.sendQueueCommand(nil)
 
 	trudp.Log(CONNECT, "channel with key", key, "connected")
 	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
@@ -217,5 +187,6 @@ func (tcd *channelData) MakeKey() string {
 
 // canWrine return true if writeTo is allowed
 func (tcd *channelData) canWrite() bool {
-	return len(tcd.sendQueue) < tcd.maxQueueSize && len(tcd.receiveQueue) < tcd.maxQueueSize
+	return len(tcd.sendQueue) < tcd.maxQueueSize &&
+		len(tcd.receiveQueue) < tcd.maxQueueSize
 }
