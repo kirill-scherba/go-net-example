@@ -135,7 +135,9 @@ func (tcd *channelData) WriteTo(data []byte) (err error) {
 		return
 	}
 	//tcd.chWrite <- data
-	tcd.trudp.proc.chanWrite <- writeType{tcd, data}
+	chanAnswer := make(chan byte)
+	tcd.trudp.proc.chanWrite <- writeType{tcd, data, chanAnswer}
+	<- chanAnswer
 	return
 }
 

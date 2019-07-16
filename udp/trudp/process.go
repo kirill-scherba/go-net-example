@@ -12,6 +12,7 @@ import (
 // - write (received from user level, need write to udp)
 // - keep alive timer
 // - resend packet from send queue timer
+// - show statistic timer
 
 // process data structure
 type process struct {
@@ -30,8 +31,9 @@ type readType struct {
 
 // read channel data structure
 type writeType struct {
-	tcd  *channelData
-	data []byte
+	tcd        *channelData
+	data       []byte
+	chanAnswer chan byte
 }
 
 // init
@@ -69,6 +71,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 			case writePac := <-proc.chanWrite:
 				tcd := writePac.tcd
 				trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeToUnsafe(tcd)
+				writePac.chanAnswer <- true
 
 			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 			case <-proc.timerKeep.C:
