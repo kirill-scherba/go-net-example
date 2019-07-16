@@ -48,8 +48,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 	pingTime := pingInterval * time.Millisecond
 
 	// Init channels and timers
-	proc.chanRead = make(chan readType)
-	proc.chanWrite = make(chan writeType)
+	proc.chanRead = make(chan readType, chReadSize)
+	proc.chanWrite = make(chan writeType, chWriteSize)
 	//
 	proc.timerResend = time.After(resendTime)
 	proc.timerKeep = time.NewTicker(pingTime)
@@ -81,7 +81,9 @@ func (proc *process) init(trudp *TRUDP) *process {
 				for _, tcd := range proc.trudp.tcdmap {
 					switch {
 					case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
-						tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: does not answer long time: ", time.Since(tcd.stat.lastTimeReceived)))
+						tcd.destroy(DEBUGv,
+							fmt.Sprint("destroy this channel: does not answer long time: ",
+								time.Since(tcd.stat.lastTimeReceived)))
 					case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
 						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 						tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
@@ -113,8 +115,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 // wrieTo write packet to trudp channel and send true to Answer channel
 func (proc *process) writeTo(writePac writeType) {
 	tcd := writePac.tcd
-	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeToUnsafe(tcd)
 	writePac.chanAnswer <- true
+	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeToUnsafe(tcd)
 }
 
 // writeQueueAdd add write packet to write queue

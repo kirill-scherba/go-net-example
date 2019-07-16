@@ -108,10 +108,10 @@ func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) str
 		"\0337"+ // Save cursor
 			"\033[0;0H"+ // Set cursor to the top
 			"TR-UDP statistics, addr: %s, running time: %20v, show statistic time: %v                       \n"+
-			"List of channels:                                                                                                                                                             \n"+
-			"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
-			"  # Key                          Send   Pac/sec   Total(mb) Trip time /  Wait(ms) |  Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ     EQ \n"+
-			"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
+			"List of channels:                                                                                                                                                                    \n"+
+			"-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
+			"  # Key                          Send   Pac/sec   Total(mb) Trip time /  Wait(ms) |  Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ     UQ     EQ \n"+
+			"-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
 		addr,
 		runningTime,
 		executionTime)
@@ -120,8 +120,8 @@ func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) str
 // statFooter return statistic futer string
 func (tcs *channelStat) statFooter(length int) string {
 	return fmt.Sprintf(
-		"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
-			"                                                                                                                                                                              \n"+
+		"-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n"+
+			"                                                                                                                                                                                     \n"+
 			"\033[%d;r"+ // Setscroll mode
 			"\0338", // Restore cursor
 		8+length)
@@ -149,7 +149,7 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 	}
 
 	retstr = fmt.Sprintf(
-		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f  %9.3f /%9.3f %8d  %8d %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d %6d \n"+
+		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f  %9.3f /%9.3f %8d  %8d %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d %6d %6d \n"+
 			"",
 
 		idx+1,                 // trudp channel number (in statistic screen)
@@ -170,7 +170,8 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		len(tcd.sendQueue),                             // sendQueueSize,
 		len(tcd.writeQueue),                            // writeQueueSize,
 		len(tcd.receiveQueue),                          // receiveQueueSize
-		len(tcd.trudp.chRead),                          // eventsQueueSize
+		len(tcd.trudp.proc.chanRead),                   // channel read Size
+		len(tcd.trudp.chanEvent),                       // eventsQueueSize
 	)
 	return
 }
