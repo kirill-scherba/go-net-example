@@ -64,7 +64,7 @@ func main() {
 				// Sender
 				func() {
 					num := 0
-					const sleepTime = 10000
+					const sleepTime = 0
 					for {
 						if sleepTime > 0 {
 							time.Sleep(sleepTime * time.Microsecond)

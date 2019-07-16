@@ -25,6 +25,7 @@ type channelData struct {
 	// Channels packet queues
 	sendQueue    []sendQueueData    // send queue
 	receiveQueue []receiveQueueData // received queue
+	writeQueue   []writeType        // write queue
 	maxQueueSize int                // maximum queue size
 
 	// Channel channels and waiting groups
@@ -57,6 +58,8 @@ func (tcd *channelData) reset() {
 	tcd.sendQueueReset()
 	// Clear receivedQueue
 	tcd.receiveQueueReset()
+	// Clear writeQueue
+	tcd.trudp.proc.writeQueueReset(tcd)
 	// Set tcd.id = 0
 	tcd.id = firstPacketID
 	// Set tcd.expectedID = 1
@@ -101,6 +104,9 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 		// Clear channel queues (the receive queue was cleaned during stop workers)
 		tcd.receiveQueueReset()
 
+		// Clear write queue
+		tcd.trudp.proc.writeQueueReset(tcd)
+
 		// \TODO clear/correct TRUDP statistics data
 
 		// Remove trudp channel from channels map
@@ -135,9 +141,9 @@ func (tcd *channelData) WriteTo(data []byte) (err error) {
 		return
 	}
 	//tcd.chWrite <- data
-	chanAnswer := make(chan byte)
+	chanAnswer := make(chan bool)
 	tcd.trudp.proc.chanWrite <- writeType{tcd, data, chanAnswer}
-	<- chanAnswer
+	<-chanAnswer
 	return
 }
 
@@ -207,4 +213,9 @@ func (tcd *channelData) CloseChannel() {
 // MakeKey return trudp channel key
 func (tcd *channelData) MakeKey() string {
 	return tcd.key
+}
+
+// canWrine return true if writeTo is allowed
+func (tcd *channelData) canWrite() bool {
+	return len(tcd.sendQueue) < tcd.maxQueueSize && len(tcd.receiveQueue) < tcd.maxQueueSize
 }

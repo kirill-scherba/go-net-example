@@ -53,6 +53,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		// Remove packet from send queue
 		//go tcd.sendQueueCommand(func() { tcd.sendQueueRemove(pac) })
 		tcd.sendQueueRemove(pac)
+		tcd.trudp.proc.writeQueueWriteTo(tcd)
 
 	// RESET packet received
 	case RESET:
