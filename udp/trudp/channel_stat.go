@@ -168,7 +168,7 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		tcs.packets.dropped,                            // packets drop
 		droppedP(),                                     // packets drop in %
 		len(tcd.sendQueue),                             // sendQueueSize,
-		len(tcd.chWrite),                               // writeQueueSize,
+		len(tcd.writeQueue),                            // writeQueueSize,
 		len(tcd.receiveQueue),                          // receiveQueueSize
 		len(tcd.trudp.chRead),                          // eventsQueueSize
 	)

@@ -33,7 +33,7 @@ type readType struct {
 type writeType struct {
 	tcd        *channelData
 	data       []byte
-	chanAnswer chan byte
+	chanAnswer chan bool
 }
 
 // init
@@ -70,8 +70,11 @@ func (proc *process) init(trudp *TRUDP) *process {
 			// Process write packet (received from user level, need write to udp)
 			case writePac := <-proc.chanWrite:
 				tcd := writePac.tcd
-				trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeToUnsafe(tcd)
-				writePac.chanAnswer <- true
+				if tcd.canWrite() {
+					proc.writeTo(writePac)
+				} else {
+					proc.writeQueueAdd(tcd, writePac)
+				}
 
 			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
 			case <-proc.timerKeep.C:
@@ -105,6 +108,34 @@ func (proc *process) init(trudp *TRUDP) *process {
 	}()
 
 	return proc
+}
+
+// wrieTo write packet to trudp channel and send true to Answer channel
+func (proc *process) writeTo(writePac writeType) {
+	tcd := writePac.tcd
+	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeToUnsafe(tcd)
+	writePac.chanAnswer <- true
+}
+
+// writeQueueAdd add write packet to write queue
+func (proc *process) writeQueueAdd(tcd *channelData, writePac writeType) {
+	tcd.writeQueue = append(tcd.writeQueue, writePac)
+}
+
+// writeQueueWriteTo get packet from writeQueue and send it to trudp channel
+func (proc *process) writeQueueWriteTo(tcd *channelData) {
+	for len(tcd.writeQueue) > 0 && tcd.canWrite() {
+		writePac := tcd.writeQueue[0]
+		proc.writeTo(writePac)
+		tcd.writeQueue = tcd.writeQueue[1:]
+	}
+}
+
+func (proc *process) writeQueueReset(tcd *channelData) {
+	for _, writePac := range tcd.writeQueue {
+		writePac.chanAnswer <- false
+	}
+	tcd.writeQueue = tcd.writeQueue[:0]
 }
 
 // destroy
