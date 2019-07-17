@@ -15,7 +15,7 @@ const (
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	statInterval     = 100  // Interval to show statistic
-	chReadSize       = 64   // Size of read channele used to got data from udp
+	chReadSize       = 1024 // Size of read channele used to got data from udp
 	chWriteSize      = 16   // Size of write channele used to send data from users level and than send it to remote host
 	chEventSize      = 16   // Size or read channel used to send messages to user level
 
@@ -321,8 +321,8 @@ func (trudp *TRUDP) Run() {
 	}
 }
 
-// ChEvent return channel to read trudp events
-func (trudp *TRUDP) ChEvent() <-chan *eventData {
+// ChanEvent return channel to read trudp events
+func (trudp *TRUDP) ChanEvent() <-chan *eventData {
 	return trudp.chanEvent
 }
 
