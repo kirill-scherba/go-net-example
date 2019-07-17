@@ -21,33 +21,26 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 	rtt = (defaultRTT + time.Duration(tcd.stat.triptimeMiddle)) * time.Millisecond
 	now := time.Now()
 	for _, sqd := range tcd.sendQueue {
-		var t time.Duration
+		// Do while packets ready to resend
 		if !now.After(sqd.arrivalTime) {
-			//t = time.Until(sqd.arrivalTime)
 			break
-		} else {
-			// Destroy this trudp channel if resendAttemp more than maxResendAttemp
-			if sqd.resendAttempt >= maxResendAttempt {
-				// Destroy this trudp channel
-				tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: too much resends happens: ", sqd.resendAttempt))
-				break
-			}
-			// Resend record with arrivalTime less than Windows
-			t = time.Duration(defaultRTT+tcd.stat.triptimeMiddle) * time.Millisecond
-			sqd.packet.writeTo(tcd)
-			// Statistic
-			tcd.stat.repeat()
-
-			tcd.trudp.Log(DEBUG, "resend sendQueue packet with",
-				"id:", sqd.packet.getID(),
-				"attempt:", sqd.resendAttempt,
-				"rtt:", t)
 		}
+		// Destroy this trudp channel if resendAttemp more than maxResendAttemp
+		if sqd.resendAttempt >= maxResendAttempt {
+			tcd.destroy(DEBUGv, fmt.Sprint("destroy this channel: too much resends happens: ", sqd.resendAttempt))
+			break
+		}
+		// Resend packet, save resend to statistic and show message
+		sqd.packet.writeTo(tcd)
+		tcd.stat.repeat()
+		tcd.trudp.Log(DEBUG, "resend sendQueue packet with",
+			"id:", sqd.packet.getID(),
+			"attempt:", sqd.resendAttempt)
 	}
 	// Next time to run sendQueueResendProcess
-	// if len(tcd.sendQueue) > 0 {
-	// 	rtt = tcd.sendQueue[0].arrivalTime.Sub(now)
-	// }
+	if len(tcd.sendQueue) > 0 {
+		rtt = tcd.sendQueue[0].arrivalTime.Sub(now)
+	}
 	return
 }
 
