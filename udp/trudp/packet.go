@@ -87,35 +87,18 @@ func (pac *packetType) destroy() {
 	}
 }
 
-// writeToSafeUnsafe send packetData to trudp channel. Depend on type of created packet:
+// writeTo send packetData to trudp channel. Depend on type of created packet:
 // Data or Service. Send Data packet to trudp channel and save it to sendQueue
 // or Send Service packet to trudp channel and destroy it
-func (pac *packetType) writeToSafeUnsafe(tcd *channelData, safe bool) {
-	pac.trudp.conn.WriteTo(pac.data, tcd.addr)
-	sendEvent := func() {
-		tcd.sendQueueAdd(pac)
-		tcd.stat.send(len(pac.data))
-		tcd.trudp.sendEvent(tcd, SEND_DATA, pac.getData())
-	}
-	switch {
-	case !pac.sendQueueF:
-		pac.destroy()
-	case safe:
-		//tcd.sendQueueCommand(sendEvent)
-		sendEvent()
-	case !safe:
-		sendEvent()
-	}
-}
-
-// writeToSafeUnsafe send packetData to trudp channel. Unsafe mode, see writeToSafeUnsafe
-func (pac *packetType) writeToUnsafe(tcd *channelData) {
-	pac.writeToSafeUnsafe(tcd, false)
-}
-
-// writeToSafeUnsafe send packetData to trudp channel. Safe mode, see writeToSafeUnsafe
 func (pac *packetType) writeTo(tcd *channelData) {
-	pac.writeToSafeUnsafe(tcd, true)
+	pac.trudp.conn.WriteTo(pac.data, tcd.addr)
+	if !pac.sendQueueF {
+		pac.destroy()
+		return
+	}
+	tcd.sendQueueAdd(pac)
+	tcd.stat.send(len(pac.data))
+	tcd.trudp.sendEvent(tcd, SEND_DATA, pac.getData())
 }
 
 // sendTo send message to the chWrite channel to send

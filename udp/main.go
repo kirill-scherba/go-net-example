@@ -39,12 +39,12 @@ func main() {
 	flag.Parse()
 
 	tru := trudp.Init(port)
+
+	// Set log level
 	tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 
-	// Show statictic flag
-	if showStat {
-		tru.ShowStatistic(true)
-	}
+	// Set 'show statictic' flag
+	tru.ShowStatistic(showStat)
 
 	// Set default queue size
 	tru.SetDefaultQueueSize(maxQueueSize)
@@ -57,9 +57,7 @@ func main() {
 				tcd := tru.ConnectChannel(rhost, rport, rchan)
 
 				// Auto sender flag
-				if sendTest {
-					tcd.SendTestMsg(true)
-				}
+				tcd.SendTestMsg(sendTest)
 
 				// Sender
 				func() {
@@ -87,34 +85,38 @@ func main() {
 
 	// Receiver
 	go func() {
-		for ev := range tru.ChEvent() {
-			switch ev.Event {
+		for ev := range tru.ChanEvent() {
+			go func() {
+				switch ev.Event {
 
-			case trudp.GOT_DATA:
-				tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
-				// Send answer if this host not connected to remote hosr
-				if rport == 0 {
-					go func() { ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer")) }()
+				case trudp.GOT_DATA:
+					tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+					// Send answer if this host not connected to remote hosr
+					if rport == 0 {
+						//go func() {
+						ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
+						//}()
+					}
+
+				case trudp.SEND_DATA:
+					tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
+
+				case trudp.INITIALIZE:
+					tru.Log(trudp.DEBUG, "(main) INITIALIZE, listen at:", string(ev.Data))
+
+				case trudp.CONNECTED:
+					tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
+
+				case trudp.DISCONNECTED:
+					tru.Log(trudp.CONNECT, "(main) DISCONNECTED", string(ev.Data))
+
+				case trudp.RESET_LOCAL:
+					tru.Log(trudp.CONNECT, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
+
+				case trudp.SEND_RESET:
+					tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
 				}
-
-			case trudp.SEND_DATA:
-				tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
-
-			case trudp.INITIALIZE:
-				tru.Log(trudp.DEBUG, "(main) INITIALIZE, listen at:", string(ev.Data))
-
-			case trudp.CONNECTED:
-				tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
-
-			case trudp.DISCONNECTED:
-				tru.Log(trudp.CONNECT, "(main) DISCONNECTED", string(ev.Data))
-
-			case trudp.RESET_LOCAL:
-				tru.Log(trudp.CONNECT, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
-
-			case trudp.SEND_RESET:
-				tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
-			}
+			}()
 		}
 	}()
 

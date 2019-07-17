@@ -34,7 +34,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 			}
 			// Resend record with arrivalTime less than Windows
 			t = time.Duration(defaultRTT+tcd.stat.triptimeMiddle) * time.Millisecond
-			sqd.packet.writeToUnsafe(tcd)
+			sqd.packet.writeTo(tcd)
 			// Statistic
 			tcd.stat.repeat()
 

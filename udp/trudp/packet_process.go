@@ -29,7 +29,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	// DATA packet received
 	case DATA:
 		// Create ACK packet and send it back to sender
-		pac.ackCreateNew().writeTo(tcd)
+		go pac.ackCreateNew().writeTo(tcd)
 		tcd.stat.received(len(pac.data))
 		// Show Log
 		pac.trudp.Log(DEBUGv, "DATA      packet received, key:", key,
@@ -51,7 +51,6 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 		// Remove packet from send queue
-		//go tcd.sendQueueCommand(func() { tcd.sendQueueRemove(pac) })
 		tcd.sendQueueRemove(pac)
 		tcd.trudp.proc.writeQueueWriteTo(tcd)
 
@@ -59,13 +58,11 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	case RESET:
 		pac.trudp.Log(DEBUGv, "RESET     packet received, key:", key)
 		pac.ackToResetCreateNew().writeTo(tcd)
-		//tcd.sendQueueCommand(func() { tcd.reset() })
 		tcd.reset()
 
 	// ACK-to-reset packet received
 	case ACKReset:
 		pac.trudp.Log(DEBUGv, "ACK_RESET packet received, key:", key)
-		//tcd.sendQueueCommand(func() { tcd.reset() })
 		tcd.reset()
 
 	// PING packet received
@@ -125,9 +122,6 @@ func (pac *packetType) packetDataProcess(tcd *channelData) {
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
 		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
-		// wait := make(chan bool)
-		// tcd.sendQueueCommand(func() { tcd.reset(); pac.packetDataProcess(tcd); wait <- true })
-		// <-wait
 		tcd.reset()
 		pac.packetDataProcess(tcd)
 

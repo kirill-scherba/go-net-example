@@ -95,7 +95,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 					// \TODO send test data - remove it
 					if tcd.sendTestMsgF {
 						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
-						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeToUnsafe(tcd)
+						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
 					}
 				}
 
@@ -124,7 +124,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 func (proc *process) writeTo(writePac writeType) {
 	tcd := writePac.tcd
 	writePac.chanAnswer <- true
-	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeToUnsafe(tcd)
+	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeTo(tcd)
 }
 
 // writeQueueAdd add write packet to write queue
@@ -153,10 +153,8 @@ func (proc *process) showStatistic() {
 	if !trudp.showStatF {
 		return
 	}
-	//go func() {
 	idx := 0
 	t := time.Now()
-	//str := tcd.stat.statHeader(time.Since(trudp.startTime))
 	var str string
 
 	// Read trudp channels map keys to slice and sort it
