@@ -291,7 +291,7 @@ func (trudp *TRUDP) Run() {
 			//trudp.packet.process(buffer[:nRead], addr)
 			packet := &packetType{trudp: trudp, data: buffer[:nRead]}
 			//packet.process(addr)
-			trudp.proc.chanRead <- readType{addr, packet}
+			trudp.proc.chanRead <- &readType{addr, packet}
 			// ch := trudp.packet.getChannel(buffer[:nRead])
 			// id := trudp.packet.getID(buffer[:nRead])
 			// tp := trudp.packet.getType(buffer[:nRead])
