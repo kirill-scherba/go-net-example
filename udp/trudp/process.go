@@ -18,8 +18,8 @@ import (
 // process data structure
 type process struct {
 	trudp          *TRUDP           // link to trudp
-	chanWrite      chan writeType   // channel to write (used to send data from user level)
-	chanRead       chan readType    // channel to read (used to process packets received from udp)
+	chanRead       chan *readType   // channel to read (used to process packets received from udp)
+	chanWrite      chan *writeType  // channel to write (used to send data from user level)
 	timerKeep      *time.Ticker     // keep alive timer
 	timerResend    <-chan time.Time // resend packet from send queue timer
 	timerStatistic *time.Ticker     // statistic show ticker
@@ -51,8 +51,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 	statTime := statInterval * time.Millisecond
 
 	// Init channels and timers
-	proc.chanWrite = make(chan writeType, chWriteSize)
-	proc.chanRead = make(chan readType, chReadSize)
+	proc.chanWrite = make(chan *writeType, chWriteSize)
+	proc.chanRead = make(chan *readType, chReadSize)
 	//
 	proc.timerStatistic = time.NewTicker(statTime)
 	proc.timerResend = time.After(resendTime)
@@ -121,14 +121,14 @@ func (proc *process) init(trudp *TRUDP) *process {
 }
 
 // wrieTo write packet to trudp channel and send true to Answer channel
-func (proc *process) writeTo(writePac writeType) {
+func (proc *process) writeTo(writePac *writeType) {
 	tcd := writePac.tcd
 	writePac.chanAnswer <- true
 	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeTo(tcd)
 }
 
 // writeQueueAdd add write packet to write queue
-func (proc *process) writeQueueAdd(tcd *channelData, writePac writeType) {
+func (proc *process) writeQueueAdd(tcd *channelData, writePac *writeType) {
 	tcd.writeQueue = append(tcd.writeQueue, writePac)
 }
 

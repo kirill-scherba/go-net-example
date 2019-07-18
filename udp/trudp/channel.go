@@ -24,7 +24,7 @@ type channelData struct {
 	// Channels packet queues
 	sendQueue    []sendQueueData    // send queue
 	receiveQueue []receiveQueueData // received queue
-	writeQueue   []writeType        // write queue
+	writeQueue   []*writeType       // write queue
 	maxQueueSize int                // maximum queue size
 
 	// Channel flags
@@ -113,7 +113,7 @@ func (tcd *channelData) WriteTo(data []byte) (err error) {
 		return
 	}
 	chanAnswer := make(chan bool)
-	tcd.trudp.proc.chanWrite <- writeType{tcd, data, chanAnswer}
+	tcd.trudp.proc.chanWrite <- &writeType{tcd, data, chanAnswer}
 	<-chanAnswer
 	return
 }
@@ -151,7 +151,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = make([]sendQueueData, 0)
-	tcd.writeQueue = make([]writeType, 0)
+	tcd.writeQueue = make([]*writeType, 0)
 
 	// Add to channels map
 	trudp.tcdmap[key] = tcd
