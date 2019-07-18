@@ -232,6 +232,7 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.tcdmap = make(map[string]*channelData)
 	trudp.chanEvent = make(chan *eventData, chEventSize)
 	trudp.packet.trudp = trudp
+	trudp.proc = new(process).init(trudp)
 
 	trudp.Log(CONNECT, "start listenning at", conn.LocalAddr())
 
@@ -270,8 +271,6 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 
 // Run waits some data received from UDP port and procces it
 func (trudp *TRUDP) Run() {
-
-	trudp.proc = new(process).init(trudp)
 
 	for {
 		buffer := make([]byte, maxBufferSize)
