@@ -93,9 +93,7 @@ func main() {
 					tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 					// Send answer if this host not connected to remote hosr
 					if rport == 0 {
-						//go func() {
 						ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
-						//}()
 					}
 
 				case trudp.SEND_DATA:
