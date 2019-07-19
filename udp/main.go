@@ -86,7 +86,7 @@ func main() {
 	// Receiver
 	go func() {
 		for ev := range tru.ChanEvent() {
-			go func() {
+			go func(ev *trudp.EventData) {
 				switch ev.Event {
 
 				case trudp.GOT_DATA:
@@ -113,8 +113,11 @@ func main() {
 
 				case trudp.SEND_RESET:
 					tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
+
+				default:
+					tru.Log(trudp.ERROR, "(main)")
 				}
-			}()
+			}(ev)
 		}
 	}()
 

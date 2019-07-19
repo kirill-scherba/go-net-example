@@ -38,7 +38,7 @@ type TRUDP struct {
 
 	// Control maps, channels and function holder
 	tcdmap    map[string]*channelData // channel data map
-	chanEvent chan *eventData         // User level event channel
+	chanEvent chan *EventData         // User level event channel
 	packet    *packetType             // packet functions holder
 	ticker    *time.Ticker            // timer ticler
 	proc      *process
@@ -71,7 +71,7 @@ type packetsStat struct {
 }
 
 // eventData used as structure in sendEvent function
-type eventData struct {
+type EventData struct {
 	Tcd   *channelData
 	Event int
 	Data  []byte
@@ -230,7 +230,7 @@ func Init(port int) (trudp *TRUDP) {
 		startTime: time.Now(),
 	}
 	trudp.tcdmap = make(map[string]*channelData)
-	trudp.chanEvent = make(chan *eventData, chEventSize)
+	trudp.chanEvent = make(chan *EventData, chEventSize)
 	trudp.packet.trudp = trudp
 	trudp.proc = new(process).init(trudp)
 
@@ -243,7 +243,7 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
-	trudp.chanEvent <- &eventData{tcd, event, data}
+	trudp.chanEvent <- &EventData{tcd, event, data}
 }
 
 // Connect to remote host by UDP
@@ -319,7 +319,7 @@ func (trudp *TRUDP) Run() {
 }
 
 // ChanEvent return channel to read trudp events
-func (trudp *TRUDP) ChanEvent() <-chan *eventData {
+func (trudp *TRUDP) ChanEvent() <-chan *EventData {
 	return trudp.chanEvent
 }
 
