@@ -125,16 +125,16 @@ func (proc *process) init(trudp *TRUDP) *process {
 	}()
 
 	// Write worker
-	for i := 0; i < 2; i++ {
-		go func() {
-			for w := range proc.chanWriter {
-				proc.trudp.conn.WriteTo(w.packet.data, w.addr)
-				if !w.packet.sendQueueF {
-					w.packet.destroy()
-				}
+	// for i := 0; i < 2; i++ {
+	go func() {
+		for w := range proc.chanWriter {
+			proc.trudp.conn.WriteTo(w.packet.data, w.addr)
+			if !w.packet.sendQueueF {
+				w.packet.destroy()
 			}
-		}()
-	}
+		}
+	}()
+	// }
 
 	return proc
 }
