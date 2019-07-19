@@ -20,6 +20,7 @@ type process struct {
 	trudp          *TRUDP           // link to trudp
 	chanRead       chan *readType   // channel to read (used to process packets received from udp)
 	chanWrite      chan *writeType  // channel to write (used to send data from user level)
+	chanWriter     chan *writerType // channel to write (used to write data to udp)
 	timerKeep      *time.Ticker     // keep alive timer
 	timerResend    <-chan time.Time // resend packet from send queue timer
 	timerStatistic *time.Ticker     // statistic show ticker
@@ -38,6 +39,11 @@ type writeType struct {
 	chanAnswer chan bool
 }
 
+type writerType struct {
+	packet *packetType
+	addr   net.Addr
+}
+
 // init
 func (proc *process) init(trudp *TRUDP) *process {
 
@@ -51,6 +57,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 	statTime := statInterval * time.Millisecond
 
 	// Init channels and timers
+	proc.chanWriter = make(chan *writerType, chReadSize)
 	proc.chanWrite = make(chan *writeType, chWriteSize)
 	proc.chanRead = make(chan *readType, chReadSize)
 	//
@@ -116,6 +123,18 @@ func (proc *process) init(trudp *TRUDP) *process {
 			}
 		}
 	}()
+
+	// Write worker
+	for i := 0; i < 2; i++ {
+		go func() {
+			for w := range proc.chanWriter {
+				proc.trudp.conn.WriteTo(w.packet.data, w.addr)
+				if !w.packet.sendQueueF {
+					w.packet.destroy()
+				}
+			}
+		}()
+	}
 
 	return proc
 }
