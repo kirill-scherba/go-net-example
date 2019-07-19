@@ -91,25 +91,18 @@ func (pac *packetType) destroy() {
 // Data or Service. Send Data packet to trudp channel and save it to sendQueue
 // or Send Service packet to trudp channel and destroy it
 func (pac *packetType) writeTo(tcd *channelData) {
-	pac.trudp.conn.WriteTo(pac.data, tcd.addr)
-	if !pac.sendQueueF {
-		pac.destroy()
-		return
+	// pac.trudp.conn.WriteTo(pac.data, tcd.addr)
+	// if !pac.sendQueueF {
+	// 	pac.destroy()
+	// 	return
+	// }
+	pac.trudp.proc.chanWriter <- &writerType{pac, tcd.addr}
+	if pac.sendQueueF {
+		tcd.sendQueueAdd(pac)
+		tcd.stat.send(len(pac.data))
+		tcd.trudp.sendEvent(tcd, SEND_DATA, pac.getData())
 	}
-	tcd.sendQueueAdd(pac)
-	tcd.stat.send(len(pac.data))
-	tcd.trudp.sendEvent(tcd, SEND_DATA, pac.getData())
 }
-
-// sendTo send message to the chWrite channel to send
-// func (packet *packetType) sendTo(tcd *channelData) (err error) {
-// 	if tcd.stoppedF {
-// 		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
-// 		return
-// 	}
-// 	tcd.chWrite <- packet
-// 	return
-// }
 
 // Check TR-UDP packet and return true if packet valid
 func (pac *packetType) check(packet []byte) bool {
