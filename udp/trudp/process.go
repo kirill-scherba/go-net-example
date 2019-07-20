@@ -41,7 +41,7 @@ type writeType struct {
 
 type writerType struct {
 	packet *packetType
-	addr   net.Addr
+	addr   *net.UDPAddr
 }
 
 // init
@@ -128,7 +128,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 	// for i := 0; i < 2; i++ {
 	go func() {
 		for w := range proc.chanWriter {
-			proc.trudp.conn.WriteTo(w.packet.data, w.addr)
+			proc.trudp.udp.writeTo(w.packet.data, w.addr)
 			if !w.packet.sendQueueF {
 				w.packet.destroy()
 			}

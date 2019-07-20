@@ -1,7 +1,6 @@
 package trudp
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 	"time"
@@ -34,7 +33,8 @@ const (
 type TRUDP struct {
 
 	// Listner address
-	conn *net.UDPConn // connector to send data
+	// conn *net.UDPConn // connector to send data
+	udp *udp
 
 	// Control maps, channels and function holder
 	tcdmap    map[string]*channelData // channel data map
@@ -192,51 +192,29 @@ const (
 )
 
 // listenUDP Connect to UDP with selected port (the port incremented if busy)
-func listenUDP(port int) *net.UDPConn {
-
-	// Combine service from host name and port
-	service := hostName + ":" + strconv.Itoa(port)
-
-	// Resolve the UDP address so that we can make use of ListenUDP
-	// with an actual IP and port instead of a name (in case a
-	// hostname is specified).
-	udpAddr, err := net.ResolveUDPAddr(network, service)
-	if err != nil {
-		panic(err)
-	}
-
-	// Start listen UDP port
-	conn, err := net.ListenUDP(network, udpAddr)
-	if err != nil {
-		port++
-		fmt.Println("the", port-1, "is busy, try next port:", port)
-		conn = listenUDP(port)
-	}
-
-	return conn
-}
 
 // Init start trudp connection
 func Init(port int) (trudp *TRUDP) {
 
 	// Connect to UDP
-	conn := listenUDP(port)
+	//conn := udp.listen(port)
 
 	trudp = &TRUDP{
-		conn:      conn,
-		logLevel:  CONNECT,
-		logLogF:   false,
+		udp:       &udp{},
 		packet:    &packetType{},
+		logLevel:  CONNECT,
 		startTime: time.Now(),
+		tcdmap:    make(map[string]*channelData),
+		chanEvent: make(chan *EventData, chEventSize),
 	}
-	trudp.tcdmap = make(map[string]*channelData)
-	trudp.chanEvent = make(chan *EventData, chEventSize)
 	trudp.packet.trudp = trudp
+
+	// Connect to UDP and start UDP workers
+	trudp.udp.listen(port)
 	trudp.proc = new(process).init(trudp)
 
-	trudp.Log(CONNECT, "start listenning at", conn.LocalAddr())
-
-	trudp.sendEvent(nil, INITIALIZE, []byte(conn.LocalAddr().String()))
+	trudp.Log(CONNECT, "start listenning at", trudp.udp.localAddr())
+	trudp.sendEvent(nil, INITIALIZE, []byte(trudp.udp.localAddr()))
 
 	return
 }
@@ -257,7 +235,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 	trudp.Log(CONNECT, "connecting to host", rUDPAddr)
 
 	// Send hello to remote host
-	trudp.conn.WriteToUDP([]byte(helloMsg), rUDPAddr)
+	trudp.udp.conn.WriteToUDP([]byte(helloMsg), rUDPAddr)
 
 	// Keep alive: send Ping
 	go func(conn *net.UDPConn) {
@@ -266,7 +244,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 			dt, _ := time.Now().MarshalBinary()
 			conn.WriteToUDP(append([]byte(echoMsg), dt...), rUDPAddr)
 		}
-	}(trudp.conn)
+	}(trudp.udp.conn)
 }
 
 // Run waits some data received from UDP port and procces it
@@ -275,7 +253,7 @@ func (trudp *TRUDP) Run() {
 	for {
 		buffer := make([]byte, maxBufferSize)
 
-		nRead, addr, err := trudp.conn.ReadFromUDP(buffer)
+		nRead, addr, err := trudp.udp.readFrom(buffer)
 		if err != nil {
 			panic(err)
 		}
@@ -303,7 +281,7 @@ func (trudp *TRUDP) Run() {
 		// Process echo message Ping (send to Pong)
 		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
 			trudp.Log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
-			trudp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr /*.(*net.UDPAddr)*/)
+			trudp.udp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr)
 
 		// Process echo answer message Pong (answer to Ping)
 		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
