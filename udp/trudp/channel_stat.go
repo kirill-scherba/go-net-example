@@ -99,10 +99,7 @@ func (tcs *channelStat) repeat() {
 
 // statHeader return statistic header string
 func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) string {
-	var addr string
-	//if tcs.trudp != nil && tcs.trudp.conn != nil {
-	addr = tcs.trudp.conn.LocalAddr().String()
-	//}
+	addr := tcs.trudp.udp.localAddr()
 	return fmt.Sprintf(
 		/*_ANSI_CLS+*/
 		"\0337"+ // Save cursor
