@@ -1,7 +1,6 @@
 package trudp
 
 import (
-	"net"
 	"strconv"
 	"time"
 )
@@ -25,6 +24,7 @@ const (
 	echoMsg       = "ping"
 	echoAnswerMsg = "pong"
 
+	// Network time & local host name
 	network  = "udp"
 	hostName = ""
 )
@@ -32,8 +32,7 @@ const (
 // TRUDP connection strucure
 type TRUDP struct {
 
-	// Listner address
-	// conn *net.UDPConn // connector to send data
+	// UDP address and functions
 	udp *udp
 
 	// Control maps, channels and function holder
@@ -228,23 +227,23 @@ func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
 func (trudp *TRUDP) Connect(rhost string, rport int) {
 
 	service := rhost + ":" + strconv.Itoa(rport)
-	rUDPAddr, err := net.ResolveUDPAddr(network, service)
+	rUDPAddr, err := trudp.udp.resolveAddr(network, service)
 	if err != nil {
 		panic(err)
 	}
 	trudp.Log(CONNECT, "connecting to host", rUDPAddr)
 
 	// Send hello to remote host
-	trudp.udp.conn.WriteToUDP([]byte(helloMsg), rUDPAddr)
+	trudp.udp.writeTo([]byte(helloMsg), rUDPAddr)
 
 	// Keep alive: send Ping
-	go func(conn *net.UDPConn) {
+	go func() {
 		for {
 			time.Sleep(pingInterval * time.Millisecond)
 			dt, _ := time.Now().MarshalBinary()
-			conn.WriteToUDP(append([]byte(echoMsg), dt...), rUDPAddr)
+			trudp.udp.writeTo(append([]byte(echoMsg), dt...), rUDPAddr)
 		}
-	}(trudp.udp.conn)
+	}()
 }
 
 // Run waits some data received from UDP port and procces it
@@ -281,7 +280,7 @@ func (trudp *TRUDP) Run() {
 		// Process echo message Ping (send to Pong)
 		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
 			trudp.Log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
-			trudp.udp.conn.WriteToUDP(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr)
+			trudp.udp.writeTo(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr)
 
 		// Process echo answer message Pong (answer to Ping)
 		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
