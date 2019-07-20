@@ -165,7 +165,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 // ConnectChannel to remote host by UDP
 func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channelData) {
 	address := rhost + ":" + strconv.Itoa(rport)
-	rUDPAddr, err := net.ResolveUDPAddr(network, address)
+	rUDPAddr, err := trudp.udp.resolveAddr(network, address)
 	if err != nil {
 		panic(err)
 	}

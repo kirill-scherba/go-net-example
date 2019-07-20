@@ -16,6 +16,11 @@ type udp struct {
 	conn *net.UDPConn // Listner UDP address
 }
 
+// resolveAddr returns an address of UDP end point
+func (udp *udp) resolveAddr(network, address string) (*net.UDPAddr, error) {
+	return net.ResolveUDPAddr(network, address)
+}
+
 // listen Connect to UDP with selected port (the port incremented if busy)
 func (udp *udp) listen(port int) *net.UDPConn {
 
@@ -25,7 +30,7 @@ func (udp *udp) listen(port int) *net.UDPConn {
 	// Resolve the UDP address so that we can make use of ListenUDP
 	// with an actual IP and port instead of a name (in case a
 	// hostname is specified).
-	udpAddr, err := net.ResolveUDPAddr(network, service)
+	udpAddr, err := udp.resolveAddr(network, service)
 	if err != nil {
 		panic(err)
 	}
