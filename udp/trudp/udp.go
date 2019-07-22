@@ -17,7 +17,9 @@ const USESYSCALL = true
 
 type udp struct {
 	conn *net.UDPConn // Listner UDP address
-	fd   int          // Listen UDP syscall socket
+
+	fd   int                   // Listen UDP syscall socket
+	addr syscall.SockaddrInet4 // Listen UDP syscall port
 }
 
 // resolveAddr returns an address of UDP end point
@@ -48,25 +50,24 @@ func (udp *udp) listen(port int) *net.UDPConn {
 			udp.conn = udp.listen(port)
 		}
 	}
-	//fn()
 
 	// Create UDP syscall socket
 	fs := func() {
-		fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_UDP)
+		udp.fd, err = syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_UDP)
 		if err != nil {
 			panic(err)
 		}
 
 		//  Bind UDP socket to local port so we can receive pings
-		if err := syscall.Bind(fd, &syscall.SockaddrInet4{Port: port, Addr: [4]byte{0, 0, 0, 0}}); err != nil {
+		udp.addr = syscall.SockaddrInet4{Port: port, Addr: [4]byte{}}
+		if err := syscall.Bind(udp.fd, &udp.addr); err != nil {
 			port++
 			fmt.Println("the", port-1, "is busy, try next port:", port)
 			udp.conn = udp.listen(port)
 		}
 	}
-	//fs()
 
-	if !USESYSCALL {
+	if USESYSCALL {
 		fs()
 	} else {
 		fn()
@@ -77,15 +78,36 @@ func (udp *udp) listen(port int) *net.UDPConn {
 
 // localAddr return string with udp local address
 func (udp *udp) localAddr() string {
-	return udp.conn.LocalAddr().String()
+	if udp.conn != nil {
+		return udp.conn.LocalAddr().String()
+	}
+	var str string
+	for i := 0; i < 4; i++ {
+		if i > 0 {
+			str += "."
+		}
+		str += strconv.Itoa(int(udp.addr.Addr[i]))
+	}
+	return str + ":" + strconv.Itoa(udp.addr.Port)
 }
 
 // readFrom acts like ReadFrom but returns a UDPAddr.
 func (udp *udp) readFrom(b []byte) (int, *net.UDPAddr, error) {
-	return udp.conn.ReadFromUDP(b)
+	if udp.conn != nil {
+		return udp.conn.ReadFromUDP(b)
+	}
+	n, addr, err := syscall.Recvfrom(udp.fd, b, 0)
+	a := addr.(*syscall.SockaddrInet4)
+	return n, &net.UDPAddr{IP: a.Addr[:], Port: a.Port}, err
 }
 
 // WriteToUDP acts like WriteTo but takes a UDPAddr.
 func (udp *udp) writeTo(b []byte, addr *net.UDPAddr) (int, error) {
-	return udp.conn.WriteToUDP(b, addr)
+	if udp.conn != nil {
+		return udp.conn.WriteToUDP(b, addr)
+	}
+	a := &syscall.SockaddrInet4{Port: addr.Port}
+	copy(a.Addr[:], addr.IP)
+	err := syscall.Sendto(udp.fd, b, 0, a)
+	return len(b), err
 }
