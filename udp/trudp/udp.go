@@ -10,10 +10,14 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"syscall"
 )
+
+const USESYSCALL = true
 
 type udp struct {
 	conn *net.UDPConn // Listner UDP address
+	fd   int          // Listen UDP syscall socket
 }
 
 // resolveAddr returns an address of UDP end point
@@ -35,12 +39,37 @@ func (udp *udp) listen(port int) *net.UDPConn {
 		panic(err)
 	}
 
-	// Start listen UDP port
-	udp.conn, err = net.ListenUDP(network, udpAddr)
-	if err != nil {
-		port++
-		fmt.Println("the", port-1, "is busy, try next port:", port)
-		udp.conn = udp.listen(port)
+	// Start listen UDP port (using go net library)
+	fn := func() {
+		udp.conn, err = net.ListenUDP(network, udpAddr)
+		if err != nil {
+			port++
+			fmt.Println("the", port-1, "is busy, try next port:", port)
+			udp.conn = udp.listen(port)
+		}
+	}
+	//fn()
+
+	// Create UDP syscall socket
+	fs := func() {
+		fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_UDP)
+		if err != nil {
+			panic(err)
+		}
+
+		//  Bind UDP socket to local port so we can receive pings
+		if err := syscall.Bind(fd, &syscall.SockaddrInet4{Port: port, Addr: [4]byte{0, 0, 0, 0}}); err != nil {
+			port++
+			fmt.Println("the", port-1, "is busy, try next port:", port)
+			udp.conn = udp.listen(port)
+		}
+	}
+	//fs()
+
+	if !USESYSCALL {
+		fs()
+	} else {
+		fn()
 	}
 
 	return udp.conn
