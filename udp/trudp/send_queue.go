@@ -73,7 +73,6 @@ func (tcd *channelData) sendQueueFind(packet *packetType) (e *list.Element, sqd 
 	for e = tcd.sendQueue.Front(); e != nil; e = e.Next() {
 		sqd = e.Value.(*sendQueueData)
 		if sqd.packet.getID() == id {
-			//err = nil
 			return
 		}
 	}
@@ -86,7 +85,6 @@ func (tcd *channelData) sendQueueRemove(packet *packetType) {
 	e, sqd, id, err := tcd.sendQueueFind(packet)
 	if err == nil {
 		sqd.packet.destroy()
-		//tcd.sendQueue = append(tcd.sendQueue[:idx], tcd.sendQueue[idx+1:]...)
 		tcd.sendQueue.Remove(e)
 		tcd.trudp.Log(DEBUGv, "remove from send queue, id", id)
 	}

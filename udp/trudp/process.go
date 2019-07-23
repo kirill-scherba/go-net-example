@@ -155,8 +155,8 @@ func (proc *process) writeQueueAdd(tcd *channelData, writePac *writeType) {
 func (proc *process) writeQueueWriteTo(tcd *channelData) {
 	for len(tcd.writeQueue) > 0 && tcd.canWrite() {
 		writePac := tcd.writeQueue[0]
-		proc.writeTo(writePac)
 		tcd.writeQueue = tcd.writeQueue[1:]
+		proc.writeTo(writePac)
 	}
 }
 
