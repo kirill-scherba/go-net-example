@@ -14,14 +14,19 @@ func main() {
 	fmt.Println("UDP test application ver 1.0.0")
 
 	var (
-		rhost        string
-		rport        int
-		rchan        int
-		port         int
-		logLevel     string
-		maxQueueSize int
+		rhost string
+		rport int
+		rchan int
+		port  int
 
-		// Control flags
+		// Logger parameters
+		logLevel string
+
+		// Integer parameters
+		maxQueueSize  int
+		sendSleepTime int
+
+		// Control flags parameters
 		noLogTime  bool
 		sendTest   bool
 		showStat   bool
@@ -35,9 +40,10 @@ func main() {
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&logLevel, "log", "CONNECT", "application log level")
+	flag.IntVar(&sendSleepTime, "t", 0, "send timeout in microseconds")
 	flag.BoolVar(&sendTest, "send-test", false, "send test data")
-	flag.BoolVar(&showStat, "S", false, "show statistic")
 	flag.BoolVar(&sendAnswer, "answer", false, "send answer")
+	flag.BoolVar(&showStat, "S", false, "show statistic")
 
 	flag.Parse()
 
@@ -64,10 +70,9 @@ func main() {
 
 				// Sender
 				num := 0
-				const sleepTime = 0
 				for {
-					if sleepTime > 0 {
-						time.Sleep(sleepTime * time.Microsecond)
+					if sendSleepTime > 0 {
+						time.Sleep(time.Duration(sendSleepTime) * time.Microsecond)
 					}
 					data := []byte("Hello-" + strconv.Itoa(num) + "!")
 					err := tcd.WriteTo(data)
