@@ -166,7 +166,7 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		droppedP(),                                     // packets drop in %
 		tcd.sendQueue.Len(),                            // sendQueueSize,
 		len(tcd.writeQueue),                            // writeQueueSize,
-		len(tcd.receiveQueue),                          // receiveQueueSize
+		tcd.receiveQueue.Len(),                         // receiveQueueSize
 		len(tcd.trudp.proc.chanRead),                   // channel read udp Size
 		len(tcd.trudp.proc.chanWriter),                 // channel write udp Size
 		len(tcd.trudp.chanEvent),                       // eventsQueueSize

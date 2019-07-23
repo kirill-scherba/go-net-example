@@ -1,6 +1,7 @@
 package trudp
 
 import (
+	"container/list"
 	"errors"
 	"fmt"
 )
@@ -12,45 +13,43 @@ type receiveQueueData struct {
 
 // receiveQueueAdd add packet to receive queue
 func (tcd *channelData) receiveQueueAdd(packet *packetType) {
-	//packet := &packetType{trudp: tcd.trudp, data: data}
-	tcd.receiveQueue = append(tcd.receiveQueue, receiveQueueData{packet: packet})
+	tcd.receiveQueue.PushBack(&receiveQueueData{packet: packet})
 	tcd.trudp.Log(DEBUGv, "add to send queue, id", packet.getID())
 }
 
 // receiveQueueFind find packet with selected id in receiveQueue
-func (tcd *channelData) receiveQueueFind(id uint32) (idx int, rqd receiveQueueData, err error) {
-	err = errors.New(fmt.Sprint("not found, packet id: ", id))
-	for idx, rqd = range tcd.receiveQueue {
+func (tcd *channelData) receiveQueueFind(id uint32) (e *list.Element, rqd *receiveQueueData, err error) {
+	for e = tcd.receiveQueue.Front(); e != nil; e = e.Next() {
+		rqd = e.Value.(*receiveQueueData)
 		if rqd.packet.getID() == id {
-			err = nil
-			break
+			return
 		}
 	}
+	err = errors.New(fmt.Sprint("not found, packet id: ", id))
 	return
 }
 
 // receiveQueueRemove remove previousely found element from receive queue by index
-func (tcd *channelData) receiveQueueRemove(idx int) {
-	tcd.receiveQueue = append(tcd.receiveQueue[:idx], tcd.receiveQueue[idx+1:]...)
-	tcd.trudp.Log(DEBUGv, "remove from receive queue, index", idx)
+func (tcd *channelData) receiveQueueRemove(e *list.Element) {
+	tcd.receiveQueue.Remove(e)
+	tcd.trudp.Log(DEBUGv, "remove from receive queue, e", e.Value.(*receiveQueueData).packet.getID())
 }
 
 // receiveQueueReset resets (clear) send queue
 func (tcd *channelData) receiveQueueReset() {
-	tcd.receiveQueue = tcd.receiveQueue[:0]
+	tcd.receiveQueue.Init()
 }
 
 // receiveQueueProcess find packets in received queue sendEvent and remove packet
 func (tcd *channelData) receiveQueueProcess(sendEvent func(data []byte)) {
 	for {
-		idx, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
+		e, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
 		if err != nil {
 			break
 		}
 		tcd.expectedID++
 		tcd.trudp.Log(DEBUGv, "find packet in receivedQueue, id:", rqd.packet.getID())
-		// Send received data packet to user level
 		sendEvent(rqd.packet.getData())
-		tcd.receiveQueueRemove(idx)
+		tcd.receiveQueueRemove(e)
 	}
 }
