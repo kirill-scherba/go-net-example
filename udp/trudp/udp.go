@@ -13,7 +13,7 @@ import (
 	"syscall"
 )
 
-const USESYSCALL = true
+const USESYSCALL = false
 
 type udp struct {
 	conn *net.UDPConn // Listner UDP address
@@ -67,6 +67,7 @@ func (udp *udp) listen(port int) *net.UDPConn {
 		}
 	}
 
+	// Use syscall or net packet. If USESYSCALL = true than syscall used
 	if USESYSCALL {
 		fs()
 	} else {
