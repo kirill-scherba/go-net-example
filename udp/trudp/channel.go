@@ -1,6 +1,7 @@
 package trudp
 
 import (
+	"container/list"
 	"errors"
 	"net"
 	"strconv"
@@ -22,7 +23,7 @@ type channelData struct {
 	expectedID uint32 // Expected incoming ID
 
 	// Channels packet queues
-	sendQueue    []sendQueueData    // send queue
+	sendQueue    *list.List         // send queue
 	receiveQueue []receiveQueueData // received queue
 	writeQueue   []*writeType       // write queue
 	maxQueueSize int                // maximum queue size
@@ -150,7 +151,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 		maxQueueSize: trudp.defaultQueueSize,
 	}
 	tcd.receiveQueue = make([]receiveQueueData, 0)
-	tcd.sendQueue = make([]sendQueueData, 0)
+	tcd.sendQueue = list.New()
 	tcd.writeQueue = make([]*writeType, 0)
 
 	// Add to channels map
@@ -186,6 +187,6 @@ func (tcd *channelData) MakeKey() string {
 
 // canWrine return true if writeTo is allowed
 func (tcd *channelData) canWrite() bool {
-	return len(tcd.sendQueue) < tcd.maxQueueSize &&
+	return tcd.sendQueue.Len() < tcd.maxQueueSize &&
 		len(tcd.receiveQueue) < tcd.maxQueueSize
 }
