@@ -164,7 +164,7 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		repeatP(),                                      // packets repeat in %
 		tcs.packets.dropped,                            // packets drop
 		droppedP(),                                     // packets drop in %
-		len(tcd.sendQueue),                             // sendQueueSize,
+		tcd.sendQueue.Len(),                            // sendQueueSize,
 		len(tcd.writeQueue),                            // writeQueueSize,
 		len(tcd.receiveQueue),                          // receiveQueueSize
 		len(tcd.trudp.proc.chanRead),                   // channel read udp Size
