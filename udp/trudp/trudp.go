@@ -14,11 +14,11 @@ const (
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	statInterval     = 100  // Interval to show statistic
 	chReadSize       = 1024 // Size of read channele used to got data from udp
-	chWriteSize      = 16   // Size of write channele used to send data from users level and than send it to remote host
-	chEventSize      = 16   // Size or read channel used to send messages to user level
+	chWriteSize      = 96   // Size of write channele used to send data from users level and than send it to remote host
+	chEventSize      = 96   // Size or read channel used to send messages to user level
 
 	// DefaultQueueSize is size of send and receive queue
-	DefaultQueueSize = 16
+	DefaultQueueSize = 96
 
 	helloMsg      = "hello"
 	echoMsg       = "ping"
