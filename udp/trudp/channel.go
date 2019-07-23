@@ -23,10 +23,10 @@ type channelData struct {
 	expectedID uint32 // Expected incoming ID
 
 	// Channels packet queues
-	sendQueue    *list.List         // send queue
-	receiveQueue []receiveQueueData // received queue
-	writeQueue   []*writeType       // write queue
-	maxQueueSize int                // maximum queue size
+	sendQueue    *list.List   // send queue
+	receiveQueue *list.List   // received queue
+	writeQueue   []*writeType // write queue
+	maxQueueSize int          // maximum queue size
 
 	// Channel flags
 	stoppedF     bool // TRUDP channel stopped flag
@@ -150,8 +150,8 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 		sendTestMsgF: false,
 		maxQueueSize: trudp.defaultQueueSize,
 	}
-	tcd.receiveQueue = make([]receiveQueueData, 0)
 	tcd.sendQueue = list.New()
+	tcd.receiveQueue = list.New()
 	tcd.writeQueue = make([]*writeType, 0)
 
 	// Add to channels map
@@ -188,5 +188,5 @@ func (tcd *channelData) MakeKey() string {
 // canWrine return true if writeTo is allowed
 func (tcd *channelData) canWrite() bool {
 	return tcd.sendQueue.Len() < tcd.maxQueueSize &&
-		len(tcd.receiveQueue) < tcd.maxQueueSize
+		tcd.receiveQueue.Len() < tcd.maxQueueSize
 }
