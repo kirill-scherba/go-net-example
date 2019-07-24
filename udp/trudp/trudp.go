@@ -190,13 +190,8 @@ const (
 	RESET_LOCAL
 )
 
-// listenUDP Connect to UDP with selected port (the port incremented if busy)
-
 // Init start trudp connection
 func Init(port int) (trudp *TRUDP) {
-
-	// Connect to UDP
-	//conn := udp.listen(port)
 
 	trudp = &TRUDP{
 		udp:       &udp{},
@@ -212,8 +207,9 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.udp.listen(port)
 	trudp.proc = new(process).init(trudp)
 
-	trudp.Log(CONNECT, "start listenning at", trudp.udp.localAddr())
-	trudp.sendEvent(nil, INITIALIZE, []byte(trudp.udp.localAddr()))
+	localAddr := trudp.udp.localAddr()
+	trudp.Log(CONNECT, "start listenning at", localAddr)
+	trudp.sendEvent(nil, INITIALIZE, []byte(localAddr))
 
 	return
 }
@@ -254,7 +250,12 @@ func (trudp *TRUDP) Run() {
 
 		nRead, addr, err := trudp.udp.readFrom(buffer)
 		if err != nil {
-			panic(err)
+			trudp.proc.destroy()
+			localAddr := trudp.udp.localAddr()
+			trudp.Log(CONNECT, "stop listenning at", localAddr)
+			trudp.sendEvent(nil, DESTROY, []byte(localAddr))
+			trudp.proc.wg.Wait()
+			break
 		}
 
 		switch {
@@ -291,6 +292,20 @@ func (trudp *TRUDP) Run() {
 		// Process other messages
 		default:
 			trudp.Log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+		}
+	}
+}
+
+// Close closes trudp connection and stop all workers
+func (trudp *TRUDP) Close() {
+	if trudp.udp.conn != nil {
+		trudp.proc.wg.Add(1)
+		defer trudp.proc.wg.Done()
+		// Close trudp connection
+		trudp.udp.conn.Close()
+		// Close trudp channels
+		for key, tcd := range trudp.tcdmap {
+			tcd.destroy(CONNECT, "close "+key)
 		}
 	}
 }
