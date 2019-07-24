@@ -5,6 +5,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -24,6 +25,9 @@ type process struct {
 	timerKeep      *time.Ticker     // keep alive timer
 	timerResend    <-chan time.Time // resend packet from send queue timer
 	timerStatistic *time.Ticker     // statistic show ticker
+
+	stopRunningF bool           // Stop running flag
+	wg           sync.WaitGroup // Wait group
 }
 
 // read channel data structure
@@ -68,10 +72,19 @@ func (proc *process) init(trudp *TRUDP) *process {
 	// Module worker
 	go func() {
 
-		// Do it on return
-		defer func() { proc.timerKeep.Stop(); proc.timerStatistic.Stop() }()
+		trudp.Log(CONNECT, "process worker started")
+		proc.wg.Add(1)
 
-		for {
+		// Do it on return
+		defer func() {
+			proc.timerKeep.Stop()
+			proc.timerStatistic.Stop()
+			close(proc.chanWriter)
+			trudp.Log(CONNECT, "process worker stopped")
+			proc.wg.Done()
+		}()
+
+		for !proc.stopRunningF {
 			select {
 
 			// Process read packet (received from udp)
@@ -127,6 +140,9 @@ func (proc *process) init(trudp *TRUDP) *process {
 	// Write worker
 	// for i := 0; i < 2; i++ {
 	go func() {
+		trudp.Log(CONNECT, "writer worker started")
+		proc.wg.Add(1)
+		defer func() { trudp.Log(CONNECT, "writer worker stopped"); proc.wg.Done() }()
 		for w := range proc.chanWriter {
 			proc.trudp.udp.writeTo(w.packet.data, w.addr)
 			if !w.packet.sendQueueF {
@@ -200,5 +216,5 @@ func (proc *process) showStatistic() {
 
 // destroy
 func (proc *process) destroy() {
-
+	proc.stopRunningF = true
 }

@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/kirill-scherba/net-example-go/udp/trudp"
@@ -106,7 +109,10 @@ func main() {
 				tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 			case trudp.INITIALIZE:
-				tru.Log(trudp.DEBUG, "(main) INITIALIZE, listen at:", string(ev.Data))
+				tru.Log(trudp.ERROR, "(main) INITIALIZE, listen at:", string(ev.Data))
+
+			case trudp.DESTROY:
+				tru.Log(trudp.ERROR, "(main) DESTROY", string(ev.Data))
 
 			case trudp.CONNECTED:
 				tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
@@ -127,6 +133,22 @@ func main() {
 		}
 	}()
 
+	// Ctrl+C process
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			switch sig {
+			case syscall.SIGINT:
+				fmt.Println("syscall.SIGINT")
+				tru.Close()
+			}
+		}
+	}()
+
 	// Run trudp and start listen
 	tru.Run()
+
+	//time.Sleep(5 * time.Second)
+	fmt.Println("bay...")
 }
