@@ -46,11 +46,11 @@ type TRUDP struct {
 	logLevel int  // trudp log level
 	logLogF  bool // show time in trudp log
 
-	// Statustic
+	// Statistic
 	startTime time.Time   // TRUDP start running time
 	packets   packetsStat // TRUDP packets statistic
 
-	defaultQueueSize int
+	defaultQueueSize int // Default queues size
 
 	// Control Flags
 	showStatF bool // Show statistic
