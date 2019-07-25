@@ -50,104 +50,125 @@ func main() {
 
 	flag.Parse()
 
-	tru := trudp.Init(port)
+	for reconnectF := false; ; {
 
-	// Set log level
-	tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
+		tru := trudp.Init(port)
 
-	// Set 'show statictic' flag
-	tru.ShowStatistic(showStat)
+		// Set log level
+		tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 
-	// Set default queue size
-	tru.SetDefaultQueueSize(maxQueueSize)
+		// Set 'show statictic' flag
+		tru.ShowStatistic(showStat)
 
-	// Connect to remote server flag and send data when connected
-	if rport != 0 {
-		go func() {
-			// Try to connect to remote hosr every 5 seconds
-			for {
-				tcd := tru.ConnectChannel(rhost, rport, rchan)
+		// Set default queue size
+		tru.SetDefaultQueueSize(maxQueueSize)
 
-				// Auto sender flag
-				tcd.SendTestMsg(sendTest)
-
-				// Sender
-				num := 0
+		// Connect to remote server flag and send data when connected
+		if rport != 0 {
+			go func() {
+				// Try to connect to remote hosr every 5 seconds
 				for {
-					if sendSleepTime > 0 {
-						time.Sleep(time.Duration(sendSleepTime) * time.Microsecond)
+					tcd := tru.ConnectChannel(rhost, rport, rchan)
+
+					// Auto sender flag
+					tcd.SendTestMsg(sendTest)
+
+					// Sender
+					num := 0
+					for tru.Running() {
+						if sendSleepTime > 0 {
+							time.Sleep(time.Duration(sendSleepTime) * time.Microsecond)
+						}
+						data := []byte("Hello-" + strconv.Itoa(num) + "!")
+						err := tcd.WriteTo(data)
+						if err != nil {
+							break
+						}
+						num++
 					}
-					data := []byte("Hello-" + strconv.Itoa(num) + "!")
-					err := tcd.WriteTo(data)
-					if err != nil {
+
+					tru.Log(trudp.CONNECT, "(main) channel "+tcd.MakeKey()+" sender stopped")
+					if !tru.Running() {
 						break
 					}
-					num++
+					time.Sleep(5 * time.Second)
+					tru.Log(trudp.CONNECT, "(main) reconnect")
 				}
-				tru.Log(trudp.CONNECT, "(main) channels sender stopped")
 
-				time.Sleep(5 * time.Second)
-				tru.Log(trudp.CONNECT, "(main) reconnect")
+				tru.Log(trudp.CONNECT, "(main) sender worker stopped")
+			}()
+		}
+
+		// Receiver
+		go func() {
+			defer tru.ChanEventClosed()
+			for ev := range tru.ChanEvent() {
+				switch ev.Event {
+
+				case trudp.GOT_DATA:
+					tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+					// Send answer
+					if sendAnswer {
+						ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
+					}
+
+				case trudp.SEND_DATA:
+					tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
+
+				case trudp.INITIALIZE:
+					tru.Log(trudp.CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
+
+				case trudp.DESTROY:
+					tru.Log(trudp.CONNECT, "(main) DESTROY", string(ev.Data))
+
+				case trudp.CONNECTED:
+					tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
+
+				case trudp.DISCONNECTED:
+					tru.Log(trudp.CONNECT, "(main) DISCONNECTED", string(ev.Data))
+
+				case trudp.RESET_LOCAL:
+					tru.Log(trudp.CONNECT, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
+
+				case trudp.SEND_RESET:
+					tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
+
+				default:
+					tru.Log(trudp.ERROR, "(main)")
+				}
 			}
 		}()
-	}
 
-	// Receiver
-	go func() {
-		defer tru.ChanEventClosed()
-		for ev := range tru.ChanEvent() {
-			switch ev.Event {
-
-			case trudp.GOT_DATA:
-				tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
-				// Send answer
-				if sendAnswer {
-					ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
+		// Ctrl+C process
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		go func() {
+			for sig := range c {
+				switch sig {
+				case syscall.SIGINT:
+					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect: ")
+					var str string
+					fmt.Scanf("%s\n", &str)
+					switch str {
+					case "r", "R":
+						reconnectF = true
+						tru.Close()
+						return
+					case "q", "Q":
+						reconnectF = false
+						tru.Close()
+					}
 				}
-
-			case trudp.SEND_DATA:
-				tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
-
-			case trudp.INITIALIZE:
-				tru.Log(trudp.CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
-
-			case trudp.DESTROY:
-				tru.Log(trudp.CONNECT, "(main) DESTROY", string(ev.Data))
-
-			case trudp.CONNECTED:
-				tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
-
-			case trudp.DISCONNECTED:
-				tru.Log(trudp.CONNECT, "(main) DISCONNECTED", string(ev.Data))
-
-			case trudp.RESET_LOCAL:
-				tru.Log(trudp.CONNECT, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
-
-			case trudp.SEND_RESET:
-				tru.Log(trudp.CONNECT, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
-
-			default:
-				tru.Log(trudp.ERROR, "(main)")
 			}
+		}()
+
+		// Run trudp and start listen
+		tru.Run()
+
+		if !reconnectF {
+			fmt.Println("bay...")
+			break
 		}
-	}()
-
-	// Ctrl+C process
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for sig := range c {
-			switch sig {
-			case syscall.SIGINT:
-				fmt.Println("syscall.SIGINT")
-				tru.Close()
-			}
-		}
-	}()
-
-	// Run trudp and start listen
-	tru.Run()
-
-	//time.Sleep(5 * time.Second)
-	fmt.Println("bay...")
+		fmt.Println("reonnect...")
+	}
 }
