@@ -94,8 +94,8 @@ func main() {
 
 	// Receiver
 	go func() {
+		defer tru.ChanEventClosed()
 		for ev := range tru.ChanEvent() {
-			//go func(ev *trudp.EventData) {
 			switch ev.Event {
 
 			case trudp.GOT_DATA:
@@ -109,10 +109,10 @@ func main() {
 				tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 			case trudp.INITIALIZE:
-				tru.Log(trudp.ERROR, "(main) INITIALIZE, listen at:", string(ev.Data))
+				tru.Log(trudp.CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
 
 			case trudp.DESTROY:
-				tru.Log(trudp.ERROR, "(main) DESTROY", string(ev.Data))
+				tru.Log(trudp.CONNECT, "(main) DESTROY", string(ev.Data))
 
 			case trudp.CONNECTED:
 				tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
@@ -129,7 +129,6 @@ func main() {
 			default:
 				tru.Log(trudp.ERROR, "(main)")
 			}
-			//}(ev)
 		}
 	}()
 
