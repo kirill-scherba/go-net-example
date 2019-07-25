@@ -188,5 +188,5 @@ func (tcd *channelData) MakeKey() string {
 // canWrine return true if writeTo is allowed
 func (tcd *channelData) canWrite() bool {
 	return tcd.sendQueue.Len() < tcd.maxQueueSize &&
-		tcd.receiveQueue.Len() < tcd.maxQueueSize
+		tcd.receiveQueue.Len() < tcd.maxQueueSize && !tcd.trudp.proc.stopRunningF
 }

@@ -89,16 +89,20 @@ func (proc *process) init(trudp *TRUDP) *process {
 			select {
 
 			// Process read packet (received from udp)
-			case readPac := <-proc.chanRead:
-				readPac.packet.process(readPac.addr)
+			case readPac, ok := <-proc.chanRead:
+				if ok {
+					readPac.packet.process(readPac.addr)
+				}
 
-			// Process write packet (received from user level, need write to udp)
-			case writePac := <-proc.chanWrite:
-				tcd := writePac.tcd
-				if tcd.canWrite() {
-					proc.writeTo(writePac)
-				} else {
-					proc.writeQueueAdd(tcd, writePac)
+				// Process write packet (received from user level, need write to udp)
+			case writePac, ok := <-proc.chanWrite:
+				if ok {
+					tcd := writePac.tcd
+					if tcd.canWrite() {
+						proc.writeTo(writePac)
+					} else {
+						proc.writeQueueAdd(tcd, writePac)
+					}
 				}
 
 			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
@@ -139,7 +143,6 @@ func (proc *process) init(trudp *TRUDP) *process {
 	}()
 
 	// Write worker
-	// for i := 0; i < 2; i++ {
 	go func() {
 		trudp.Log(CONNECT, "writer worker started")
 		proc.wg.Add(1)
@@ -151,13 +154,15 @@ func (proc *process) init(trudp *TRUDP) *process {
 			}
 		}
 	}()
-	// }
 
 	return proc
 }
 
 // wrieTo write packet to trudp channel and send true to Answer channel
 func (proc *process) writeTo(writePac *writeType) {
+	if proc.trudp.proc.stopRunningF {
+		return
+	}
 	tcd := writePac.tcd
 	writePac.chanAnswer <- true
 	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeTo(tcd)

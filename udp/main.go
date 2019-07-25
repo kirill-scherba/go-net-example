@@ -146,8 +146,12 @@ func main() {
 			for sig := range c {
 				switch sig {
 				case syscall.SIGINT:
-					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect: ")
+					// reconnectF = true
+					// tru.Close()
+					// return
+
 					var str string
+					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect: ")
 					fmt.Scanf("%s\n", &str)
 					switch str {
 					case "r", "R":
@@ -158,6 +162,10 @@ func main() {
 						reconnectF = false
 						tru.Close()
 					}
+				case syscall.SIGCLD:
+					fallthrough
+				default:
+					fmt.Printf("sig: %x\n", sig)
 				}
 			}
 		}()
