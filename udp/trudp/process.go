@@ -27,6 +27,7 @@ type process struct {
 	timerStatistic *time.Ticker     // statistic show ticker
 
 	stopRunningF bool           // Stop running flag
+	once         sync.Once      // Once to sync trudp event channel stop
 	wg           sync.WaitGroup // Wait group
 }
 

@@ -253,7 +253,6 @@ func (trudp *TRUDP) Run() {
 			trudp.proc.destroy()
 			localAddr := trudp.udp.localAddr()
 			trudp.Log(CONNECT, "stop listenning at", localAddr)
-			trudp.sendEvent(nil, DESTROY, []byte(localAddr))
 			trudp.proc.wg.Wait()
 			break
 		}
@@ -307,12 +306,22 @@ func (trudp *TRUDP) Close() {
 		for key, tcd := range trudp.tcdmap {
 			tcd.destroy(CONNECT, "close "+key)
 		}
+		trudp.sendEvent(nil, DESTROY, []byte(trudp.udp.localAddr()))
+		close(trudp.chanEvent)
 	}
 }
 
 // ChanEvent return channel to read trudp events
 func (trudp *TRUDP) ChanEvent() <-chan *EventData {
+	trudp.proc.once.Do(func() {
+		trudp.proc.wg.Add(1)
+	})
 	return trudp.chanEvent
+}
+
+// ChanEventClosed signalling that event channel reader routine sucessfully closed
+func (trudp *TRUDP) ChanEventClosed() {
+	trudp.proc.wg.Done()
 }
 
 // ShowStatistic set showStatF to show trudp statistic window
