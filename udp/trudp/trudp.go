@@ -1,6 +1,7 @@
 package trudp
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -216,6 +217,9 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
+	if event == 1 {
+		fmt.Println("sendEvent:", event)
+	}
 	trudp.chanEvent <- &EventData{tcd, event, data}
 }
 
@@ -293,6 +297,11 @@ func (trudp *TRUDP) Run() {
 			trudp.Log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 		}
 	}
+}
+
+// Running return true if TRUDP is running now
+func (trudp *TRUDP) Running() bool {
+	return !trudp.proc.stopRunningF
 }
 
 // Close closes trudp connection and stop all workers
