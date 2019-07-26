@@ -216,12 +216,7 @@ func Init(port int) (trudp *TRUDP) {
 
 // sendEvent Send event to user level (to event callback or channel)
 func (trudp *TRUDP) sendEvent(tcd *channelData, event int, data []byte) {
-	//if event == 1 {
-	//fmt.Println("sendEvent:", event)
-	//}
-	if !trudp.proc.stopRunningF || trudp.proc.stopRunningF && (event < 2 || event == 3) {
-		trudp.chanEvent <- &EventData{tcd, event, data}
-	}
+	trudp.chanEvent <- &EventData{tcd, event, data}
 }
 
 // Connect to remote host by UDP
@@ -305,25 +300,18 @@ func (trudp *TRUDP) Running() bool {
 	return !trudp.proc.stopRunningF
 }
 
-// Close closes trudp connection and stop all workers
+// closeChannels Close all trudp channels
+func (trudp *TRUDP) closeChannels() {
+	for key, tcd := range trudp.tcdmap {
+		tcd.destroy(CONNECT, "close "+key)
+	}
+}
+
+// Close closes trudp connection and channelRead
 func (trudp *TRUDP) Close() {
 	if trudp.udp.conn != nil {
-		trudp.proc.wg.Add(1)
-		defer func() { trudp.proc.wg.Done() }()
-		// Close trudp connection and channelRead
 		trudp.udp.conn.Close()
 		close(trudp.proc.chanRead)
-		for range trudp.proc.chanRead {
-		}
-		close(trudp.proc.chanWrite)
-		for range trudp.proc.chanWrite {
-		}
-		// Close trudp channels
-		for key, tcd := range trudp.tcdmap {
-			tcd.destroy(CONNECT, "close "+key)
-		}
-		trudp.sendEvent(nil, DESTROY, []byte(trudp.udp.localAddr()))
-		close(trudp.chanEvent)
 	}
 }
 

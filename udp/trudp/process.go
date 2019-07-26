@@ -79,30 +79,44 @@ func (proc *process) init(trudp *TRUDP) *process {
 		// Do it on return
 		defer func() {
 			proc.timerKeep.Stop()
-			proc.timerStatistic.Stop()
 			close(proc.chanWriter)
+			proc.timerStatistic.Stop()
 			trudp.Log(CONNECT, "process worker stopped")
+
+			// Close trudp channels, send DESTROY event and close event channel
+			trudp.closeChannels()
+			trudp.sendEvent(nil, DESTROY, []byte(trudp.udp.localAddr()))
+			close(trudp.chanEvent)
+
 			proc.wg.Done()
 		}()
 
-		for !proc.stopRunningF {
+		chanWriteClosedF := false
+		for {
+
 			select {
 
 			// Process read packet (received from udp)
 			case readPac, ok := <-proc.chanRead:
-				if ok {
-					readPac.packet.process(readPac.addr)
-				}
-
-				// Process write packet (received from user level, need write to udp)
-			case writePac, ok := <-proc.chanWrite:
-				if ok {
-					tcd := writePac.tcd
-					if tcd.canWrite() {
-						proc.writeTo(writePac)
-					} else {
-						proc.writeQueueAdd(tcd, writePac)
+				if !ok {
+					if !chanWriteClosedF {
+						chanWriteClosedF = true
+						close(trudp.proc.chanWrite)
 					}
+					break
+				}
+				readPac.packet.process(readPac.addr)
+
+			// Process write packet (received from user level, need write to udp)
+			case writePac, ok := <-proc.chanWrite:
+				if !ok {
+					return
+				}
+				tcd := writePac.tcd
+				if tcd.canWrite() {
+					proc.writeTo(writePac)
+				} else {
+					proc.writeQueueAdd(tcd, writePac)
 				}
 
 			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
@@ -144,8 +158,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 
 	// Write worker
 	go func() {
-		trudp.Log(CONNECT, "writer worker started")
 		proc.wg.Add(1)
+		trudp.Log(CONNECT, "writer worker started")
 		defer func() { trudp.Log(CONNECT, "writer worker stopped"); proc.wg.Done() }()
 		for w := range proc.chanWriter {
 			proc.trudp.udp.writeTo(w.packet.data, w.addr)
@@ -160,9 +174,6 @@ func (proc *process) init(trudp *TRUDP) *process {
 
 // wrieTo write packet to trudp channel and send true to Answer channel
 func (proc *process) writeTo(writePac *writeType) {
-	if proc.trudp.proc.stopRunningF {
-		return
-	}
 	tcd := writePac.tcd
 	writePac.chanAnswer <- true
 	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeTo(tcd)
