@@ -250,8 +250,9 @@ func (trudp *TRUDP) Run() {
 
 		nRead, addr, err := trudp.udp.readFrom(buffer)
 		if err != nil {
-			trudp.proc.destroy()
 			trudp.Log(CONNECT, "stop listenning at", trudp.udp.localAddr())
+			close(trudp.proc.chanRead)
+			trudp.proc.destroy()
 			trudp.proc.wg.Wait()
 			trudp.Log(CONNECT, "stopped")
 			break
@@ -311,7 +312,6 @@ func (trudp *TRUDP) closeChannels() {
 func (trudp *TRUDP) Close() {
 	if trudp.udp.conn != nil {
 		trudp.udp.conn.Close()
-		close(trudp.proc.chanRead)
 	}
 }
 
