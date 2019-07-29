@@ -18,11 +18,11 @@ import (
 
 // process data structure
 type process struct {
-	trudp          *TRUDP           // link to trudp
-	chanRead       chan *readType   // channel to read (used to process packets received from udp)
-	chanWrite      chan *writeType  // channel to write (used to send data from user level)
-	chanWriter     chan *writerType // channel to write (used to write data to udp)
-	timerKeep      *time.Ticker     // keep alive timer
+	trudp      *TRUDP           // link to trudp
+	chanRead   chan *readType   // channel to read (used to process packets received from udp)
+	chanWrite  chan *writeType  // channel to write (used to send data from user level)
+	chanWriter chan *writerType // channel to write (used to write data to udp)
+	//timerKeep      *time.Ticker     // keep alive timer
 	timerResend    <-chan time.Time // resend packet from send queue timer
 	timerStatistic *time.Ticker     // statistic show ticker
 
@@ -49,16 +49,17 @@ type writerType struct {
 	addr   *net.UDPAddr
 }
 
+const disconnectTime = disconnectAfter * time.Millisecond
+const sleepTime = pingInterval * time.Millisecond
+
 // init
 func (proc *process) init(trudp *TRUDP) *process {
 
 	proc.trudp = trudp
 
 	// Set time variables
-	disconnectTime := disconnectAfter * time.Millisecond
-	sleepTime := pingInterval * time.Millisecond
 	resendTime := defaultRTT * time.Millisecond
-	pingTime := pingInterval * time.Millisecond
+	//pingTime := pingInterval * time.Millisecond
 	statTime := statInterval * time.Millisecond
 
 	// Init channels and timers
@@ -68,7 +69,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 	//
 	proc.timerStatistic = time.NewTicker(statTime)
 	proc.timerResend = time.After(resendTime)
-	proc.timerKeep = time.NewTicker(pingTime)
+	//proc.timerKeep = time.NewTicker(pingTime)
 
 	// Module worker
 	go func() {
@@ -78,7 +79,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 
 		// Do it on return
 		defer func() {
-			proc.timerKeep.Stop()
+			//proc.timerKeep.Stop()
 			close(proc.chanWriter)
 			proc.timerStatistic.Stop()
 			trudp.Log(CONNECT, "process worker stopped")
@@ -120,28 +121,16 @@ func (proc *process) init(trudp *TRUDP) *process {
 				}
 
 			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
-			case <-proc.timerKeep.C:
-				for _, tcd := range proc.trudp.tcdmap {
-					switch {
-					case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
-						tcd.destroy(DEBUGv,
-							fmt.Sprint("destroy this channel: does not answer long time: ",
-								time.Since(tcd.stat.lastTimeReceived)))
-					case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
-						tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-						tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
-					}
-					// \TODO send test data - remove it
-					if tcd.sendTestMsgF {
-						data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
-						tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
-					}
-				}
+			// case <-proc.timerKeep.C:
+			// 	for _, tcd := range proc.trudp.tcdmap {
+			// 		proc.keepAlive(tcd)
+			// 	}
 
 			// Process send queue (resend packets from send queue)
-			case <-proc.timerResend:
+			case <-proc.timerResend: //,<-proc.timerKeep.C:
 				resendTime = defaultRTT * time.Millisecond
 				for _, tcd := range proc.trudp.tcdmap {
+					proc.keepAlive(tcd)
 					rt := tcd.sendQueueResendProcess()
 					if rt < resendTime {
 						resendTime = rt
@@ -170,6 +159,24 @@ func (proc *process) init(trudp *TRUDP) *process {
 	}()
 
 	return proc
+}
+
+// keepAlive Send ping if time since tcd.lastTripTimeReceived >= pingInterval
+func (proc *process) keepAlive(tcd *channelData) {
+	switch {
+	case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
+		tcd.destroy(DEBUGv,
+			fmt.Sprint("destroy this channel: does not answer long time: ",
+				time.Since(tcd.stat.lastTimeReceived)))
+	case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
+		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+		tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
+	}
+	// \TODO send test data - remove it
+	if tcd.sendTestMsgF {
+		data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
+		tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
+	}
 }
 
 // wrieTo write packet to trudp channel and send true to Answer channel
