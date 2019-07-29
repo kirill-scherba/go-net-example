@@ -3,6 +3,7 @@ package trudp
 import (
 	"container/list"
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"sync/atomic"
@@ -182,4 +183,22 @@ func (tcd *channelData) MakeKey() string {
 func (tcd *channelData) canWrite() bool {
 	return tcd.sendQueue.Len() < tcd.maxQueueSize &&
 		tcd.receiveQueue.Len() < tcd.maxQueueSize
+}
+
+// keepAlive Send ping if time since tcd.lastTripTimeReceived >= pingInterval
+func (tcd *channelData) keepAlive() {
+	switch {
+	case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
+		tcd.destroy(DEBUGv,
+			fmt.Sprint("destroy this channel: does not answer long time: ",
+				time.Since(tcd.stat.lastTimeReceived)))
+	case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
+		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+		tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
+	}
+	// \TODO send test data - remove it
+	if tcd.sendTestMsgF {
+		data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
+		tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
+	}
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -18,13 +17,11 @@ import (
 
 // process data structure
 type process struct {
-	trudp      *TRUDP           // link to trudp
-	chanRead   chan *readType   // channel to read (used to process packets received from udp)
-	chanWrite  chan *writeType  // channel to write (used to send data from user level)
-	chanWriter chan *writerType // channel to write (used to write data to udp)
-	//timerKeep      *time.Ticker     // keep alive timer
-	timerResend    <-chan time.Time // resend packet from send queue timer
-	timerStatistic *time.Ticker     // statistic show ticker
+	trudp       *TRUDP           // link to trudp
+	chanRead    chan *readType   // channel to read (used to process packets received from udp)
+	chanWrite   chan *writeType  // channel to write (used to send data from user level)
+	chanWriter  chan *writerType // channel to write (used to write data to udp)
+	timerResend <-chan time.Time // resend packet from send queue timer
 
 	stopRunningF bool           // Stop running flag
 	once         sync.Once      // Once to sync trudp event channel stop
@@ -59,17 +56,13 @@ func (proc *process) init(trudp *TRUDP) *process {
 
 	// Set time variables
 	resendTime := defaultRTT * time.Millisecond
-	//pingTime := pingInterval * time.Millisecond
-	statTime := statInterval * time.Millisecond
 
 	// Init channels and timers
 	proc.chanWriter = make(chan *writerType, chReadSize)
 	proc.chanWrite = make(chan *writeType, chWriteSize)
 	proc.chanRead = make(chan *readType, chReadSize)
 	//
-	proc.timerStatistic = time.NewTicker(statTime)
 	proc.timerResend = time.After(resendTime)
-	//proc.timerKeep = time.NewTicker(pingTime)
 
 	// Module worker
 	go func() {
@@ -79,9 +72,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 
 		// Do it on return
 		defer func() {
-			//proc.timerKeep.Stop()
 			close(proc.chanWriter)
-			proc.timerStatistic.Stop()
 			trudp.Log(CONNECT, "process worker stopped")
 
 			// Close trudp channels, send DESTROY event and close event channel
@@ -93,8 +84,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 		}()
 
 		chanWriteClosedF := false
+		i := 0
 		for {
-
 			select {
 
 			// Process read packet (received from udp)
@@ -120,27 +111,22 @@ func (proc *process) init(trudp *TRUDP) *process {
 					proc.writeQueueAdd(tcd, writePac)
 				}
 
-			// Keepalive: Send ping if time since tcd.lastTripTimeReceived >= pingInterval
-			// case <-proc.timerKeep.C:
-			// 	for _, tcd := range proc.trudp.tcdmap {
-			// 		proc.keepAlive(tcd)
-			// 	}
-
-			// Process send queue (resend packets from send queue)
-			case <-proc.timerResend: //,<-proc.timerKeep.C:
-				resendTime = defaultRTT * time.Millisecond
+			// Process send queue (resend packets from send queue), check Keep alive
+			// and show statistic (check after 30 ms)
+			case <-proc.timerResend:
+				// Loop trudp channels map and check Resend send queue and/or send keep alive signal (ping)
 				for _, tcd := range proc.trudp.tcdmap {
-					proc.keepAlive(tcd)
-					rt := tcd.sendQueueResendProcess()
-					if rt < resendTime {
-						resendTime = rt
+					if i%100 == 0 {
+						tcd.keepAlive()
 					}
+					tcd.sendQueueResendProcess()
+				}
+				// Show statistic window
+				if i%3 == 0 {
+					proc.showStatistic()
 				}
 				proc.timerResend = time.After(resendTime) // Set new timer value
-
-			// Process statistic show
-			case <-proc.timerStatistic.C:
-				proc.showStatistic()
+				i++
 			}
 		}
 	}()
@@ -159,24 +145,6 @@ func (proc *process) init(trudp *TRUDP) *process {
 	}()
 
 	return proc
-}
-
-// keepAlive Send ping if time since tcd.lastTripTimeReceived >= pingInterval
-func (proc *process) keepAlive(tcd *channelData) {
-	switch {
-	case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
-		tcd.destroy(DEBUGv,
-			fmt.Sprint("destroy this channel: does not answer long time: ",
-				time.Since(tcd.stat.lastTimeReceived)))
-	case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
-		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-		tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
-	}
-	// \TODO send test data - remove it
-	if tcd.sendTestMsgF {
-		data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
-		tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
-	}
 }
 
 // wrieTo write packet to trudp channel and send true to Answer channel
