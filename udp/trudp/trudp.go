@@ -12,7 +12,6 @@ const (
 	disconnectAfter  = 3000 // (ms) disconnect afret in ms
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
-	statInterval     = 100  // Interval to show statistic
 	chReadSize       = 1024 // Size of read channele used to got data from udp
 	chWriteSize      = 96   // Size of write channele used to send data from users level and than send it to remote host
 	chEventSize      = 96   // Size or read channel used to send messages to user level
