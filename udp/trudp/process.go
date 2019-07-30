@@ -104,12 +104,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 				if !ok {
 					return
 				}
-				tcd := writePac.tcd
-				if tcd.canWrite() {
-					proc.writeTo(writePac)
-				} else {
-					proc.writeQueueAdd(tcd, writePac)
-				}
+				proc.writeTo(writePac)
 
 			// Process send queue (resend packets from send queue), check Keep alive
 			// and show statistic (check after 30 ms)
@@ -147,15 +142,25 @@ func (proc *process) init(trudp *TRUDP) *process {
 	return proc
 }
 
-// wrieTo write packet to trudp channel and send true to Answer channel
+// writeTo  write packet to trudp channel or write packet to write queue
 func (proc *process) writeTo(writePac *writeType) {
+	tcd := writePac.tcd
+	if tcd.canWrite() {
+		proc.writeToDirect(writePac)
+	} else {
+		proc.writeToQueue(tcd, writePac)
+	}
+}
+
+// writeToDirect write packet to trudp channel and send true to Answer channel
+func (proc *process) writeToDirect(writePac *writeType) {
 	tcd := writePac.tcd
 	writePac.chanAnswer <- true
 	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeTo(tcd)
 }
 
-// writeQueueAdd add write packet to write queue
-func (proc *process) writeQueueAdd(tcd *channelData, writePac *writeType) {
+// writeToQueue add write packet to write queue
+func (proc *process) writeToQueue(tcd *channelData, writePac *writeType) {
 	tcd.writeQueue = append(tcd.writeQueue, writePac)
 }
 
@@ -164,7 +169,7 @@ func (proc *process) writeQueueWriteTo(tcd *channelData) {
 	for len(tcd.writeQueue) > 0 && tcd.canWrite() {
 		writePac := tcd.writeQueue[0]
 		tcd.writeQueue = tcd.writeQueue[1:]
-		proc.writeTo(writePac)
+		proc.writeToDirect(writePac)
 	}
 }
 
