@@ -25,6 +25,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 		sqd := e.Value.(*sendQueueData)
 		// Do while packets ready to resend
 		if !now.After(sqd.arrivalTime) {
+			tcd.stat.repeat(false)
 			break
 		}
 		// Destroy this trudp channel if resendAttemp more than maxResendAttemp
@@ -34,7 +35,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 		}
 		// Resend packet, save resend to statistic and show message
 		sqd.packet.writeTo(tcd)
-		tcd.stat.repeat()
+		tcd.stat.repeat(true)
 		tcd.trudp.Log(DEBUG, "resend sendQueue packet with",
 			"id:", sqd.packet.getID(),
 			"attempt:", sqd.resendAttempt)
@@ -93,6 +94,17 @@ func (tcd *channelData) sendQueueRemove(packet *packetType) {
 		sqd.packet.destroy()
 		tcd.sendQueue.Remove(e)
 		tcd.trudp.Log(DEBUGv, "remove from send queue, id", id)
+	}
+}
+
+// sendQueueCorrectLength correct send queue length
+func (tcd *channelData) sendQueueCorrectLength() {
+	if tcd.stat.packets.sendRT.speedPacSec > 0 {
+		if tcd.maxQueueSize < 1024 && tcd.stat.packets.repeatRT.speedPacSec == 0 {
+			tcd.maxQueueSize += 8
+		} else if tcd.maxQueueSize > 8 && tcd.stat.packets.repeatRT.speedPacSec > 0 {
+			tcd.maxQueueSize -= 8
+		}
 	}
 }
 

@@ -38,7 +38,9 @@ func (realTime *realTimeSpeed) calculate(length int) {
 		realTime.secArr[currentIdx][0] = 0
 		realTime.secArr[currentIdx][1] = 0
 	}
-	realTime.secArr[currentIdx][0]++
+	if length > 0 {
+		realTime.secArr[currentIdx][0]++
+	}
 	realTime.secArr[currentIdx][1] += length
 	realTime.speedPacSec, realTime.speedMbSec = func() (speedPacSec int, speedMbSec float32) {
 		for _, v := range realTime.secArr {
@@ -99,9 +101,14 @@ func (tcs *channelStat) send(length int) {
 }
 
 // repeat adds data packets repeat to statistic
-func (tcs *channelStat) repeat() {
-	tcs.trudp.packets.repeat++ // Total packets repeat
-	tcs.packets.repeat++       // Channel packets repeat
+func (tcs *channelStat) repeat(r bool) {
+	if r {
+		tcs.trudp.packets.repeat++        // Total packets repeat
+		tcs.packets.repeat++              // Channel packets repeat
+		tcs.packets.repeatRT.calculate(1) // Calculate repeat speed
+	} else {
+		tcs.packets.repeatRT.calculate(0) // Calculate repeat speed
+	}
 }
 
 // statHeader return statistic header string
@@ -189,7 +196,7 @@ func droppedP(packets *packetsStat) (retval uint32) {
 func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
 
 	retstr = fmt.Sprintf("\033[2K"+
-		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d %8d(%d%%) %8d(%d%%) %6d %6d %6d      -      -      - \n",
+		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d  %8d(%d) %8d(%d%%) %6d %6d %6d      -      -      - \n",
 
 		idx+1,                 // trudp channel number (in statistic screen)
 		len(tcd.key), tcd.key, // key len and key
@@ -203,7 +210,7 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		float64(tcs.packets.receiveLength)/(1024*1024), // receive total in mb
 		tcs.packets.ack,                                // packets ack received
 		tcs.packets.repeat,                             // packets repeat
-		repeatP(&tcs.packets),                          // packets repeat in %
+		tcs.packets.repeatRT.speedPacSec,               // packets repeat per sec
 		tcs.packets.dropped,                            // packets dropped
 		droppedP(&tcs.packets),                         // packets dropped in %
 		tcd.sendQueue.Len(),                            // sendQueueSize,
