@@ -145,7 +145,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 // writeTo  write packet to trudp channel or write packet to write queue
 func (proc *process) writeTo(writePac *writeType) {
 	tcd := writePac.tcd
-	if tcd.canWrite() {
+	//if len(tcd.writeQueue) == 0 && tcd.canWrite() {
+	if len(tcd.writeQueue) == 0 && tcd.canWrite() {
 		proc.writeToDirect(writePac)
 	} else {
 		proc.writeToQueue(tcd, writePac)
