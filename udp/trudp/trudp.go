@@ -184,7 +184,7 @@ const (
 	 * @param data_length Length of send
 	 * @param user_data NULL
 	 */
-	SEND_DATA
+	//SEND_DATA
 
 	RESET_LOCAL
 )

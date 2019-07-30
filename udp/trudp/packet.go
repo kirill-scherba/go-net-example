@@ -95,7 +95,7 @@ func (pac *packetType) writeTo(tcd *channelData) {
 	if pac.sendQueueF {
 		tcd.sendQueueAdd(pac)
 		tcd.stat.send(len(pac.data))
-		tcd.trudp.sendEvent(tcd, SEND_DATA, pac.getData())
+		//tcd.trudp.sendEvent(tcd, SEND_DATA, pac.getData())
 	}
 }
 
