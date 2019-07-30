@@ -49,7 +49,13 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 // sendQueueAdd add or update send queue packet
 func (tcd *channelData) sendQueueAdd(packet *packetType) {
 	now := time.Now()
-	var rttTime time.Duration = defaultRTT + time.Duration(tcd.stat.triptimeMiddle)
+	var triptimeMiddle time.Duration
+	if tcd.stat.triptimeMiddle > maxRTT {
+		triptimeMiddle = maxRTT
+	} else {
+		triptimeMiddle = time.Duration(tcd.stat.triptimeMiddle)
+	}
+	var rttTime time.Duration = defaultRTT + triptimeMiddle
 	arrivalTime := now.Add(rttTime * time.Millisecond)
 
 	_, sqd, _, err := tcd.sendQueueFind(packet)

@@ -108,7 +108,7 @@ func main() {
 				case trudp.GOT_DATA:
 					tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 					if sendAnswer {
-						go ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
+						ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
 					}
 
 				// case trudp.SEND_DATA:

@@ -11,6 +11,7 @@ const (
 	pingInterval     = 1000 // (ms) send ping afret in ms
 	disconnectAfter  = 3000 // (ms) disconnect afret in ms
 	defaultRTT       = 30   // (ms) default retransmit time in ms
+	maxRTT           = 500  // (ms) default maximum time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
 	chReadSize       = 1024 // Size of read channele used to got data from udp
 	chWriteSize      = 96   // Size of write channele used to send data from users level and than send it to remote host
