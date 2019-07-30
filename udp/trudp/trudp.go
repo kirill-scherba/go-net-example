@@ -65,8 +65,9 @@ type packetsStat struct {
 	receiveLength uint64        // Total reseived in bytes
 	dropped       uint32        // Total packet droped
 	repeat        uint32        // Total packet repeated
-	sendRT        realTimeSpeed // Type to calculate send real time speed
-	receiveRT     realTimeSpeed // Type to calculate receive real time speed
+	sendRT        realTimeSpeed // Send real time speed
+	receiveRT     realTimeSpeed // Receive real time speed
+	repeatRT      realTimeSpeed // Repiat real time speed
 }
 
 // eventData used as structure in sendEvent function

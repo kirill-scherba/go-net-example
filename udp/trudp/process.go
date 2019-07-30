@@ -111,12 +111,18 @@ func (proc *process) init(trudp *TRUDP) *process {
 			case <-proc.timerResend:
 				// Loop trudp channels map and check Resend send queue and/or send keep alive signal (ping)
 				for _, tcd := range proc.trudp.tcdmap {
+					// Resend
+					tcd.sendQueueResendProcess()
+					// Keep alive (every 100*30ms)
 					if i%100 == 0 {
 						tcd.keepAlive()
 					}
-					tcd.sendQueueResendProcess()
+					// Correct sendQueue size (every 3*30ms)
+					if i%3 == 0 {
+						tcd.sendQueueCorrectLength()
+					}
 				}
-				// Show statistic window
+				// Show statistic window (every 3*30ms)
 				if i%3 == 0 {
 					proc.showStatistic()
 				}
