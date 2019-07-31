@@ -97,12 +97,14 @@ func (tcd *channelData) sendQueueRemove(packet *packetType) {
 	}
 }
 
+// var direction = 0
+
 // sendQueueCorrectLength correct send queue length
 func (tcd *channelData) sendQueueCorrectLength() {
-	if tcd.stat.packets.sendRT.speedPacSec > 0 {
-		if tcd.maxQueueSize < 1024 && tcd.stat.packets.repeatRT.speedPacSec == 0 {
+	if tcd.stat.packets.sendRT.speedPacSec > 30 {
+		if tcd.maxQueueSize < 1024 && tcd.stat.packets.repeatRT.speedPacSec <= 2 {
 			tcd.maxQueueSize += 8
-		} else if tcd.maxQueueSize > 8 && tcd.stat.packets.repeatRT.speedPacSec > 0 {
+		} else if tcd.maxQueueSize > 8 && tcd.stat.packets.repeatRT.speedPacSec > 10 {
 			tcd.maxQueueSize -= 8
 		}
 	}

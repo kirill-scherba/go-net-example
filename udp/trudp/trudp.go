@@ -1,6 +1,7 @@
 package trudp
 
 import (
+	"net"
 	"strconv"
 	"time"
 )
@@ -195,12 +196,13 @@ const (
 func Init(port int) (trudp *TRUDP) {
 
 	trudp = &TRUDP{
-		udp:       &udp{},
-		packet:    &packetType{},
-		logLevel:  CONNECT,
-		startTime: time.Now(),
-		tcdmap:    make(map[string]*channelData),
-		chanEvent: make(chan *EventData, chEventSize),
+		udp:              &udp{},
+		packet:           &packetType{},
+		logLevel:         CONNECT,
+		startTime:        time.Now(),
+		tcdmap:           make(map[string]*channelData),
+		chanEvent:        make(chan *EventData, chEventSize),
+		defaultQueueSize: DefaultQueueSize,
 	}
 	trudp.packet.trudp = trudp
 
@@ -337,4 +339,11 @@ func (trudp *TRUDP) ShowStatistic(showStatF bool) {
 // SetDefaultQueueSize set maximum send and receive queues size
 func (trudp *TRUDP) SetDefaultQueueSize(defaultQueueSize int) {
 	trudp.defaultQueueSize = defaultQueueSize
+}
+
+// GetAddr return IP and Port of local address
+func (trudp *TRUDP) GetAddr() (ip string, port int) {
+	ip = string(trudp.udp.conn.LocalAddr().(*net.UDPAddr).IP)
+	port = trudp.udp.conn.LocalAddr().(*net.UDPAddr).Port
+	return
 }
