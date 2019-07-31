@@ -196,7 +196,7 @@ func droppedP(packets *packetsStat) (retval uint32) {
 func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
 
 	retstr = fmt.Sprintf("\033[2K"+
-		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d  %8d(%d) %8d(%d%%) %6d %6d %6d      -      -      - \n",
+		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d  %8d(%d) %8d(%d%%) %6d/%d %6d %6d      -      -      - \n",
 
 		idx+1,                 // trudp channel number (in statistic screen)
 		len(tcd.key), tcd.key, // key len and key
@@ -214,8 +214,9 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		tcs.packets.dropped,                            // packets dropped
 		droppedP(&tcs.packets),                         // packets dropped in %
 		tcd.sendQueue.Len(),                            // sendQueueSize,
-		len(tcd.writeQueue),                            // writeQueueSize,
-		tcd.receiveQueue.Len(),                         // receiveQueueSize
+		tcd.maxQueueSize-tcd.sendQueue.Len(),
+		len(tcd.writeQueue),    // writeQueueSize,
+		tcd.receiveQueue.Len(), // receiveQueueSize
 	)
 	return
 }
