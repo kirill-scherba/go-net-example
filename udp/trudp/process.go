@@ -119,7 +119,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 					}
 					// Correct sendQueue size (every 3*30ms)
 					if i%3 == 0 {
-						tcd.sendQueueCorrectLength()
+						tcd.sendQueueCalculateLength()
 					}
 				}
 				// Show statistic window (every 3*30ms)

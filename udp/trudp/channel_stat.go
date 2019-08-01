@@ -125,7 +125,9 @@ func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) str
 			"List of channels:\n"+
 			line+
 			"\033[2K"+
-			"  # Key                          Send   Pac/sec   Total(mb) Ping(ms) / Wait(ms) |   Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |   SQ     WQ     RQ    UrQ    UwQ     EQ \n"+
+			"  # Key                          Send   Pac/sec   Total(mb) Ping(ms) / Wait(ms) |"+
+			"   Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |"+
+			" SQ l/max   WQ   RQ    UrQ    UwQ     EQ \n"+
 			line,
 		addr,
 		runningTime,
@@ -196,7 +198,7 @@ func droppedP(packets *packetsStat) (retval uint32) {
 func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
 
 	retstr = fmt.Sprintf("\033[2K"+
-		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d  %8d(%d) %8d(%d%%) %6d/%d %6d %6d      -      -      - \n",
+		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d %13s %8d(%d%%) %9s %4d %4d      -      -      - \n",
 
 		idx+1,                 // trudp channel number (in statistic screen)
 		len(tcd.key), tcd.key, // key len and key
@@ -209,12 +211,16 @@ func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string
 		tcs.packets.receiveRT.speedPacSec,              // float64(tcs.packets.receive)/timeSinceStart,    // receive speed in packets/sec
 		float64(tcs.packets.receiveLength)/(1024*1024), // receive total in mb
 		tcs.packets.ack,                                // packets ack received
-		tcs.packets.repeat,                             // packets repeat
-		tcs.packets.repeatRT.speedPacSec,               // packets repeat per sec
-		tcs.packets.dropped,                            // packets dropped
-		droppedP(&tcs.packets),                         // packets dropped in %
-		tcd.sendQueue.Len(),                            // sendQueueSize,
-		tcd.maxQueueSize-tcd.sendQueue.Len(),
+		fmt.Sprintf("%d/%d(%d%%)",
+			tcs.packets.repeat,               // packets repeat
+			tcs.packets.repeatRT.speedPacSec, // packets repeat per sec
+			repeatP(&tcs.packets)),           // packets repeat in %
+		tcs.packets.dropped,    // packets dropped
+		droppedP(&tcs.packets), // packets dropped in %
+
+		fmt.Sprintf("%d/%d",
+			tcd.sendQueue.Len(), // sendQueueSize,
+			tcd.maxQueueSize),   // size of send queue
 		len(tcd.writeQueue),    // writeQueueSize,
 		tcd.receiveQueue.Len(), // receiveQueueSize
 	)
