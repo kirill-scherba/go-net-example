@@ -97,15 +97,28 @@ func (tcd *channelData) sendQueueRemove(packet *packetType) {
 	}
 }
 
-// var direction = 0
-
-// sendQueueCorrectLength correct send queue length
-func (tcd *channelData) sendQueueCorrectLength() {
+// sendQueueCalculateLength calculate send queue length
+func (tcd *channelData) sendQueueCalculateLength() {
+	// Calculate new send queue length if send packets speed more than 30 pac/sec
 	if tcd.stat.packets.sendRT.speedPacSec > 30 {
-		if tcd.maxQueueSize < 1024 && tcd.stat.packets.repeatRT.speedPacSec <= 2 {
-			tcd.maxQueueSize += 8
-		} else if tcd.maxQueueSize > 8 && tcd.stat.packets.repeatRT.speedPacSec > 10 {
-			tcd.maxQueueSize -= 8
+		//currentLen := tcd.sendQueue.Len()
+		lessMaxSize := tcd.maxQueueSize < 1024
+		queueIsFull := tcd.sendQueue.Len() >= tcd.maxQueueSize
+		moreDefaultSize := tcd.maxQueueSize > tcd.trudp.defaultQueueSize
+		//  if queue capacity less max capacity size
+		if lessMaxSize {
+			// if repeat speed is nil (0 repeat packets during second) and queue is full
+			if tcd.stat.packets.repeatRT.speedPacSec == 0 && queueIsFull {
+				tcd.maxQueueSize += 8
+			}
+		}
+		// if queue capacity more default(minimal) capacity size
+		if moreDefaultSize {
+			// if repeat speed more than 20 packets per second or
+			// if repeat speed more than 10 packets per second and queue is full
+			if tcd.stat.packets.repeatRT.speedPacSec > 20 || tcd.stat.packets.repeatRT.speedPacSec > 10 && queueIsFull {
+				tcd.maxQueueSize -= 8
+			}
 		}
 	}
 }
