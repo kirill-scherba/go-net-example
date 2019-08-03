@@ -107,7 +107,7 @@ const (
 
 // packetDataProcess process received data packet, check receivedQueue and
 // send received data and events to user level
-func (pac *packetType) packetDataProcess(tcd *channelData) {
+func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	id := pac.getID()
 	switch {
 

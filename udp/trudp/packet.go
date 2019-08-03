@@ -90,7 +90,7 @@ func (pac *packetType) destroy() {
 // writeTo send packetData to trudp channel. Depend on type of created packet:
 // Data or Service. Send Data packet to trudp channel and save it to sendQueue
 // or Send Service packet to trudp channel and destroy it
-func (pac *packetType) writeTo(tcd *channelData) {
+func (pac *packetType) writeTo(tcd *ChannelData) {
 	pac.trudp.proc.chanWriter <- &writerType{pac, tcd.addr}
 	if pac.sendQueueF {
 		tcd.sendQueueAdd(pac)

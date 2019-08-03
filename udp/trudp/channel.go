@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-// TRUDP channel data structure
-type channelData struct {
+// ChannelData is the TRUDP channel data structure
+type ChannelData struct {
 	trudp *TRUDP // link to trudp
 
 	// Channels remote host address and channel number
@@ -38,7 +38,7 @@ type channelData struct {
 }
 
 // reset exequte reset of this cannel
-func (tcd *channelData) reset() {
+func (tcd *ChannelData) reset() {
 	// Clear sendQueue
 	tcd.sendQueueReset()
 	// Clear receivedQueue
@@ -55,7 +55,7 @@ func (tcd *channelData) reset() {
 }
 
 // destroy close and destroy trudp channel
-func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
+func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 
 	// Disable repeatable 'destroy'
 	if tcd.stoppedF {
@@ -86,23 +86,23 @@ func (tcd *channelData) destroy(msgLevel int, msg string) (err error) {
 }
 
 // getId return new packe id
-func (tcd *channelData) getID() (id uint32) {
+func (tcd *ChannelData) getID() (id uint32) {
 	id = atomic.AddUint32(&tcd.id, 1) - 1
 	return
 }
 
 // SendTestMsg set sendTestMsgF flag to send test message by interval
-func (tcd *channelData) SendTestMsg(sendTestMsgF bool) {
+func (tcd *ChannelData) SendTestMsg(sendTestMsgF bool) {
 	tcd.sendTestMsgF = sendTestMsgF
 }
 
 // TripTime return current triptime (ms)
-func (tcd *channelData) TripTime() float32 {
+func (tcd *ChannelData) TripTime() float32 {
 	return tcd.stat.triptime
 }
 
 // WriteTo send data to remote host
-func (tcd *channelData) WriteTo(data []byte) (err error) {
+func (tcd *ChannelData) WriteTo(data []byte) (err error) {
 	if tcd.stoppedF {
 		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
 		return
@@ -119,7 +119,7 @@ func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
 }
 
 // newChannelData create new TRUDP ChannelData or select existing
-func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData, key string) {
+func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData, key string) {
 
 	key = trudp.makeKey(addr, ch)
 
@@ -133,7 +133,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 	now := time.Now()
 
 	// Channel data create
-	tcd = &channelData{
+	tcd = &ChannelData{
 		trudp:        trudp,
 		addr:         addr,
 		ch:           ch,
@@ -158,7 +158,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *channelData,
 }
 
 // ConnectChannel to remote host by UDP
-func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channelData) {
+func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *ChannelData) {
 	address := rhost + ":" + strconv.Itoa(rport)
 	rUDPAddr, err := trudp.udp.resolveAddr(network, address)
 	if err != nil {
@@ -170,22 +170,22 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *channe
 }
 
 // CloseChannel close trudp channel
-func (tcd *channelData) CloseChannel() {
+func (tcd *ChannelData) CloseChannel() {
 	tcd.destroy(DEBUGv, "destroy this channel: closed by user")
 }
 
 // MakeKey return trudp channel key
-func (tcd *channelData) MakeKey() string {
+func (tcd *ChannelData) MakeKey() string {
 	return tcd.key
 }
 
 // canWrine return true if writeTo is allowed
-func (tcd *channelData) canWrite() bool {
+func (tcd *ChannelData) canWrite() bool {
 	return tcd.sendQueue.Len() < tcd.maxQueueSize /*&& tcd.receiveQueue.Len() < tcd.maxQueueSize*/
 }
 
 // keepAlive Send ping if time since tcd.lastTripTimeReceived >= pingInterval
-func (tcd *channelData) keepAlive() {
+func (tcd *ChannelData) keepAlive() {
 	switch {
 	case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
 		tcd.destroy(DEBUGv,

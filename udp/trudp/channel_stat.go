@@ -195,7 +195,7 @@ func droppedP(packets *packetsStat) (retval uint32) {
 }
 
 // statBody return one channel statistic body string
-func (tcs *channelStat) statBody(tcd *channelData, idx, page int) (retstr string) {
+func (tcs *channelStat) statBody(tcd *ChannelData, idx, page int) (retstr string) {
 
 	retstr = fmt.Sprintf("\033[2K"+
 		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d %13s %8d(%d%%) %9s %4d %4d      -      -      - \n",

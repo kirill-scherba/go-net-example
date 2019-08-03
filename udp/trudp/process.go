@@ -36,7 +36,7 @@ type readType struct {
 
 // read channel data structure
 type writeType struct {
-	tcd        *channelData
+	tcd        *ChannelData
 	data       []byte
 	chanAnswer chan bool
 }
@@ -167,12 +167,12 @@ func (proc *process) writeToDirect(writePac *writeType) {
 }
 
 // writeToQueue add write packet to write queue
-func (proc *process) writeToQueue(tcd *channelData, writePac *writeType) {
+func (proc *process) writeToQueue(tcd *ChannelData, writePac *writeType) {
 	tcd.writeQueue = append(tcd.writeQueue, writePac)
 }
 
 // writeQueueWriteTo get packet from writeQueue and send it to trudp channel
-func (proc *process) writeQueueWriteTo(tcd *channelData) {
+func (proc *process) writeQueueWriteTo(tcd *ChannelData) {
 	for len(tcd.writeQueue) > 0 && tcd.canWrite() {
 		writePac := tcd.writeQueue[0]
 		tcd.writeQueue = tcd.writeQueue[1:]
@@ -180,7 +180,7 @@ func (proc *process) writeQueueWriteTo(tcd *channelData) {
 	}
 }
 
-func (proc *process) writeQueueReset(tcd *channelData) {
+func (proc *process) writeQueueReset(tcd *ChannelData) {
 	for _, writePac := range tcd.writeQueue {
 		writePac.chanAnswer <- false
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	fmt.Println("UDP test application ver 1.0.0")
+	fmt.Println("TRUDP test application ver 1.0.0")
 
 	var (
 		rhost string

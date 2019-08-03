@@ -18,7 +18,7 @@ type sendQueueData struct {
 // ACK during selected time. Destroy channel if too much resends happens =
 // maxResendAttempt constant
 // \TODO check this resend and calculate new resend time algorithm
-func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
+func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 	rtt = (defaultRTT + time.Duration(tcd.stat.triptimeMiddle)) * time.Millisecond
 	now := time.Now()
 	for e := tcd.sendQueue.Front(); e != nil; e = e.Next() {
@@ -48,7 +48,7 @@ func (tcd *channelData) sendQueueResendProcess() (rtt time.Duration) {
 }
 
 // sendQueueAdd add or update send queue packet
-func (tcd *channelData) sendQueueAdd(packet *packetType) {
+func (tcd *ChannelData) sendQueueAdd(packet *packetType) {
 	now := time.Now()
 	var triptimeMiddle time.Duration
 	if tcd.stat.triptimeMiddle > maxRTT {
@@ -75,7 +75,7 @@ func (tcd *channelData) sendQueueAdd(packet *packetType) {
 }
 
 // sendQueueFind find packet in sendQueue
-func (tcd *channelData) sendQueueFind(packet *packetType) (e *list.Element, sqd *sendQueueData, id uint32, err error) {
+func (tcd *ChannelData) sendQueueFind(packet *packetType) (e *list.Element, sqd *sendQueueData, id uint32, err error) {
 	id = packet.getID()
 	for e = tcd.sendQueue.Front(); e != nil; e = e.Next() {
 		sqd = e.Value.(*sendQueueData)
@@ -88,7 +88,7 @@ func (tcd *channelData) sendQueueFind(packet *packetType) (e *list.Element, sqd 
 }
 
 // sendQueueRemove remove packet from send queue
-func (tcd *channelData) sendQueueRemove(packet *packetType) {
+func (tcd *ChannelData) sendQueueRemove(packet *packetType) {
 	e, sqd, id, err := tcd.sendQueueFind(packet)
 	if err == nil {
 		sqd.packet.destroy()
@@ -98,7 +98,7 @@ func (tcd *channelData) sendQueueRemove(packet *packetType) {
 }
 
 // sendQueueCalculateLength calculate send queue length
-func (tcd *channelData) sendQueueCalculateLength() {
+func (tcd *ChannelData) sendQueueCalculateLength() {
 	// Calculate new send queue length if send packets speed more than 30 pac/sec
 	if tcd.stat.packets.sendRT.speedPacSec > 30 {
 		//currentLen := tcd.sendQueue.Len()
@@ -124,7 +124,7 @@ func (tcd *channelData) sendQueueCalculateLength() {
 }
 
 // sendQueueReset resets (clear) send queue
-func (tcd *channelData) sendQueueReset() {
+func (tcd *ChannelData) sendQueueReset() {
 	for e := tcd.sendQueue.Front(); e != nil; e = e.Next() {
 		e.Value.(*sendQueueData).packet.destroy()
 	}
