@@ -18,6 +18,7 @@ func main() {
 	var peer string      // remote server name (to send commands to)
 	var raddr string     // remote host address
 	var rport, rchan int // remote host port and channel (for TRUDP)
+	var timeout int      // send echo timeout (in microsecond)
 
 	// Flags
 	flag.StringVar(&name, "n", "teocli-main-test-01", "this application name")
@@ -25,6 +26,7 @@ func main() {
 	flag.StringVar(&raddr, "a", "localhost", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
 	flag.IntVar(&rport, "r", 9010, "remote host port (to connect to remote host)")
+	flag.IntVar(&timeout, "t", 1000000, "send echo timeout (in microsecond)")
 	flag.Parse()
 
 	for {
@@ -43,18 +45,22 @@ func main() {
 			for {
 				fmt.Printf("send echo\n")
 				teo.SendEcho(peer, "Hello from go!")
-				time.Sleep(1000 * time.Millisecond)
+				time.Sleep(time.Duration(timeout) * time.Microsecond)
 			}
 		}()
 		// Reader (read data and display it)
 		for {
 			packet, _ := teo.Read()
+			if len(packet) == 0 {
+				fmt.Println("disconnected...")
+				break
+			}
 			fmt.Println("got packet:", packet)
 			if packet[0] == 66 {
 				fmt.Println("trip time (ms):", teo.ProccessEchoAnswer(packet))
 			}
 		}
 
-		//break
+		break
 	}
 }
