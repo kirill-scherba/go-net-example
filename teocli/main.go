@@ -59,7 +59,11 @@ func main() {
 			}
 			fmt.Println("got packet", len(packet), packet)
 			if packet[0] == 66 {
-				fmt.Println("trip time (ms):", teo.ProccessEchoAnswer(packet))
+				if t, err := teo.ProccessEchoAnswer(packet); err != nil {
+					fmt.Println("trip time error:", err)
+				} else {
+					fmt.Println("trip time (ms):", t)
+				}
 			}
 		}
 

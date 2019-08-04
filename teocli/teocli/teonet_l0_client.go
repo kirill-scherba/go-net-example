@@ -3,8 +3,15 @@ package teocli
 //// CGO definition (don't delay or edit it):
 //#include "teonet_l0_client.h"
 /*
+int packetGetCommand(void *packetPtr) {
+	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
+  return packet->cmd;
+}
 int packetGetPeerNameLength(teoLNullCPacket *packet) {
   return packet->peer_name_length;
+}
+int packetGetDataLength(teoLNullCPacket *packet) {
+  return packet->data_length;
 }
 char* packetGetPeerName(teoLNullCPacket *packet) {
   return packet->peer_name;
@@ -63,15 +70,17 @@ func (teocli *TeoLNull) packetCreate(command uint8, peer string, data []byte) (b
 	return
 }
 
+// packetCreateString creates packet with string data
 func (teocli *TeoLNull) packetCreateString(command uint8, peer string, data string) (buffer []byte, err error) {
 	return teocli.packetCreate(command, peer, append([]byte(data), 0))
 }
 
+// packetCreateLogin creates login packet
 func (teocli *TeoLNull) packetCreateLogin(data string) (buffer []byte, err error) {
 	return teocli.packetCreateString(0, "", data)
 }
 
-// packetCreateEcho create teonet l0 client echo packet
+// packetCreateEcho creates teonet l0 client echo packet
 func (teocli *TeoLNull) packetCreateEcho(peer string, msg string) (buffer []byte, err error) {
 	bufferLength := C.teoLNullHeaderSize() + C.size_t(len(peer)+1+len(msg)+1) + C.sizeof_int64_t
 	buffer = make([]byte, bufferLength)
@@ -97,9 +106,6 @@ func (teocli *TeoLNull) send(packet []byte) (length int, err error) {
 	}
 	return
 }
-
-// teoLNullConnectData * con = teoLNullConnectE(param.tcp_server, param.tcp_port,
-// 	event_cb, &param, TCP)
 
 // Connect connect to L0 server
 func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
@@ -153,7 +159,14 @@ func (teocli *TeoLNull) Read() (packet []byte, err error) {
 }
 
 // ProccessEchoAnswer parse echo answer packet and return triptime in ms
-func (teocli *TeoLNull) ProccessEchoAnswer(packet []byte) int64 {
-	packetC := C.packetGetData(unsafe.Pointer(&packet[0]))
-	return int64(C.teoLNullProccessEchoAnswer(packetC))
+func (teocli *TeoLNull) ProccessEchoAnswer(packet []byte) (t int64, err error) {
+	packetPtr := unsafe.Pointer(&packet[0])
+	command := C.packetGetCommand(packetPtr)
+	if command != C.CMD_L_ECHO_ANSWER {
+		err = errors.New("wrong packets command number")
+		return
+	}
+	dataC := C.packetGetData(packetPtr)
+	t = int64(C.teoLNullProccessEchoAnswer(dataC))
+	return
 }
