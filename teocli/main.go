@@ -11,8 +11,6 @@ import (
 func main() {
 	fmt.Println("Teocli test application ver 1.0.0")
 
-	//./teocli_s teoci-01 5.63.158.100 9010 ps-server
-
 	// Flags variables
 	var name string      // this client name
 	var peer string      // remote server name (to send commands to)
@@ -36,10 +34,14 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		// Send L0 login
+		// Send L0 login (requered after connect)
+		fmt.Printf("send login\n")
 		if _, err := teo.SendLogin(name); err != nil {
 			panic(err)
 		}
+		// Send peers command (for this test)
+		fmt.Printf("send peers request\n")
+		teo.Send(72, peer, nil)
 		// Sender (send echo in loop)
 		go func() {
 			for {
@@ -55,7 +57,7 @@ func main() {
 				fmt.Println("disconnected...")
 				break
 			}
-			fmt.Println("got packet:", packet)
+			fmt.Println("got packet", len(packet), packet)
 			if packet[0] == 66 {
 				fmt.Println("trip time (ms):", teo.ProccessEchoAnswer(packet))
 			}

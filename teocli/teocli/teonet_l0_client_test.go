@@ -1,7 +1,9 @@
 package teocli
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -75,4 +77,13 @@ func TestPacketSend(t *testing.T) {
 			t.Errorf("can't send echo packet, error: %s", err)
 		}
 	})
+}
+
+func TestBytes(t *testing.T) {
+
+	var b bytes.Buffer // A Buffer needs no initialization.
+	b.Write([]byte("Hello "))
+	fmt.Fprintf(&b, "world!")
+	b.WriteTo(os.Stdout)
+
 }

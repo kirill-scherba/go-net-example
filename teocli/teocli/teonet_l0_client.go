@@ -33,12 +33,18 @@ type TeoLNull struct {
 
 // packetCreate create teonet l0 client packet
 func (teocli *TeoLNull) packetCreate(command uint8, peer string, data []byte) (buffer []byte, err error) {
-	bufferLength := C.teoLNullHeaderSize() + C.size_t(len(peer)+1+len(data))
+	var dataLen int
+	var dataPtr unsafe.Pointer
+	if data != nil {
+		dataPtr = unsafe.Pointer(&data[0])
+		dataLen = len(data)
+	}
+	bufferLength := C.teoLNullHeaderSize() + C.size_t(len(peer)+1+dataLen)
 	buffer = make([]byte, bufferLength)
 	peerC := C.CString(peer)
 	defer C.free(unsafe.Pointer(peerC))
 	lengh := C.teoLNullPacketCreate(unsafe.Pointer(&buffer[0]), C.size_t(bufferLength), C.uint8_t(command), peerC,
-		unsafe.Pointer(&data[0]), C.size_t(len(data)))
+		dataPtr, C.size_t(dataLen))
 	if int(lengh) != len(buffer) {
 		err = fmt.Errorf("can't create packet: "+
 			"the length of created packet %d not equal to packet buffer %d",
