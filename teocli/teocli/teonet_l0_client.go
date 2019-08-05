@@ -111,8 +111,9 @@ func (teocli *TeoLNull) packetCreateEcho(peer string, msg string) (buffer []byte
 // status  1 wrong packet received (drop it)
 func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int) {
 
-	// Check packet length and checksums and parse return value (0,1,-1,-2,-3)
+	// Check packet length and checksums and parse return value (0, 1, -1, -2, -3)
 	retval = int(C.packetCheck(unsafe.Pointer(&packet[0]), C.size_t(len(packet))))
+	fmt.Println("packetCheck:", retval, "buffer len:", len(teocli.readBuffer))
 	switch {
 
 	// valid packet
@@ -127,8 +128,8 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 		teocli.readBuffer = append(teocli.readBuffer, packet...)
 		retval = -1
 
-	// next part of splitted packet
-	case (retval == -3 || retval == -2) && len(teocli.readBuffer) > 0:
+		// next part of splitted packet
+	case (retval == -3 || retval == -2 || retval == -1) && len(teocli.readBuffer) > 0:
 		teocli.readBuffer = append(teocli.readBuffer, packet...)
 		bufPtr := unsafe.Pointer(&teocli.readBuffer[0])
 		retval = int(C.packetCheck(bufPtr, C.size_t(len(teocli.readBuffer))))
@@ -140,7 +141,6 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 			retval = -1
 		}
 	}
-	fmt.Println("packetCheck:", retval, "buffer len:", len(teocli.readBuffer))
 	return
 }
 
@@ -224,6 +224,7 @@ func (teocli *TeoLNull) Read() (packet []byte, err error) {
 		ev := <-teocli.td.ChanEvent()
 		packet = ev.Data
 		if ev.Event == trudp.GOT_DATA {
+			fmt.Printf("got %d bytes packet\n", len(packet))
 			packet, _ = teocli.packetCheck(packet)
 			teocli.sendEchoAnswer(packet)
 		}

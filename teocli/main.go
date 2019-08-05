@@ -57,7 +57,7 @@ func main() {
 			// 	fmt.Println("disconnected...")
 			// 	break
 			// }
-			fmt.Println("got packet", len(packet), packet)
+			fmt.Println("got packet, len:", len(packet), packet)
 			if packet != nil && packet[0] == 66 {
 				if t, err := teo.ProccessEchoAnswer(packet); err != nil {
 					fmt.Println("trip time error:", err)
@@ -67,6 +67,6 @@ func main() {
 			}
 		}
 
-		break
+		//break
 	}
 }
