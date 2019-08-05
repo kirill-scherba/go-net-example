@@ -16,7 +16,8 @@ int packetGetDataLength(void *packetPtr) {
 }
 int packetGetLength(void *packetPtr) {
   teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
-	return teoLNullHeaderSize() + packetGetPeerNameLength(packetPtr) + packetGetDataLength(packetPtr);
+	return teoLNullHeaderSize() + packetGetPeerNameLength(packetPtr) +
+	  packetGetDataLength(packetPtr);
 }
 char* packetGetPeerName(void *packetPtr) {
 	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
@@ -128,7 +129,7 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 		teocli.readBuffer = append(teocli.readBuffer, packet...)
 		retval = -1
 
-		// next part of splitted packet
+	// next part of splitted packet
 	case (retval == -3 || retval == -2 || retval == -1) && len(teocli.readBuffer) > 0:
 		teocli.readBuffer = append(teocli.readBuffer, packet...)
 		bufPtr := unsafe.Pointer(&teocli.readBuffer[0])
@@ -189,6 +190,13 @@ func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
 	return
 }
 
+// Disconnect
+func (teocli *TeoLNull) Disconnect() {
+	if !teocli.tcp {
+		teocli.td.ChanEventClosed()
+	}
+}
+
 // Send send data to L0 server
 func (teocli *TeoLNull) Send(command uint8, peer string, data []byte) (int, error) {
 	packet, err := teocli.packetCreate(command, peer, data)
@@ -217,23 +225,40 @@ func (teocli *TeoLNull) SendLogin(name string) (int, error) {
 }
 
 // Read wait for receiving data from trudp and return teocli packet
-func (teocli *TeoLNull) Read() (packet []byte, err error) {
-	if teocli.tcp {
-		err = errors.New("the teocli.Read for TCP is not implemented yet")
-	} else {
-		ev := <-teocli.td.ChanEvent()
-		packet = ev.Data
-		if ev.Event == trudp.GOT_DATA {
-			fmt.Printf("got %d bytes packet\n", len(packet))
-			packet, _ = teocli.packetCheck(packet)
-			teocli.sendEchoAnswer(packet)
+func (teocli *TeoLNull) Read() (pac *Packet, err error) {
+FOR:
+	for {
+		if teocli.tcp {
+			err = errors.New("the teocli.Read for TCP is not implemented yet")
+			break
+		} else {
+			ev := <-teocli.td.ChanEvent()
+			packet := ev.Data
+			switch ev.Event {
+			case trudp.DISCONNECTED:
+				err = errors.New("channel with key " + string(packet) + " disconnected")
+				break FOR
+			case trudp.RESET_LOCAL:
+				err = errors.New("need to reconnect")
+				break FOR
+			case trudp.GOT_DATA:
+				fmt.Printf("got %d bytes packet\n", len(packet))
+				packet, _ = teocli.packetCheck(packet)
+				if packet != nil {
+					teocli.sendEchoAnswer(packet)
+					pac = teocli.packetNew(packet)
+					break FOR
+				}
+			default:
+				fmt.Println("got event:", ev.Event)
+			}
 		}
 	}
 	return
 }
 
-// ProccessEchoAnswer parse echo answer packet and return triptime in ms
-func (teocli *TeoLNull) ProccessEchoAnswer(packet []byte) (t int64, err error) {
+// proccessEchoAnswer parse echo answer packet and return triptime in ms
+func (teocli *TeoLNull) proccessEchoAnswer(packet []byte) (t int64, err error) {
 	packetPtr := unsafe.Pointer(&packet[0])
 	command := C.packetGetCommand(packetPtr)
 	if command != C.CMD_L_ECHO_ANSWER {
@@ -243,4 +268,40 @@ func (teocli *TeoLNull) ProccessEchoAnswer(packet []byte) (t int64, err error) {
 	dataC := C.packetGetData(packetPtr)
 	t = int64(C.teoLNullProccessEchoAnswer(dataC))
 	return
+}
+
+// Packet is teocli packet data structure and container for methods
+type Packet struct {
+	packet []byte
+	teocli *TeoLNull
+}
+
+// packetNew Creates new packet for packet slice
+func (teocli *TeoLNull) packetNew(packet []byte) *Packet {
+	return &Packet{packet: packet, teocli: teocli}
+}
+
+// Command return packets peer name
+func (pac *Packet) Command() int {
+	return int(C.packetGetCommand(unsafe.Pointer(&pac.packet[0])))
+}
+
+// Name return packets peer name
+func (pac *Packet) Name() string {
+	return C.GoString(C.packetGetPeerName(unsafe.Pointer(&pac.packet[0])))
+}
+
+// From return packets peer name (sinonim for Name nethod)
+func (pac *Packet) From() string {
+	return pac.Name()
+}
+
+// Data return packets data
+func (pac *Packet) Data() []byte {
+	return pac.teocli.packetGetData(pac.packet)
+}
+
+// TripTime return triptime for echo answer packet
+func (pac *Packet) TripTime() (t int64, err error) {
+	return pac.teocli.proccessEchoAnswer(pac.packet)
 }

@@ -28,6 +28,7 @@ func main() {
 	flag.Parse()
 
 	for {
+		running := true
 		// Connect to L0 server
 		fmt.Printf("try connecting to %s:%d ...\n", raddr, rport)
 		teo, err := teocli.Connect(raddr, rport, false)
@@ -44,29 +45,39 @@ func main() {
 		teo.Send(72, peer, nil)
 		// Sender (send echo in loop)
 		go func() {
-			for {
+			i := 0
+			for running {
 				fmt.Printf("send echo\n")
 				teo.SendEcho(peer, "Hello from go!")
 				time.Sleep(time.Duration(timeout) * time.Microsecond)
+				i++
+				if i%10 == 0 {
+					// Send peers command (for this test)
+					fmt.Printf("send peers request\n")
+					teo.Send(72, peer, nil)
+				}
 			}
 		}()
 		// Reader (read data and display it)
 		for {
-			packet, _ := teo.Read()
-			// if len(packet) == 0 {
-			// 	fmt.Println("disconnected...")
-			// 	break
-			// }
-			fmt.Println("got packet, len:", len(packet), packet)
-			if packet != nil && packet[0] == 66 {
-				if t, err := teo.ProccessEchoAnswer(packet); err != nil {
+			packet, err := teo.Read()
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+			fmt.Printf("got packet from %s, data len: %d, data: %v\n",
+				packet.From(), len(packet.Data()), packet.Data())
+			if packet.Command() == 66 {
+				if t, err := packet.TripTime(); err != nil {
 					fmt.Println("trip time error:", err)
 				} else {
 					fmt.Println("trip time (ms):", t)
 				}
 			}
 		}
-
+		teo.Disconnect()
+		running = false
+		time.Sleep(5 * time.Second)
 		//break
 	}
 }
