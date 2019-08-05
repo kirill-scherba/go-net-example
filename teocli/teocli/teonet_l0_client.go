@@ -10,10 +10,16 @@ int packetGetCommand(void *packetPtr) {
 int packetGetPeerNameLength(teoLNullCPacket *packet) {
   return packet->peer_name_length;
 }
-int packetGetDataLength(teoLNullCPacket *packet) {
+int packetGetDataLength(void *packetPtr) {
+	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
   return packet->data_length;
 }
-char* packetGetPeerName(teoLNullCPacket *packet) {
+int packetGetLength(void *packetPtr) {
+  teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
+	return teoLNullHeaderSize() + packetGetPeerNameLength(packetPtr) + packetGetDataLength(packetPtr);
+}
+char* packetGetPeerName(void *packetPtr) {
+	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
   return packet->peer_name;
 }
 char* packetGetData(void *packetPtr) {
@@ -32,7 +38,8 @@ import (
 
 // TeoLNull connection data
 type TeoLNull struct {
-	tcp bool
+	readBuffer []byte
+	tcp        bool
 
 	td  *trudp.TRUDP
 	tcd *trudp.ChannelData
@@ -97,12 +104,74 @@ func (teocli *TeoLNull) packetCreateEcho(peer string, msg string) (buffer []byte
 	return
 }
 
+// packetCheck check received packet, combine packets and return valid packet
+// return Valid packet or nil and status
+// status  0 valid packet received
+// status -1 packet not received yet (got part of packet)
+// status  1 wrong packet received (drop it)
+func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int) {
+
+	// Check packet length and checksums and parse return value (0,1,-1,-2,-3)
+	retval = int(C.packetCheck(unsafe.Pointer(&packet[0]), C.size_t(len(packet))))
+	switch {
+
+	// valid packet
+	case retval == 0:
+		if len(teocli.readBuffer) > 0 {
+			teocli.readBuffer = teocli.readBuffer[:0]
+		}
+		retpacket = packet
+
+	// First part of splitted packet
+	case (retval == -1 || retval == -2) && len(teocli.readBuffer) == 0:
+		teocli.readBuffer = append(teocli.readBuffer, packet...)
+		retval = -1
+
+	// next part of splitted packet
+	case (retval == -3 || retval == -2) && len(teocli.readBuffer) > 0:
+		teocli.readBuffer = append(teocli.readBuffer, packet...)
+		bufPtr := unsafe.Pointer(&teocli.readBuffer[0])
+		retval = int(C.packetCheck(bufPtr, C.size_t(len(teocli.readBuffer))))
+		if retval == 0 {
+			packetLength := C.packetGetLength(bufPtr)
+			retpacket = append([]byte(nil), teocli.readBuffer[:packetLength]...)
+			teocli.readBuffer = teocli.readBuffer[packetLength:]
+		} else {
+			retval = -1
+		}
+	}
+	fmt.Println("packetCheck:", retval, "buffer len:", len(teocli.readBuffer))
+	return
+}
+
+// packetGetData return packet data
+func (teocli *TeoLNull) packetGetData(packet []byte) (data []byte) {
+	packetPtr := unsafe.Pointer(&packet[0])
+	dataC := C.packetGetData(packetPtr)
+	dataLength := C.packetGetDataLength(packetPtr)
+	data = (*[1 << 28]byte)(unsafe.Pointer(dataC))[:dataLength:dataLength]
+	return
+}
+
 // send send packet to L0 server
 func (teocli *TeoLNull) send(packet []byte) (length int, err error) {
 	if teocli.tcp {
 		err = errors.New("the teocli.send for TCP is not implemented yet")
 	} else {
 		teocli.tcd.WriteTo(packet)
+	}
+	return
+}
+
+// sendEchoAnswer send echo answer to echo command
+func (teocli *TeoLNull) sendEchoAnswer(packet []byte) (length int, err error) {
+	if packet != nil {
+		packetPtr := unsafe.Pointer(&packet[0])
+		if C.packetGetCommand(packetPtr) == C.CMD_L_ECHO {
+			peerC := C.packetGetPeerName(packetPtr)
+			data := teocli.packetGetData(packet)
+			teocli.Send(C.CMD_L_ECHO_ANSWER, C.GoString(peerC), data)
+		}
 	}
 	return
 }
@@ -154,6 +223,10 @@ func (teocli *TeoLNull) Read() (packet []byte, err error) {
 	} else {
 		ev := <-teocli.td.ChanEvent()
 		packet = ev.Data
+		if ev.Event == trudp.GOT_DATA {
+			packet, _ = teocli.packetCheck(packet)
+			teocli.sendEchoAnswer(packet)
+		}
 	}
 	return
 }

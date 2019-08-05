@@ -59,6 +59,10 @@ enum CMD_L {
 
 #pragma pack(pop)
 
+
+uint8_t get_byte_checksum(void *data, size_t data_length);
+int packetCheck(void *packetPtr, size_t packetLen);
+
 size_t teoLNullHeaderSize();
 
 size_t teoLNullPacketCreate(void *buffer, size_t buffer_length, uint8_t command,

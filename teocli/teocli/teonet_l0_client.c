@@ -22,15 +22,38 @@
  * @return Byte checksum of the input buffer
  */
 uint8_t get_byte_checksum(void *data, size_t data_length) {
-  int i;
-  uint8_t *ch, checksum = 0;
+  int i; uint8_t *ch, checksum = 0;
   for (i = 0; i < (int)data_length; i++) {
-
     ch = (uint8_t *)((char *)data + i);
     checksum += *ch;
   }
-
   return checksum;
+}
+
+/**
+ * Check packet
+ *
+ * @param data packetPtr to data buffer
+ * @param packetLen Length of the data buffer to calculate checksum
+ *
+ * Check packet length and checksum
+ * @return 0 - valid packet;
+ */
+int packetCheck(void *packetPtr, size_t packetLen) {
+	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
+	size_t header_length = teoLNullHeaderSize();
+	if(packetLen <= header_length) {
+    return -2; // Packet less than header (it may be first or next part of splitted packet)
+  }
+	uint8_t header_checksum = get_byte_checksum(packet, sizeof(teoLNullCPacket) - sizeof(packet->header_checksum));
+	if(packet->header_checksum != header_checksum) {
+    return -3; // Wrong header checksum (it may be next part of splitted packet)
+  }
+	if(packetLen != header_length + packet->peer_name_length + packet->data_length) {
+    return -1; // Wrong packet size (or first part of splitted packet)
+  }
+	uint8_t checksum = get_byte_checksum(packet->peer_name, packet->peer_name_length + packet->data_length);
+  return (packet->checksum != checksum); // 1 - wrong packet checksum
 }
 
 /**

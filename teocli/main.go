@@ -53,12 +53,12 @@ func main() {
 		// Reader (read data and display it)
 		for {
 			packet, _ := teo.Read()
-			if len(packet) == 0 {
-				fmt.Println("disconnected...")
-				break
-			}
+			// if len(packet) == 0 {
+			// 	fmt.Println("disconnected...")
+			// 	break
+			// }
 			fmt.Println("got packet", len(packet), packet)
-			if packet[0] == 66 {
+			if packet != nil && packet[0] == 66 {
 				if t, err := teo.ProccessEchoAnswer(packet); err != nil {
 					fmt.Println("trip time error:", err)
 				} else {
