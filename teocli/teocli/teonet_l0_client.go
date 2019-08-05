@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/kirill-scherba/net-example-go/udp/trudp"
+	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
 // TeoLNull connection data

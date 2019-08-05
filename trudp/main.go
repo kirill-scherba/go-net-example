@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kirill-scherba/net-example-go/udp/trudp"
+	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
 func main() {
