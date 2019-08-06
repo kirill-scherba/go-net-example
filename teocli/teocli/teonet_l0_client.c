@@ -49,7 +49,7 @@ int packetCheck(void *packetPtr, size_t packetLen) {
 	if(packet->header_checksum != header_checksum) {
     return -3; // Wrong header checksum (it may be next part of splitted packet)
   }
-	if(packetLen != header_length + packet->peer_name_length + packet->data_length) {
+	if(packetLen < header_length + packet->peer_name_length + packet->data_length) {
     return -1; // Wrong packet size (or first part of splitted packet)
   }
 	uint8_t checksum = get_byte_checksum(packet->peer_name, packet->peer_name_length + packet->data_length);

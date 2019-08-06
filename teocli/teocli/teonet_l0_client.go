@@ -114,7 +114,7 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 
 	// Check packet length and checksums and parse return value (0, 1, -1, -2, -3)
 	retval = int(C.packetCheck(unsafe.Pointer(&packet[0]), C.size_t(len(packet))))
-	fmt.Println("packetCheck:", retval, "buffer len:", len(teocli.readBuffer))
+	//fmt.Println("C.packetCheck(before):", retval, "buffer len:", len(teocli.readBuffer))
 	switch {
 
 	// valid packet
@@ -134,14 +134,23 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 		teocli.readBuffer = append(teocli.readBuffer, packet...)
 		bufPtr := unsafe.Pointer(&teocli.readBuffer[0])
 		retval = int(C.packetCheck(bufPtr, C.size_t(len(teocli.readBuffer))))
-		if retval == 0 {
+		//fmt.Println("C.packetCheck(after):", retval, "buffer len:", len(teocli.readBuffer))
+		switch retval {
+		// valid packet received
+		case 0:
 			packetLength := C.packetGetLength(bufPtr)
 			retpacket = append([]byte(nil), teocli.readBuffer[:packetLength]...)
 			teocli.readBuffer = teocli.readBuffer[packetLength:]
-		} else {
+		// invalid packet received
+		case 1, -3:
+			teocli.readBuffer = teocli.readBuffer[0:0]
+			retval = 1
+		// next part of packet received
+		default:
 			retval = -1
 		}
 	}
+	//fmt.Println("packetCheck(end):", retval, "buffer len:", len(teocli.readBuffer))
 	return
 }
 
@@ -179,7 +188,7 @@ func (teocli *TeoLNull) sendEchoAnswer(packet []byte) (length int, err error) {
 
 // Connect connect to L0 server
 func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
-	teo = &TeoLNull{tcp: tcp}
+	teo = &TeoLNull{tcp: tcp, readBuffer: make([]byte, 0)}
 	if tcp {
 		err = errors.New("the teocli.Connect for TCP is not implemented yet")
 	} else {
@@ -276,7 +285,7 @@ type Packet struct {
 	teocli *TeoLNull
 }
 
-// packetNew Creates new packet for packet slice
+// packetNew Creates new packet from packet slice
 func (teocli *TeoLNull) packetNew(packet []byte) *Packet {
 	return &Packet{packet: packet, teocli: teocli}
 }
@@ -302,6 +311,6 @@ func (pac *Packet) Data() []byte {
 }
 
 // TripTime return triptime for echo answer packet
-func (pac *Packet) TripTime() (t int64, err error) {
+func (pac *Packet) TripTime() (int64, error) {
 	return pac.teocli.proccessEchoAnswer(pac.packet)
 }

@@ -11,7 +11,7 @@ var cmd uint8 = 129
 var peer = "ps-server"
 var msg = "Hello Teonet!"
 var data = []byte(msg)
-var teocli *TeoLNull
+var teocli *TeoLNull = &TeoLNull{readBuffer: make([]byte, 0)}
 
 func TestPacketCreate(t *testing.T) {
 
@@ -75,6 +75,102 @@ func TestPacketSend(t *testing.T) {
 		_, err := teocli.SendEcho(peer, msg)
 		if err != nil {
 			t.Errorf("can't send echo packet, error: %s", err)
+		}
+	})
+}
+
+func sliceCompare(pac []byte, packet []byte) bool {
+	if pac == nil && packet == nil {
+		return true
+	}
+	if !(pac != nil && packet != nil && len(pac) == len(packet)) {
+		return false
+	}
+	for i := range pac {
+		if pac[i] != packet[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestPacketCheck(t *testing.T) {
+
+	// check single valid packet
+	t.Run("validPacket", func(t *testing.T) {
+		if packet, _ := teocli.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+			pac, status := teocli.packetCheck(packet)
+			if status != 0 {
+				t.Errorf("return wrong status %d for valid packet", status)
+			}
+			if !sliceCompare(pac, packet) {
+				t.Errorf("return wrong packet")
+			}
+		}
+	})
+
+	// check and combine two splitted valid packets
+	t.Run("splittedValidPacket", func(t *testing.T) {
+		if packet, _ := teocli.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+			packet1 := packet[:20]
+			pac, status := teocli.packetCheck(packet1)
+			if status != -1 {
+				t.Errorf("return wrong status %d for valid packet", status)
+			}
+			if !sliceCompare(pac, nil) {
+				t.Errorf("return wrong packet")
+			}
+			packet2 := packet[20:]
+			pac, status = teocli.packetCheck(packet2)
+			if status != 0 {
+				t.Errorf("return wrong status %d for valid packet", status)
+			}
+			if !sliceCompare(pac, packet) {
+				t.Errorf("return wrong packet")
+			}
+		}
+	})
+
+	// check and combine two splitted invalid packets
+	t.Run("splittedInvalidPacket", func(t *testing.T) {
+		if packet, _ := teocli.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+			packet1 := packet[:20]
+			pac, status := teocli.packetCheck(packet1)
+			if status != -1 {
+				t.Errorf("return wrong status %d for valid packet", status)
+			}
+			if !sliceCompare(pac, nil) {
+				t.Errorf("return wrong packet")
+			}
+
+			packet2 := packet[10:]
+			pac, status = teocli.packetCheck(packet2)
+			if status != 1 {
+				t.Errorf("return wrong status %d for invalid packet", status)
+			}
+			if sliceCompare(pac, packet) {
+				t.Errorf("return valid packet")
+			}
+		}
+	})
+
+	// check and combine splitted 8 invalid packets with length = 1
+	t.Run("splittedInvalidPacketSmallFirst", func(t *testing.T) {
+		if packet, _ := teocli.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+			packet1 := []byte("z")
+			waitStatus := -1
+			for i := 0; i < 9; i++ {
+				pac, status := teocli.packetCheck(packet1)
+				if i == 8 {
+					waitStatus = 1
+				}
+				if status != waitStatus {
+					t.Errorf("return wrong status %d for valid packet", status)
+				}
+				if !sliceCompare(pac, nil) {
+					t.Errorf("return wrong packet")
+				}
+			}
 		}
 	})
 }
