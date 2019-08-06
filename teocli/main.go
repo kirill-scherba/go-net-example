@@ -78,7 +78,7 @@ func main() {
 				}
 			// Peers answer
 			case 73:
-				ln := strings.Repeat("-", 53)
+				ln := strings.Repeat("-", 59)
 				fmt.Println("PeerAnswer received\n"+ln, "\n"+packet.Peers()+ln)
 			}
 		}

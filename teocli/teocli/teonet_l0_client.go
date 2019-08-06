@@ -118,10 +118,10 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 	switch {
 
 	// valid packet
-	case retval == 0:
-		if len(teocli.readBuffer) > 0 {
-			teocli.readBuffer = teocli.readBuffer[:0]
-		}
+	case retval == 0 && len(teocli.readBuffer) == 0:
+		//if len(teocli.readBuffer) > 0 {
+		teocli.readBuffer = teocli.readBuffer[:0]
+		//}
 		retpacket = packet
 
 	// First part of splitted packet
@@ -130,7 +130,7 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 		retval = -1
 
 	// next part of splitted packet
-	case (retval == -3 || retval == -2 || retval == -1) && len(teocli.readBuffer) > 0:
+	case /*(retval == -3 || retval == -2 || retval == -1 || retval == 0) &&*/ len(teocli.readBuffer) > 0:
 		teocli.readBuffer = append(teocli.readBuffer, packet...)
 		bufPtr := unsafe.Pointer(&teocli.readBuffer[0])
 		retval = int(C.packetCheck(bufPtr, C.size_t(len(teocli.readBuffer))))

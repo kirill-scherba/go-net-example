@@ -37,7 +37,8 @@ char *arp_data_print(ksnet_arp_data_ar *arp_data_ar) {
   if(len) {
     buf = malloc(len * 100);
     for(i = 0; i < (int)arp_data_ar->length; i++) {
-      ptr += sprintf(buf + ptr, "%-12s(%2d)   %-15s   %d %8.3f ms\n",
+      ptr += sprintf(buf + ptr, "%3d %-12s(%2d)   %-15s   %d %8.3f ms\n",
+          i,
           arp_data_ar->arp_data[i].name,
           arp_data_ar->arp_data[i].data.mode,
           arp_data_ar->arp_data[i].data.addr,
@@ -75,6 +76,7 @@ int packetCheck(void *packetPtr, size_t packetLen) {
     return -1; // Wrong packet size (or first part of splitted packet)
   }
 	uint8_t checksum = get_byte_checksum(packet->peer_name, packet->peer_name_length + packet->data_length);
+  //printf("checksum %d\n", checksum);
   return (packet->checksum != checksum); // 1 - wrong packet checksum
 }
 

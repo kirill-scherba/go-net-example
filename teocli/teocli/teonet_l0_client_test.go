@@ -112,7 +112,9 @@ func TestPacketCheck(t *testing.T) {
 	// check and combine two splitted valid packets
 	t.Run("splittedValidPacket", func(t *testing.T) {
 		if packet, _ := teocli.packetCreate(cmd, peer, []byte(msg)); packet != nil {
-			packet1 := packet[:20]
+
+			// Part 1
+			packet1 := packet[:10]
 			pac, status := teocli.packetCheck(packet1)
 			if status != -1 {
 				t.Errorf("return wrong status %d for valid packet", status)
@@ -120,8 +122,20 @@ func TestPacketCheck(t *testing.T) {
 			if !sliceCompare(pac, nil) {
 				t.Errorf("return wrong packet")
 			}
-			packet2 := packet[20:]
+
+			// Part 2
+			packet2 := packet[10:20]
 			pac, status = teocli.packetCheck(packet2)
+			if status != -1 {
+				t.Errorf("return wrong status %d for valid packet", status)
+			}
+			if !sliceCompare(pac, nil) {
+				t.Errorf("return wrong packet")
+			}
+
+			// Part 3
+			packet3 := packet[20:]
+			pac, status = teocli.packetCheck(packet3)
 			if status != 0 {
 				t.Errorf("return wrong status %d for valid packet", status)
 			}
@@ -154,7 +168,7 @@ func TestPacketCheck(t *testing.T) {
 		}
 	})
 
-	// check and combine splitted 8 invalid packets with length = 1
+	// check and combine splitted 9 invalid packets with length = 1
 	t.Run("splittedInvalidPacketSmallFirst", func(t *testing.T) {
 		if packet, _ := teocli.packetCreate(cmd, peer, []byte(msg)); packet != nil {
 			packet1 := []byte("z")
