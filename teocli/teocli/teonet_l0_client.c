@@ -30,6 +30,28 @@ uint8_t get_byte_checksum(void *data, size_t data_length) {
   return checksum;
 }
 
+char *arp_data_print(ksnet_arp_data_ar *arp_data_ar) {
+  int i;
+  char *buf;
+  size_t ptr = 0, len = arp_data_ar->length;
+  if(len) {
+    buf = malloc(len * 100);
+    for(i = 0; i < (int)arp_data_ar->length; i++) {
+      ptr += sprintf(buf + ptr, "%-12s(%2d)   %-15s   %d %8.3f ms\n",
+          arp_data_ar->arp_data[i].name,
+          arp_data_ar->arp_data[i].data.mode,
+          arp_data_ar->arp_data[i].data.addr,
+          arp_data_ar->arp_data[i].data.port,
+          arp_data_ar->arp_data[i].data.last_triptime);
+    }
+  } else {
+    buf = malloc(1);
+    buf[0] = 0;
+  }
+
+  return buf;
+}
+
 /**
  * Check packet
  *

@@ -12,9 +12,53 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+
+#define ARP_TABLE_IP_SIZE 48    // INET6_ADDRSTRLEN = 46
+
+/**
+ * KSNet ARP table data structure
+ */
+typedef struct ksnet_arp_data {
+
+    int16_t mode;                   ///< Peers mode: -1 - This host, -2 undefined host, 0 - peer , 1 - r-host, 2 - TCP Proxy peer
+    char addr[ARP_TABLE_IP_SIZE];   ///< Peer IP address
+// \todo test is it possible to change this structure for running peers
+//    char addr[48];      ///< Peer IP address
+    int16_t port;                   ///< Peer port
+
+    double last_activity;           ///< Last time received data from peer
+    double last_triptime_send;      ///< Last time when triptime request send
+    double last_triptime_got;       ///< Last time when triptime received
+
+    double last_triptime;           ///< Last triptime
+    double triptime;                ///< Middle triptime
+
+    double monitor_time;            ///< Monitor ping time
+
+    double connected_time;          ///< Time when peer was connected to this peer
+
+//    char *type;                     ///< Peer type
+
+} ksnet_arp_data;
 
 #pragma pack(push)
 #pragma pack(1)
+
+/**
+ * KSNet ARP table whole data array
+ */
+typedef struct ksnet_arp_data_ar {
+
+    uint32_t length;
+    struct _arp_data {
+
+        char name[ARP_TABLE_IP_SIZE];
+        ksnet_arp_data data;
+
+    } arp_data[];
+
+} ksnet_arp_data_ar;
 
 /**
  * L0 client packet data structure
@@ -61,6 +105,7 @@ enum CMD_L {
 
 
 uint8_t get_byte_checksum(void *data, size_t data_length);
+char *arp_data_print(ksnet_arp_data_ar *arp_data_ar);
 int packetCheck(void *packetPtr, size_t packetLen);
 
 size_t teoLNullHeaderSize();

@@ -314,3 +314,17 @@ func (pac *Packet) Data() []byte {
 func (pac *Packet) TripTime() (int64, error) {
 	return pac.teocli.proccessEchoAnswer(pac.packet)
 }
+
+func (pac *Packet) PeersLength() int {
+	dataPtr := unsafe.Pointer(&pac.Data()[0])
+	arp_data_ar := (*C.ksnet_arp_data_ar)(dataPtr)
+	return int(arp_data_ar.length)
+}
+
+func (pac *Packet) Peers() string {
+	dataPtr := unsafe.Pointer(&pac.Data()[0])
+	arp_data_ar := (*C.ksnet_arp_data_ar)(dataPtr)
+	buf := C.arp_data_print(arp_data_ar)
+	defer C.free(unsafe.Pointer(buf))
+	return C.GoString(buf)
+}

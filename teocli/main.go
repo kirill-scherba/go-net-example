@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kirill-scherba/net-example-go/teocli/teocli"
@@ -65,19 +66,24 @@ func main() {
 				fmt.Println(err)
 				break
 			}
-			fmt.Printf("got packet from %s, data len: %d, data: %v\n",
-				packet.From(), len(packet.Data()), packet.Data())
-			if packet.Command() == 66 {
+			fmt.Printf("got cmd %d from %s, data len: %d, data: %v\n",
+				packet.Command(), packet.From(), len(packet.Data()), packet.Data())
+			switch packet.Command() {
+			// Echo answer
+			case 66:
 				if t, err := packet.TripTime(); err != nil {
 					fmt.Println("trip time error:", err)
 				} else {
 					fmt.Println("trip time (ms):", t)
 				}
+			// Peers answer
+			case 73:
+				ln := strings.Repeat("-", 53)
+				fmt.Println("PeerAnswer received\n"+ln, "\n"+packet.Peers()+ln)
 			}
 		}
 		teo.Disconnect()
 		running = false
 		time.Sleep(5 * time.Second)
-		//break
 	}
 }
