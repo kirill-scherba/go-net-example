@@ -37,7 +37,21 @@ import (
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
-// TeoLNull connection data
+const (
+	// CmdLEcho Echo command
+	CmdLEcho = C.CMD_L_ECHO
+
+	// CmdLEchoAnswer Answer to Echo command
+	CmdLEchoAnswer = C.CMD_L_ECHO_ANSWER
+
+	// CmdLPeers Get peers command
+	CmdLPeers = C.CMD_L_PEERS
+
+	// CmdLPeersAnswer Answer to get peers command
+	CmdLPeersAnswer = C.CMD_L_PEERS_ANSWER
+)
+
+// TeoLNull teonet l0 client connection data
 type TeoLNull struct {
 	readBuffer []byte
 	tcp        bool
@@ -66,15 +80,6 @@ func (teocli *TeoLNull) packetCreate(command uint8, peer string, data []byte) (b
 			lengh, len(buffer))
 	}
 
-	// packetC := (*C.teoLNullCPacket)(unsafe.Pointer(&buffer[0]))
-	// fmt.Println("PacketCreate:",
-	// 	buffer, "\n",
-	// 	C.packetGetPeerNameLength(packetC),
-	// 	packetC.peer_name_length,
-	// 	packetC.header_checksum,
-	// 	C.GoString(C.packetGetPeerName(packetC)),
-	// 	C.GoString(C.packetGetData(packetC)),
-	// )
 	return
 }
 
@@ -168,7 +173,15 @@ func (teocli *TeoLNull) send(packet []byte) (length int, err error) {
 	if teocli.tcp {
 		err = errors.New("the teocli.send for TCP is not implemented yet")
 	} else {
-		teocli.tcd.WriteTo(packet)
+		for {
+			if len(packet) <= 512 {
+				teocli.tcd.WriteTo(packet)
+				break
+			} else {
+				teocli.tcd.WriteTo(packet[:512])
+				packet = packet[512:]
+			}
+		}
 	}
 	return
 }
@@ -199,7 +212,7 @@ func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
 	return
 }
 
-// Disconnect
+// Disconnect from L0 server
 func (teocli *TeoLNull) Disconnect() {
 	if !teocli.tcp {
 		teocli.td.ChanEventClosed()
@@ -315,16 +328,18 @@ func (pac *Packet) TripTime() (int64, error) {
 	return pac.teocli.proccessEchoAnswer(pac.packet)
 }
 
+// PeersLength return number of peers in peerAnswer packet
 func (pac *Packet) PeersLength() int {
 	dataPtr := unsafe.Pointer(&pac.Data()[0])
-	arp_data_ar := (*C.ksnet_arp_data_ar)(dataPtr)
-	return int(arp_data_ar.length)
+	arpDataAr := (*C.ksnet_arp_data_ar)(dataPtr)
+	return int(arpDataAr.length)
 }
 
+// Peers return string representation of peerAnswer packet
 func (pac *Packet) Peers() string {
 	dataPtr := unsafe.Pointer(&pac.Data()[0])
-	arp_data_ar := (*C.ksnet_arp_data_ar)(dataPtr)
-	buf := C.arp_data_print(arp_data_ar)
+	arpDataAr := (*C.ksnet_arp_data_ar)(dataPtr)
+	buf := C.arp_data_print(arpDataAr)
 	defer C.free(unsafe.Pointer(buf))
 	return C.GoString(buf)
 }

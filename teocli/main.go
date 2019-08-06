@@ -41,22 +41,32 @@ func main() {
 		if _, err := teo.SendLogin(name); err != nil {
 			panic(err)
 		}
-		// Send peers command (for this test)
+		// Send peers command
 		fmt.Printf("send peers request\n")
-		teo.Send(72, peer, nil)
+		teo.Send(teocli.CmdLPeers, peer, nil)
 		// Sender (send echo in loop)
 		go func() {
-			i := 0
-			for running {
-				fmt.Printf("send echo\n")
-				teo.SendEcho(peer, "Hello from go!")
-				time.Sleep(time.Duration(timeout) * time.Microsecond)
-				i++
-				if i%10 == 0 {
-					// Send peers command (for this test)
-					fmt.Printf("send peers request\n")
-					teo.Send(72, peer, nil)
+			for i := 0; running; i++ {
+				switch {
+
+				// Send peers command
+				case i%9 == 1:
+					fmt.Printf("send peers request (%d,%d)\n", i, i%9)
+					teo.Send(teocli.CmdLPeers, peer, nil)
+
+				// Send large data packet with cmd 129
+				case i%19 == 1:
+					fmt.Printf("send large data packet with cmd 129 (%d,%d)\n", i, i%19)
+					data := append([]byte(strings.Repeat("Q", 2000)), 0)
+					teo.Send(129, peer, data)
+
+				// Send echo
+				default:
+					fmt.Printf("send echo %d\n", i)
+					teo.SendEcho(peer, fmt.Sprintf("Hello from Go(No %d)!", i))
+
 				}
+				time.Sleep(time.Duration(timeout) * time.Microsecond)
 			}
 		}()
 		// Reader (read data and display it)
@@ -70,14 +80,14 @@ func main() {
 				packet.Command(), packet.From(), len(packet.Data()), packet.Data())
 			switch packet.Command() {
 			// Echo answer
-			case 66:
+			case teocli.CmdLEchoAnswer:
 				if t, err := packet.TripTime(); err != nil {
 					fmt.Println("trip time error:", err)
 				} else {
 					fmt.Println("trip time (ms):", t)
 				}
 			// Peers answer
-			case 73:
+			case teocli.CmdLPeersAnswer:
 				ln := strings.Repeat("-", 59)
 				fmt.Println("PeerAnswer received\n"+ln, "\n"+packet.Peers()+ln)
 			}
