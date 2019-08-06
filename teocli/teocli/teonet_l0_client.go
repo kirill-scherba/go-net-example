@@ -216,6 +216,7 @@ func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
 func (teocli *TeoLNull) Disconnect() {
 	if !teocli.tcp {
 		teocli.td.ChanEventClosed()
+		teocli.td.Close()
 	}
 }
 
