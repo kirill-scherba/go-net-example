@@ -32,6 +32,8 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strconv"
 	"unsafe"
 
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
@@ -56,8 +58,10 @@ type TeoLNull struct {
 	readBuffer []byte
 	tcp        bool
 
-	td  *trudp.TRUDP
-	tcd *trudp.ChannelData
+	conn net.Conn // TCP connection
+
+	td  *trudp.TRUDP       // TRUDP connection
+	tcd *trudp.ChannelData // TRUDP channel
 }
 
 // packetCreate create teonet l0 client packet
@@ -117,6 +121,11 @@ func (teocli *TeoLNull) packetCreateEcho(peer string, msg string) (buffer []byte
 // status  1 wrong packet received (drop it)
 func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int) {
 
+	// Skip empty packet
+	if packet == nil || len(packet) == 0 {
+		return
+	}
+
 	// Check packet length and checksums and parse return value (0, 1, -1, -2, -3)
 	retval = int(C.packetCheck(unsafe.Pointer(&packet[0]), C.size_t(len(packet))))
 	//fmt.Println("C.packetCheck(before):", retval, "buffer len:", len(teocli.readBuffer))
@@ -171,14 +180,15 @@ func (teocli *TeoLNull) packetGetData(packet []byte) (data []byte) {
 // send send packet to L0 server
 func (teocli *TeoLNull) send(packet []byte) (length int, err error) {
 	if teocli.tcp {
-		err = errors.New("the teocli.send for TCP is not implemented yet")
+		length, err = teocli.conn.Write(packet)
 	} else {
+		length = len(packet)
 		for {
 			if len(packet) <= 512 {
-				teocli.tcd.WriteTo(packet)
+				err = teocli.tcd.WriteTo(packet)
 				break
 			} else {
-				teocli.tcd.WriteTo(packet[:512])
+				err = teocli.tcd.WriteTo(packet[:512])
 				packet = packet[512:]
 			}
 		}
@@ -203,7 +213,10 @@ func (teocli *TeoLNull) sendEchoAnswer(packet []byte) (length int, err error) {
 func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
 	teo = &TeoLNull{tcp: tcp, readBuffer: make([]byte, 0)}
 	if tcp {
-		err = errors.New("the teocli.Connect for TCP is not implemented yet")
+		teo.conn, err = net.Dial("tcp", addr+":"+strconv.Itoa(port))
+		if err != nil {
+			return
+		}
 	} else {
 		teo.td = trudp.Init(0)
 		teo.tcd = teo.td.ConnectChannel(addr, port, 0)
@@ -214,7 +227,9 @@ func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
 
 // Disconnect from L0 server
 func (teocli *TeoLNull) Disconnect() {
-	if !teocli.tcp {
+	if teocli.tcp {
+		teocli.conn.Close()
+	} else {
 		teocli.td.ChanEventClosed()
 		teocli.td.Close()
 	}
@@ -249,11 +264,28 @@ func (teocli *TeoLNull) SendLogin(name string) (int, error) {
 
 // Read wait for receiving data from trudp and return teocli packet
 func (teocli *TeoLNull) Read() (pac *Packet, err error) {
+	packetCheck := func(packet []byte) (pac *Packet) {
+		packet, _ = teocli.packetCheck(packet)
+		if packet != nil {
+			teocli.sendEchoAnswer(packet)
+			pac = teocli.packetNew(packet)
+		}
+		return
+	}
 FOR:
 	for {
 		if teocli.tcp {
-			err = errors.New("the teocli.Read for TCP is not implemented yet")
-			break
+			packet := make([]byte, 2048)
+			length, _ := teocli.conn.Read(packet)
+			if length == 0 {
+				err = errors.New("server disconnected...")
+				break FOR
+			}
+			packet = packet[:length]
+			fmt.Printf("got %d bytes packet\n", len(packet))
+			if pac = packetCheck(packet); pac != nil {
+				break FOR
+			}
 		} else {
 			ev := <-teocli.td.ChanEvent()
 			packet := ev.Data
@@ -266,10 +298,7 @@ FOR:
 				break FOR
 			case trudp.GOT_DATA:
 				fmt.Printf("got %d bytes packet\n", len(packet))
-				packet, _ = teocli.packetCheck(packet)
-				if packet != nil {
-					teocli.sendEchoAnswer(packet)
-					pac = teocli.packetNew(packet)
+				if pac = packetCheck(packet); pac != nil {
 					break FOR
 				}
 			default:

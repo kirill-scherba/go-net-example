@@ -18,23 +18,33 @@ func main() {
 	var raddr string     // remote host address
 	var rport, rchan int // remote host port and channel (for TRUDP)
 	var timeout int      // send echo timeout (in microsecond)
+	var tcp bool         // connect by TCP flag
 
 	// Flags
-	flag.StringVar(&name, "n", "teocli-main-test-01", "this application name")
+	flag.StringVar(&name, "n", "teocli-go-main-test-01", "this application name")
 	flag.StringVar(&peer, "peer", "ps-server", "remote server name (to send commands to)")
 	flag.StringVar(&raddr, "a", "localhost", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
 	flag.IntVar(&rport, "r", 9010, "remote host port (to connect to remote host)")
 	flag.IntVar(&timeout, "t", 1000000, "send echo timeout (in microsecond)")
+	flag.BoolVar(&tcp, "tcp", false, "connect by TCP")
 	flag.Parse()
 
 	for {
+		var network string
 		running := true
 		// Connect to L0 server
-		fmt.Printf("try connecting to %s:%d ...\n", raddr, rport)
-		teo, err := teocli.Connect(raddr, rport, false)
+		if tcp {
+			network = "TCP"
+		} else {
+			network = "TRUDP"
+		}
+		fmt.Printf("try %s connecting to %s:%d ...\n", network, raddr, rport)
+		teo, err := teocli.Connect(raddr, rport, tcp)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			time.Sleep(5 * time.Second)
+			continue
 		}
 		// Send L0 login (requered after connect)
 		fmt.Printf("send login\n")
