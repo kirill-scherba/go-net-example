@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Teocli test application ver 1.0.0")
+	fmt.Println("Teocli test application ver " + teocli.Version)
 
 	// Flags variables
 	var name string      // this client name

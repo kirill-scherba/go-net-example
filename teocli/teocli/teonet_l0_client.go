@@ -39,6 +39,8 @@ import (
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
+const Version = "3.0.0"
+
 const (
 	// CmdLEcho Echo command
 	CmdLEcho = C.CMD_L_ECHO

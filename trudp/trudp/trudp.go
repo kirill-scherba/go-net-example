@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const Version = "3.0.0"
+
 const (
 	maxResendAttempt = 50   // (number) max number of resend packet from sendQueue
 	maxBufferSize    = 2048 // (bytes) send buffer size in bytes
