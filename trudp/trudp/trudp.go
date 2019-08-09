@@ -166,6 +166,7 @@ const (
 	 * @param user_data NULL
 	 */
 	GOT_DATA
+	GOT_DATA_NOTRUDP
 
 	/**
 	 * Process received data
@@ -294,9 +295,12 @@ func (trudp *TRUDP) Run() {
 			ts.UnmarshalBinary(buffer[len(echoAnswerMsg):nRead])
 			trudp.Log(DEBUG, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
 
-		// Process other messages
+		// Not trudp packet received
 		default:
-			trudp.Log(DEBUG, "got", nRead, "bytes from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+			trudp.Log(DEBUG, "got (---==Not TRUDP==---)", nRead, "bytes from:", addr, "data: ", buffer[:nRead]) //, string(buffer[:nRead]))
+			// Send received packet data to user level
+			tcd, _ := trudp.newChannelData(addr, 0)
+			tcd.trudp.sendEvent(tcd, GOT_DATA_NOTRUDP, buffer[:nRead])
 		}
 	}
 }

@@ -192,7 +192,7 @@ FOR:
 		case trudp.RESET_LOCAL:
 			err = errors.New("need to reconnect")
 			break FOR
-		case trudp.GOT_DATA:
+		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
 			fmt.Printf("got %d bytes packet %v\n", len(packet), packet)
 			var decryptLen C.size_t
 			C.ksnDecryptPackage(teo.kcr, unsafe.Pointer(&packet[0]), C.size_t(len(packet)),
@@ -204,6 +204,7 @@ FOR:
 			pac := &Packet{packet: packet}
 			fmt.Printf("(before parse) cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
 			if rd, err = pac.Parse(); rd != nil {
+				// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
 				break FOR
 			}
 		default:
