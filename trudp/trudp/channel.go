@@ -171,7 +171,9 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 
 // CloseChannel close trudp channel
 func (tcd *ChannelData) CloseChannel() {
-	tcd.destroy(DEBUGv, "destroy this channel: closed by user")
+	tcd.destroy(DEBUGv,
+		fmt.Sprint("destroy channel ", tcd.MakeKey(), ": closed by user"),
+	)
 }
 
 // MakeKey return trudp channel key
@@ -184,17 +186,24 @@ func (tcd *ChannelData) canWrite() bool {
 	return tcd.sendQueue.Len() < tcd.maxQueueSize /*&& tcd.receiveQueue.Len() < tcd.maxQueueSize*/
 }
 
-// keepAlive Send ping if time since tcd.lastTripTimeReceived >= pingInterval
+// keepAlive Send ping if time since tcd.lastTripTimeReceived >= sleepTime
 func (tcd *ChannelData) keepAlive() {
-	switch {
-	case time.Since(tcd.stat.lastTimeReceived) >= disconnectTime:
-		tcd.destroy(DEBUGv,
-			fmt.Sprint("destroy this channel: does not answer long time: ",
-				time.Since(tcd.stat.lastTimeReceived)))
-	case time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime:
+
+	// Send ping after sleep time
+	if time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime {
 		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 		tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
 	}
+
+	// Destroy channel after disconnect time
+	if time.Since(tcd.stat.lastTimeReceived) >= disconnectTime {
+		tcd.destroy(DEBUGv,
+			fmt.Sprint("destroy channel ", tcd.MakeKey(),
+				": does not answer long time: ", time.Since(tcd.stat.lastTimeReceived),
+			),
+		)
+	}
+
 	// \TODO send test data - remove it
 	if tcd.sendTestMsgF {
 		data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))

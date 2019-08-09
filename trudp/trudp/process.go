@@ -47,7 +47,7 @@ type writerType struct {
 }
 
 const disconnectTime = disconnectAfter * time.Millisecond
-const sleepTime = pingInterval * time.Millisecond
+const sleepTime = pingAfter * time.Millisecond
 
 // init
 func (proc *process) init(trudp *TRUDP) *process {
@@ -84,8 +84,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 		}()
 
 		chanWriteClosedF := false
-		i := 0
-		for {
+
+		for i := 0; ; {
 			select {
 
 			// Process read packet (received from udp)
@@ -113,16 +113,16 @@ func (proc *process) init(trudp *TRUDP) *process {
 				for _, tcd := range proc.trudp.tcdmap {
 					// Resend
 					tcd.sendQueueResendProcess()
-					// Keep alive (every 100*30ms)
-					if i%100 == 0 {
+					// Keep alive (every 33*30ms = 990ms)
+					if i%33 == 0 {
 						tcd.keepAlive()
 					}
-					// Correct sendQueue size (every 3*30ms)
+					// Calculate sendQueue size (every 3*30ms = 90ms)
 					if i%3 == 0 {
 						tcd.sendQueueCalculateLength()
 					}
 				}
-				// Show statistic window (every 3*30ms)
+				// Show statistic window (every 3*30ms = 90ms)
 				if i%3 == 0 {
 					proc.showStatistic()
 				}

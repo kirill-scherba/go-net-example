@@ -153,7 +153,8 @@ func Connect(name string, port int, raddr string, rport int) (teo *Teonet) {
 	teo = &Teonet{name: name, raddr: raddr, rport: rport, network: C.CString("local")}
 	teo.kcr = C.ksnCryptInit(nil)
 	teo.td = trudp.Init(port)
-	teo.td.LogLevel(10, false, log.LstdFlags|log.Lmicroseconds)
+	teo.td.ShowStatistic(true)
+	teo.td.LogLevel(trudp.DEBUGvv, true, log.LstdFlags|log.Lmicroseconds)
 	if rport > 0 {
 		tcd = teo.td.ConnectChannel(raddr, rport, 0)
 		teo.SendTo(name, 0, []byte{0}) //[]byte(name))

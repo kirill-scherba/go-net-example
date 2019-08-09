@@ -11,7 +11,7 @@ const Version = "3.0.0"
 const (
 	maxResendAttempt = 50   // (number) max number of resend packet from sendQueue
 	maxBufferSize    = 2048 // (bytes) send buffer size in bytes
-	pingInterval     = 1000 // (ms) send ping afret in ms
+	pingAfter        = 1000 // (ms) send ping afret in ms
 	disconnectAfter  = 3000 // (ms) disconnect afret in ms
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	maxRTT           = 500  // (ms) default maximum time in ms
@@ -240,7 +240,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 	// Keep alive: send Ping
 	go func() {
 		for {
-			time.Sleep(pingInterval * time.Millisecond)
+			time.Sleep(pingAfter * time.Millisecond)
 			dt, _ := time.Now().MarshalBinary()
 			trudp.udp.writeTo(append([]byte(echoMsg), dt...), rUDPAddr)
 		}
