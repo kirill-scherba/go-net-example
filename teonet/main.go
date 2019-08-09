@@ -8,7 +8,19 @@ import (
 )
 
 func main() {
-	fmt.Println("Teonet test application ver " + teonet.Version)
+
+	// Teonet logo
+	fmt.Println("" +
+		" _____                     _   \n" +
+		"|_   _|__  ___  _ __   ___| |_ \n" +
+		"  | |/ _ \\/ _ \\| '_ \\ / _ \\ __|\n" +
+		"  | |  __/ (_) | | | |  __/ |_ \n" +
+		"  |_|\\___|\\___/|_| |_|\\___|\\__|\n" +
+		"\n" +
+		"Teonet test application ver " +
+		teonet.Version +
+		"\n",
+	)
 
 	// Parameters variables
 	var name string      // this client name
@@ -24,6 +36,7 @@ func main() {
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.Parse()
 
+	// Teonet connect and run
 	teo := teonet.Connect(name, port, raddr, rport)
 	teo.Run()
 }
