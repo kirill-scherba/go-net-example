@@ -1,10 +1,10 @@
 package teonet
 
+import "github.com/kirill-scherba/net-example-go/trudp/trudp"
+
 type arpData struct {
 	peer string
-	addr string
-	port int
-	ch   int
+	tcd  *trudp.ChannelData
 }
 
 type arp struct {
@@ -13,15 +13,16 @@ type arp struct {
 }
 
 // newPeer create new peer in art table map or select existing
-func (arp *arp) peerNew(addr string, port int, rec *receiveData) (peerArp *arpData) {
-	rd := rec.rd
-	peer := rd.From()
+func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
+	peer := rec.rd.From()
 	peerArp, ok := arp.m[peer]
 	if ok {
 		//trudp.Log(DEBUGvv, "the ChannelData with key", key, "selected")
 		return
 	}
-	peerArp = &arpData{peer: peer, addr: addr, port: port, ch: 0}
+	peerArp = &arpData{peer: peer, tcd: rec.tcd}
+	// arp.teo.sendToTcd(rec.tcd, 0, []byte{0})
+	// arp.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
 	arp.m[peer] = peerArp
 	return
 }

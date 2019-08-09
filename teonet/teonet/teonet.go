@@ -82,8 +82,8 @@ func (pac *Packet) DataLen() int {
 }
 
 type receiveData struct {
-	rd *C.ksnCorePacketData
-	a  *arpData
+	rd  *C.ksnCorePacketData
+	tcd *trudp.ChannelData
 }
 
 // Parse parse teonet packet to 'rd' structure and return it
@@ -152,7 +152,7 @@ type Teonet struct {
 	arp   *arp             // peers arp table
 }
 
-var tcd *trudp.ChannelData
+//var tcd *trudp.ChannelData
 
 // Connect initialize Teonet
 func Connect(name string, port int, raddr string, rport int) (teo *Teonet) {
@@ -163,8 +163,8 @@ func Connect(name string, port int, raddr string, rport int) (teo *Teonet) {
 	teo.td.ShowStatistic(true)
 	teo.td.LogLevel(trudp.DEBUGvv, true, log.LstdFlags|log.Lmicroseconds)
 	if rport > 0 {
-		tcd = teo.td.ConnectChannel(raddr, rport, 0)
-		teo.SendTo(name, 0, []byte{0}) //[]byte(name))
+		tcd := teo.td.ConnectChannel(raddr, rport, 0)
+		teo.sendToTcd(tcd, 0, []byte{0})
 	}
 	return
 }
@@ -192,13 +192,22 @@ FOR:
 	for {
 		ev := <-teo.td.ChanEvent()
 		packet := ev.Data
+
+		// Process trudp events
 		switch ev.Event {
+
+		case trudp.CONNECTED:
+			fmt.Println("got event: channel with key " + string(packet) + " connected")
+			//break FOR
+
 		case trudp.DISCONNECTED:
-			err = errors.New("channel with key " + string(packet) + " disconnected")
-			break FOR
+			fmt.Println("got event: channel with key " + string(packet) + " disconnected")
+			// \TODO: remove peer from arp map connected to this channel
+
 		case trudp.RESET_LOCAL:
 			err = errors.New("need to reconnect")
 			break FOR
+
 		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
 			fmt.Printf("got %d bytes packet %v\n", len(packet), packet)
 			var decryptLen C.size_t
@@ -212,10 +221,11 @@ FOR:
 			fmt.Printf("(before parse) cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
 			if rd, err = pac.Parse(); rd != nil {
 				// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
-				if !teo.com.process(&receiveData{rd, nil}) {
+				if !teo.com.process(&receiveData{rd, ev.Tcd}) {
 					break FOR
 				}
 			}
+
 		default:
 			fmt.Println("got event:", ev.Event)
 		}
@@ -223,8 +233,24 @@ FOR:
 	return
 }
 
-// SendTo send command to Teonet
+// SendTo send command to Teonet peer
 func (teo *Teonet) SendTo(to string, cmd int, data []byte) (err error) {
+	arp, ok := teo.arp.m[to]
+	if !ok {
+		err = errors.New("peer " + to + " not connected to this host")
+		return
+	}
+	return teo.sendToTcd(arp.tcd, cmd, data)
+}
+
+// SendAnswer send command to Teonet peer by receiveData
+func (teo *Teonet) SendAnswer(rec *receiveData, cmd int, data []byte) (err error) {
+	return teo.sendToTcd(rec.tcd, cmd, data)
+}
+
+// sendToTcd send command to Teonet peer by known trudp channel
+func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err error) {
 	pac := packetCreateNew(cmd, teo.name, data)
+	// \TODO: encrypt data
 	return tcd.WriteTo(pac.packet)
 }

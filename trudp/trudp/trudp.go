@@ -24,8 +24,8 @@ const (
 	DefaultQueueSize = 96
 
 	helloMsg      = "hello"
-	echoMsg       = "ping"
-	echoAnswerMsg = "pong"
+	echoMsg       = "ping\x00"
+	echoAnswerMsg = "pong\x00"
 
 	// Network time & local host name
 	network  = "udp"
