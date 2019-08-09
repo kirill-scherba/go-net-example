@@ -1,7 +1,9 @@
 package teonet
 
 //// CGO definition (don't delay or edit it):
+//#cgo LDFLAGS: -lcrypto
 //#include <stdlib.h>
+//#include "crypt.h"
 //#include "net_core.h"
 /*
  */
@@ -9,14 +11,16 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"log"
 	"unsafe"
 
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
+// Version Teonet version
 const Version = "3.0.0"
 
-// Teonet packet container
+// Packet is Teonet packet container
 type Packet struct {
 	packet []byte
 }
@@ -78,10 +82,12 @@ func (pac *Packet) DataLen() int {
 }
 
 // Parse parse teonet packet to 'rd' structure and return it
-func (pac *Packet) Parse() (rd *C.ksnCorePacketData) {
+func (pac *Packet) Parse() (rd *C.ksnCorePacketData, err error) {
 	rd = &C.ksnCorePacketData{}
 	packetC := unsafe.Pointer(&pac.packet[0])
-	C.parsePacket(packetC, C.size_t(pac.Len()), rd)
+	if C.parsePacket(packetC, C.size_t(pac.Len()), rd) == 0 {
+		err = errors.New("not valid packet")
+	}
 	return
 }
 
@@ -130,19 +136,24 @@ func (rd *C.ksnCorePacketData) DataLen() int {
 	return int(rd.data_len)
 }
 
+// Teonet teonet connection data structure
 type Teonet struct {
-	td    *trudp.TRUDP
-	name  string // this host name
-	raddr string // r-host address
-	rport int    // r-host port
+	td      *trudp.TRUDP     // TRUdp connection
+	name    string           // this host name
+	raddr   string           // r-host address
+	rport   int              // r-host port
+	kcr     *C.ksnCryptClass // crypto module
+	network *C.char          // "local"
 }
 
 var tcd *trudp.ChannelData
 
 // Connect initialize Teonet
 func Connect(name string, port int, raddr string, rport int) (teo *Teonet) {
-	teo = &Teonet{name: name, raddr: raddr, rport: rport}
+	teo = &Teonet{name: name, raddr: raddr, rport: rport, network: C.CString("local")}
+	teo.kcr = C.ksnCryptInit(nil)
 	teo.td = trudp.Init(port)
+	teo.td.LogLevel(10, false, log.LstdFlags|log.Lmicroseconds)
 	if rport > 0 {
 		tcd = teo.td.ConnectChannel(raddr, rport, 0)
 		teo.SendTo(name, 0, []byte{0}) //[]byte(name))
@@ -157,9 +168,10 @@ func (teo *Teonet) Run() {
 			rd, err := teo.read()
 			if err != nil {
 				fmt.Println(err)
-				break
+				//break
+				continue
 			}
-			fmt.Printf("got cmd %d from %s, data len: %d, data: %v\n",
+			fmt.Printf("got packet: cmd %d from %s, data len: %d, data: %v\n",
 				rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
 		}
 	}()
@@ -181,9 +193,16 @@ FOR:
 			break FOR
 		case trudp.GOT_DATA:
 			fmt.Printf("got %d bytes packet %v\n", len(packet), packet)
+			var decryptLen C.size_t
+			C.ksnDecryptPackage(teo.kcr, unsafe.Pointer(&packet[0]), C.size_t(len(packet)),
+				&decryptLen)
+			if decryptLen > 0 {
+				packet = packet[2 : decryptLen+2]
+			}
+			fmt.Printf("got(decripted) %d bytes packet %v\n", decryptLen, packet)
 			pac := &Packet{packet: packet}
-			fmt.Printf("cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
-			if rd = pac.Parse(); rd != nil {
+			fmt.Printf("(before parse) cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
+			if rd, err = pac.Parse(); rd != nil {
 				break FOR
 			}
 		default:
@@ -193,7 +212,7 @@ FOR:
 	return
 }
 
-// SendTo
+// SendTo send command to Teonet
 func (teo *Teonet) SendTo(to string, cmd int, data []byte) (err error) {
 	pac := packetCreateNew(cmd, teo.name, data)
 	return tcd.WriteTo(pac.packet)

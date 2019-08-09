@@ -38,7 +38,10 @@ func TestPacket(t *testing.T) {
 				t.Errorf("wrong Data length in created packet: %d", pac.DataLen())
 			}
 			// Check Parse
-			rd := pac.Parse()
+			rd, err := pac.Parse()
+			if err != nil {
+				t.Error(err)
+			}
 			if int(rd.raw_data_len) != pac.Len() {
 				t.Errorf("wrong Packet length in rd: %d", rd.raw_data_len)
 			}

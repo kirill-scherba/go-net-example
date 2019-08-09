@@ -18,7 +18,7 @@ func main() {
 
 	// Parameters
 	flag.IntVar(&port, "p", 0, "local host port")
-	flag.StringVar(&name, "n", "tenet-go-01", "local host teonet name")
+	flag.StringVar(&name, "n", "teonet-go-01", "local host teonet name")
 	flag.StringVar(&raddr, "a", "localhost", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
