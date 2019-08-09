@@ -81,6 +81,11 @@ func (pac *Packet) DataLen() int {
 	return len(pac.packet) - pac.FromLen() - C.PACKET_HEADER_ADD_SIZE
 }
 
+type receiveData struct {
+	rd *C.ksnCorePacketData
+	a  *arpData
+}
+
 // Parse parse teonet packet to 'rd' structure and return it
 func (pac *Packet) Parse() (rd *C.ksnCorePacketData, err error) {
 	rd = &C.ksnCorePacketData{}
@@ -138,19 +143,21 @@ func (rd *C.ksnCorePacketData) DataLen() int {
 
 // Teonet teonet connection data structure
 type Teonet struct {
-	td      *trudp.TRUDP     // TRUdp connection
-	name    string           // this host name
-	raddr   string           // r-host address
-	rport   int              // r-host port
-	kcr     *C.ksnCryptClass // crypto module
-	network *C.char          // "local"
+	td    *trudp.TRUDP     // TRUdp connection
+	name  string           // this host name
+	raddr string           // r-host address
+	rport int              // r-host port
+	kcr   *C.ksnCryptClass // crypto module
+	com   *command         // command module
+	arp   *arp             // peers arp table
 }
 
 var tcd *trudp.ChannelData
 
 // Connect initialize Teonet
 func Connect(name string, port int, raddr string, rport int) (teo *Teonet) {
-	teo = &Teonet{name: name, raddr: raddr, rport: rport, network: C.CString("local")}
+	teo = &Teonet{name: name, raddr: raddr, rport: rport, arp: &arp{m: make(map[string]*arpData)} /*, network: C.CString("local")*/}
+	teo.com = &command{teo}
 	teo.kcr = C.ksnCryptInit(nil)
 	teo.td = trudp.Init(port)
 	teo.td.ShowStatistic(true)
@@ -205,7 +212,9 @@ FOR:
 			fmt.Printf("(before parse) cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
 			if rd, err = pac.Parse(); rd != nil {
 				// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
-				break FOR
+				if !teo.com.process(&receiveData{rd, nil}) {
+					break FOR
+				}
 			}
 		default:
 			fmt.Println("got event:", ev.Event)
