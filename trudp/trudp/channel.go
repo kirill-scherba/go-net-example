@@ -66,7 +66,7 @@ func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 	}
 
 	tcd.stoppedF = true
-	teolog.Log(msgLevel, msg)
+	teolog.Log(msgLevel, MODULE, msg)
 
 	// Clear receive queue
 	tcd.sendQueueReset()
@@ -81,7 +81,7 @@ func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 
 	// Remove trudp channel from channels map
 	delete(tcd.trudp.tcdmap, tcd.key)
-	teolog.Log(teolog.CONNECT, "channel with key", tcd.key, "disconnected")
+	teolog.Log(teolog.CONNECT, MODULE, "channel with key", tcd.key, "disconnected")
 	tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
 
 	return
@@ -128,7 +128,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData,
 	// Channel data select
 	tcd, ok := trudp.tcdmap[key]
 	if ok {
-		teolog.Log(teolog.DEBUGvv, "the ChannelData with key", key, "selected")
+		//teolog.Log(teolog.DEBUGvv, MODULE, "the ChannelData with key", key, "selected")
 		return
 	}
 
@@ -153,7 +153,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData,
 	// Add to channels map
 	trudp.tcdmap[key] = tcd
 
-	teolog.Log(teolog.CONNECT, "channel with key", key, "connected")
+	teolog.Log(teolog.CONNECT, MODULE, "channel with key", key, "connected")
 	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
 
 	return
@@ -166,7 +166,7 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 	if err != nil {
 		panic(err)
 	}
-	teolog.Log(teolog.CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
+	teolog.Log(teolog.CONNECT, MODULE, "connecting to host", rUDPAddr, "at channel", ch)
 	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
 	return
 }
@@ -194,7 +194,7 @@ func (tcd *ChannelData) keepAlive() {
 	// Send ping after sleep time
 	if time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime {
 		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-		teolog.Log(teolog.DEBUGv, "send ping to", tcd.key)
+		teolog.Log(teolog.DEBUGv, MODULE, "send ping to", tcd.key)
 	}
 
 	// Destroy channel after disconnect time

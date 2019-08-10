@@ -43,7 +43,7 @@ func TestTRUDP(t *testing.T) {
 			go func() {
 				wg2.Wait()
 				_, port := tru.GetAddr()
-				teolog.Log(teolog.CONNECT, "send close", port)
+				teolog.Log(teolog.CONNECT, MODULE, "send close", port)
 				tru.Close()
 			}()
 			defer func() { tru.ChanEventClosed(); wg.Done() }()
@@ -52,25 +52,25 @@ func TestTRUDP(t *testing.T) {
 				switch ev.Event {
 
 				case INITIALIZE:
-					teolog.Log(teolog.CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) INITIALIZE, listen at:", string(ev.Data))
 					// Send data
 					go func() {
 						_, rPort := tru_to.GetAddr()
 						tcd := tru.ConnectChannel("localhost", rPort, 0)
-						teolog.Log(teolog.CONNECT, "start send to:", tcd.MakeKey())
+						teolog.Log(teolog.CONNECT, MODULE, "start send to:", tcd.MakeKey())
 						for i := 0; i < numMessages; i++ {
 							tcd.WriteTo([]byte(makeHello(i)))
 						}
 					}()
 
 				case DESTROY:
-					teolog.Log(teolog.CONNECT, "(main) DESTROY", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) DESTROY", string(ev.Data))
 
 				case CONNECTED:
-					teolog.Log(teolog.CONNECT, "(main) CONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) CONNECTED", string(ev.Data))
 
 				case DISCONNECTED:
-					teolog.Log(teolog.CONNECT, "(main) DISCONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED", string(ev.Data))
 
 				case GOT_DATA:
 					// Receive data
@@ -78,7 +78,7 @@ func TestTRUDP(t *testing.T) {
 					if data == makeHello(idx) {
 						idx++
 						if idx == numMessages {
-							teolog.Log(teolog.CONNECT, "was received", numMessages, "records to", ev.Tcd.MakeKey())
+							teolog.Log(teolog.CONNECT, MODULE, "was received", numMessages, "records to", ev.Tcd.MakeKey())
 							wg2.Done()
 						}
 					} else {

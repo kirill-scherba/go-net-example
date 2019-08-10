@@ -28,6 +28,7 @@ type Parameters struct {
 	RAddr          string // remote host address
 	RPort, RChan   int    // remote host port and channel(for TRUdp only)
 	Network        string // teonet network name
+	ShowLogLevel   string // show log messages level
 	ShowTrudpStatF bool   // show trudp statistic
 	ShowPeersStatF bool   // show peers table
 	ShowHelpF      bool   // show usage
@@ -156,17 +157,12 @@ func (rd *C.ksnCorePacketData) DataLen() int {
 
 // Teonet teonet connection data structure
 type Teonet struct {
-	td    *trudp.TRUDP // TRUdp connection
-	param *Parameters  // Teonet parameters
-	// name  string           // this host name
-	// raddr string           // r-host address
-	// rport int              // r-host port
-	kcr *C.ksnCryptClass // crypto module
-	com *command         // command module
-	arp *arp             // peers arp table
+	td    *trudp.TRUDP     // TRUdp connection
+	param *Parameters      // Teonet parameters
+	kcr   *C.ksnCryptClass // C crypt module
+	com   *command         // Commands module
+	arp   *arp             // Arp module
 }
-
-//var tcd *trudp.ChannelData
 
 // Connect initialize Teonet
 func Connect(param *Parameters) (teo *Teonet) {
@@ -176,7 +172,8 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.td = trudp.Init(param.Port)
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
-	teolog.Level(teolog.DEBUGvv, true, log.LstdFlags|log.Lmicroseconds)
+	//ShowLogLevel
+	teolog.Level(param.ShowLogLevel, true, log.LstdFlags|log.Lmicroseconds)
 	if param.RPort > 0 {
 		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
 		teo.sendToTcd(tcd, 0, nil) //[]byte{0})

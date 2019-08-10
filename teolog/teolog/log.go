@@ -35,12 +35,20 @@ type logParam struct {
 var param logParam
 
 // Log shows log message in terminal
-func Log(level int, p ...interface{}) {
+func Log(level int /*module string,*/, p ...interface{}) {
 	if level <= param.level {
+		var pp []interface{}
+		//if module == "" {
+		pp = make([]interface{}, 0, 1+len(p))
+		pp = append(append(pp, LevelString(level)), p...)
+		// } else {
+		// 	pp = make([]interface{}, 0, 2+len(p))
+		// 	pp = append(append(pp, LevelString(level), module), p...)
+		// }
 		if param.useLogF {
-			log.Println(p...)
+			log.Println(pp...)
 		} else {
-			fmt.Println(p...)
+			fmt.Println(pp...)
 		}
 	}
 }
@@ -87,13 +95,14 @@ func Level(level interface{}, useLogF bool, flag int) {
 
 	// Show log level
 	fmt.Println("show time in log:", param.useLogF)
-	fmt.Println("log level:", LogLevelString())
+	fmt.Println("log level:", LevelString(param.level))
+	fmt.Println()
 }
 
 // LogLevelString return trudp log level in string format
-func LogLevelString() (strLogLevel string) {
+func LevelString(level int) (strLogLevel string) {
 
-	switch param.level {
+	switch /*param.*/ level {
 	case NONE:
 		strLogLevel = strNONE
 	case CONNECT:

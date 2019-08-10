@@ -69,13 +69,13 @@ func (proc *process) init(trudp *TRUDP) *process {
 	// Module worker
 	go func() {
 
-		teolog.Log(teolog.CONNECT, "process worker started")
+		teolog.Log(teolog.CONNECT, MODULE, "process worker started")
 		proc.wg.Add(1)
 
 		// Do it on return
 		defer func() {
 			close(proc.chanWriter)
-			teolog.Log(teolog.CONNECT, "process worker stopped")
+			teolog.Log(teolog.CONNECT, MODULE, "process worker stopped")
 
 			// Close trudp channels, send DESTROY event and close event channel
 			trudp.closeChannels()
@@ -137,8 +137,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 	// Write worker
 	go func() {
 		proc.wg.Add(1)
-		teolog.Log(teolog.CONNECT, "writer worker started")
-		defer func() { teolog.Log(teolog.CONNECT, "writer worker stopped"); proc.wg.Done() }()
+		teolog.Log(teolog.CONNECT, MODULE, "writer worker started")
+		defer func() { teolog.Log(teolog.CONNECT, MODULE, "writer worker stopped"); proc.wg.Done() }()
 		for w := range proc.chanWriter {
 			proc.trudp.udp.writeTo(w.packet.data, w.addr)
 			if !w.packet.sendQueueF {

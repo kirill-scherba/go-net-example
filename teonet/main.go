@@ -33,12 +33,13 @@ func main() {
 	// Teonet flags
 	flag.IntVar(&param.Port, "p", 0, "local host port")
 	flag.StringVar(&param.Network, "n", "local", "teonet network name")
-	flag.BoolVar(&param.ShowHelpF, "h", false, "show this help message")
 	flag.StringVar(&param.RAddr, "a", "localhost", "remote host address (to connect to remote host)")
 	flag.IntVar(&param.RChan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
 	flag.IntVar(&param.RPort, "r", 0, "remote host port (to connect to remote host)")
+	flag.StringVar(&param.ShowLogLevel, "show-log", "DEBUG", "show log messages level")
 	flag.BoolVar(&param.ShowTrudpStatF, "show-trudp", false, "show trudp statistic")
 	flag.BoolVar(&param.ShowPeersStatF, "show-peers", false, "show peers table")
+	flag.BoolVar(&param.ShowHelpF, "h", false, "show this help message")
 	flag.Parse()
 	// Teonet Arguments
 	args := flag.Args()
@@ -50,7 +51,7 @@ func main() {
 		os.Exit(0)
 	}
 	param.Name = flag.Arg(0)
-	fmt.Printf("host name: %s\nnetwork: %s\n\n", param.Network, param.Name)
+	fmt.Printf("host name: %s\nnetwork: %s\n", param.Network, param.Name)
 
 	// Teonet connect and run
 	teo := teonet.Connect(param)
