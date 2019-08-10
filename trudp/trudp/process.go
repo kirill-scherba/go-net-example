@@ -6,6 +6,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 // This module process all trudp internal events:
@@ -67,13 +69,13 @@ func (proc *process) init(trudp *TRUDP) *process {
 	// Module worker
 	go func() {
 
-		trudp.Log(CONNECT, "process worker started")
+		teolog.Log(teolog.CONNECT, "process worker started")
 		proc.wg.Add(1)
 
 		// Do it on return
 		defer func() {
 			close(proc.chanWriter)
-			trudp.Log(CONNECT, "process worker stopped")
+			teolog.Log(teolog.CONNECT, "process worker stopped")
 
 			// Close trudp channels, send DESTROY event and close event channel
 			trudp.closeChannels()
@@ -135,8 +137,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 	// Write worker
 	go func() {
 		proc.wg.Add(1)
-		trudp.Log(CONNECT, "writer worker started")
-		defer func() { trudp.Log(CONNECT, "writer worker stopped"); proc.wg.Done() }()
+		teolog.Log(teolog.CONNECT, "writer worker started")
+		defer func() { teolog.Log(teolog.CONNECT, "writer worker stopped"); proc.wg.Done() }()
 		for w := range proc.chanWriter {
 			proc.trudp.udp.writeTo(w.packet.data, w.addr)
 			if !w.packet.sendQueueF {

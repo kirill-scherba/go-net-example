@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 // ChannelData is the TRUDP channel data structure
@@ -64,7 +66,7 @@ func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 	}
 
 	tcd.stoppedF = true
-	tcd.trudp.Log(msgLevel, msg)
+	teolog.Log(msgLevel, msg)
 
 	// Clear receive queue
 	tcd.sendQueueReset()
@@ -79,7 +81,7 @@ func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 
 	// Remove trudp channel from channels map
 	delete(tcd.trudp.tcdmap, tcd.key)
-	tcd.trudp.Log(CONNECT, "channel with key", tcd.key, "disconnected")
+	teolog.Log(teolog.CONNECT, "channel with key", tcd.key, "disconnected")
 	tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
 
 	return
@@ -126,7 +128,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData,
 	// Channel data select
 	tcd, ok := trudp.tcdmap[key]
 	if ok {
-		trudp.Log(DEBUGvv, "the ChannelData with key", key, "selected")
+		teolog.Log(teolog.DEBUGvv, "the ChannelData with key", key, "selected")
 		return
 	}
 
@@ -151,7 +153,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData,
 	// Add to channels map
 	trudp.tcdmap[key] = tcd
 
-	trudp.Log(CONNECT, "channel with key", key, "connected")
+	teolog.Log(teolog.CONNECT, "channel with key", key, "connected")
 	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
 
 	return
@@ -164,14 +166,14 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 	if err != nil {
 		panic(err)
 	}
-	trudp.Log(CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
+	teolog.Log(teolog.CONNECT, "connecting to host", rUDPAddr, "at channel", ch)
 	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
 	return
 }
 
 // CloseChannel close trudp channel
 func (tcd *ChannelData) CloseChannel() {
-	tcd.destroy(DEBUGv,
+	tcd.destroy(teolog.DEBUGv,
 		fmt.Sprint("destroy channel ", tcd.MakeKey(), ": closed by user"),
 	)
 }
@@ -192,12 +194,12 @@ func (tcd *ChannelData) keepAlive() {
 	// Send ping after sleep time
 	if time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime {
 		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-		tcd.trudp.Log(DEBUGv, "send ping to", tcd.key)
+		teolog.Log(teolog.DEBUGv, "send ping to", tcd.key)
 	}
 
 	// Destroy channel after disconnect time
 	if time.Since(tcd.stat.lastTimeReceived) >= disconnectTime {
-		tcd.destroy(DEBUGv,
+		tcd.destroy(teolog.DEBUGv,
 			fmt.Sprint("destroy channel ", tcd.MakeKey(),
 				": does not answer long time: ", time.Since(tcd.stat.lastTimeReceived),
 			),

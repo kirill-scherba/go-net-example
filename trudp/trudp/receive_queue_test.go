@@ -4,6 +4,8 @@ import (
 	"container/list"
 	"strconv"
 	"testing"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 func TestReceiveQueue(t *testing.T) {
@@ -13,7 +15,7 @@ func TestReceiveQueue(t *testing.T) {
 	trudp := &TRUDP{}
 	pac := &packetType{trudp: trudp}
 	tcd := &ChannelData{trudp: trudp, receiveQueue: list.New()}
-	trudp.Log(NONE, "TestReceiveQueue initialized")
+	teolog.Log(teolog.NONE, "TestReceiveQueue initialized")
 
 	// create 10 elements 0..9
 	t.Run("adding elements", func(t *testing.T) {

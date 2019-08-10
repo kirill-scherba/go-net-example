@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 type sendQueueData struct {
@@ -30,13 +32,13 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 		}
 		// Destroy this trudp channel if resendAttemp more than maxResendAttemp
 		if sqd.resendAttempt >= maxResendAttempt {
-			tcd.destroy(DEBUGv, fmt.Sprint("destroy channel ", tcd.MakeKey(), ": too much resends happens: ", sqd.resendAttempt))
+			tcd.destroy(teolog.DEBUGv, fmt.Sprint("destroy channel ", tcd.MakeKey(), ": too much resends happens: ", sqd.resendAttempt))
 			break
 		}
 		// Resend packet, save resend to statistic and show message
 		sqd.packet.writeTo(tcd)
 		tcd.stat.repeat(true)
-		tcd.trudp.Log(DEBUG, "resend sendQueue packet with",
+		teolog.Log(teolog.DEBUG, "resend sendQueue packet with",
 			"id:", sqd.packet.getID(),
 			"attempt:", sqd.resendAttempt)
 	}
@@ -66,11 +68,11 @@ func (tcd *ChannelData) sendQueueAdd(packet *packetType) {
 			sendTime:    now,
 			arrivalTime: arrivalTime,
 		})
-		tcd.trudp.Log(DEBUGv, "add to send queue, id", packet.getID())
+		teolog.Log(teolog.DEBUGv, "add to send queue, id", packet.getID())
 	} else {
 		sqd.arrivalTime = arrivalTime
 		sqd.resendAttempt++
-		tcd.trudp.Log(DEBUGv, "update in send queue, id", packet.getID())
+		teolog.Log(teolog.DEBUGv, "update in send queue, id", packet.getID())
 	}
 }
 
@@ -93,7 +95,7 @@ func (tcd *ChannelData) sendQueueRemove(packet *packetType) {
 	if err == nil {
 		sqd.packet.destroy()
 		tcd.sendQueue.Remove(e)
-		tcd.trudp.Log(DEBUGv, "remove from send queue, id", id)
+		teolog.Log(teolog.DEBUGv, "remove from send queue, id", id)
 	}
 }
 

@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 // TestTRUDP execute TRUDP complex test
@@ -24,8 +26,8 @@ func TestTRUDP(t *testing.T) {
 
 		// Set trudp log level
 		logLevel := "CONNECT"
-		tru1.LogLevel(logLevel, true, log.LstdFlags|log.Lmicroseconds)
-		tru2.LogLevel(logLevel, true, log.LstdFlags|log.Lmicroseconds)
+		teolog.Level(logLevel, true, log.LstdFlags|log.Lmicroseconds)
+		//tru2.LogLevel(logLevel, true, log.LstdFlags|log.Lmicroseconds)
 
 		// Create test message
 		makeHello := func(idx int) string {
@@ -41,7 +43,7 @@ func TestTRUDP(t *testing.T) {
 			go func() {
 				wg2.Wait()
 				_, port := tru.GetAddr()
-				tru.Log(CONNECT, "send close", port)
+				teolog.Log(teolog.CONNECT, "send close", port)
 				tru.Close()
 			}()
 			defer func() { tru.ChanEventClosed(); wg.Done() }()
@@ -50,25 +52,25 @@ func TestTRUDP(t *testing.T) {
 				switch ev.Event {
 
 				case INITIALIZE:
-					tru.Log(CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
 					// Send data
 					go func() {
 						_, rPort := tru_to.GetAddr()
 						tcd := tru.ConnectChannel("localhost", rPort, 0)
-						tru.Log(CONNECT, "start send to:", tcd.MakeKey())
+						teolog.Log(teolog.CONNECT, "start send to:", tcd.MakeKey())
 						for i := 0; i < numMessages; i++ {
 							tcd.WriteTo([]byte(makeHello(i)))
 						}
 					}()
 
 				case DESTROY:
-					tru.Log(CONNECT, "(main) DESTROY", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) DESTROY", string(ev.Data))
 
 				case CONNECTED:
-					tru.Log(CONNECT, "(main) CONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) CONNECTED", string(ev.Data))
 
 				case DISCONNECTED:
-					tru.Log(CONNECT, "(main) DISCONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) DISCONNECTED", string(ev.Data))
 
 				case GOT_DATA:
 					// Receive data
@@ -76,7 +78,7 @@ func TestTRUDP(t *testing.T) {
 					if data == makeHello(idx) {
 						idx++
 						if idx == numMessages {
-							tru.Log(CONNECT, "was received", numMessages, "records to", ev.Tcd.MakeKey())
+							teolog.Log(teolog.CONNECT, "was received", numMessages, "records to", ev.Tcd.MakeKey())
 							wg2.Done()
 						}
 					} else {

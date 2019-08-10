@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
@@ -55,7 +56,7 @@ func main() {
 		tru := trudp.Init(port)
 
 		// Set log level
-		tru.LogLevel(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
+		teolog.Level(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 
 		// Set 'show statictic' flag
 		tru.ShowStatistic(showStat)
@@ -87,15 +88,15 @@ func main() {
 						num++
 					}
 
-					tru.Log(trudp.CONNECT, "(main) channel "+tcd.MakeKey()+" sender stopped")
+					teolog.Log(teolog.CONNECT, "(main) channel "+tcd.MakeKey()+" sender stopped")
 					if !tru.Running() {
 						break
 					}
 					time.Sleep(5 * time.Second)
-					tru.Log(trudp.CONNECT, "(main) reconnect")
+					teolog.Log(teolog.CONNECT, "(main) reconnect")
 				}
 
-				tru.Log(trudp.CONNECT, "(main) sender worker stopped")
+				teolog.Log(teolog.CONNECT, "(main) sender worker stopped")
 			}()
 		}
 
@@ -106,34 +107,34 @@ func main() {
 				switch ev.Event {
 
 				case trudp.GOT_DATA:
-					tru.Log(trudp.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+					teolog.Log(teolog.DEBUG, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 					if sendAnswer {
 						ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
 					}
 
 				// case trudp.SEND_DATA:
-				// 	tru.Log(trudp.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
+				// 	teolog.Log(teolog.DEBUG, "(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 				case trudp.INITIALIZE:
-					tru.Log(trudp.CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) INITIALIZE, listen at:", string(ev.Data))
 
 				case trudp.DESTROY:
-					tru.Log(trudp.CONNECT, "(main) DESTROY", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) DESTROY", string(ev.Data))
 
 				case trudp.CONNECTED:
-					tru.Log(trudp.CONNECT, "(main) CONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) CONNECTED", string(ev.Data))
 
 				case trudp.DISCONNECTED:
-					tru.Log(trudp.CONNECT, "(main) DISCONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, "(main) DISCONNECTED", string(ev.Data))
 
 				case trudp.RESET_LOCAL:
-					tru.Log(trudp.DEBUG, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
+					teolog.Log(teolog.DEBUG, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
 
 				case trudp.SEND_RESET:
-					tru.Log(trudp.DEBUG, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
+					teolog.Log(teolog.DEBUG, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
 
 				default:
-					tru.Log(trudp.ERROR, "(main)")
+					teolog.Log(teolog.ERROR, "(main)")
 				}
 			}
 		}()

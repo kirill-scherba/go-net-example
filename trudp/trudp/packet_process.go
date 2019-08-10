@@ -3,6 +3,8 @@ package trudp
 import (
 	"fmt"
 	"net"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 // Packet type
@@ -33,7 +35,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		pac.ackCreateNew().writeTo(tcd)
 		tcd.stat.received(len(pac.data))
 		// Show Log
-		pac.trudp.Log(DEBUGv, "DATA      packet received, key:", key,
+		teolog.Log(teolog.DEBUGv, "DATA      packet received, key:", key,
 			"id:", pac.getID(),
 			"expected id:", tcd.expectedID,
 			"data length:", len(pac.data),
@@ -47,7 +49,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		tcd.stat.setTriptime(pac.getTriptime())
 		tcd.stat.ackReceived()
 		// Show Log
-		pac.trudp.Log(DEBUGv, "ACK       packet received, key:", key,
+		teolog.Log(teolog.DEBUGv, "ACK       packet received, key:", key,
 			"id:", pac.getID(),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
@@ -57,13 +59,13 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 
 	// RESET packet received
 	case RESET:
-		pac.trudp.Log(DEBUGv, "RESET     packet received, key:", key)
+		teolog.Log(teolog.DEBUGv, "RESET     packet received, key:", key)
 		pac.ackToResetCreateNew().writeTo(tcd)
 		tcd.reset()
 
 	// ACK-to-reset packet received
 	case ACKReset:
-		pac.trudp.Log(DEBUGv, "ACK_RESET packet received, key:", key)
+		teolog.Log(teolog.DEBUGv, "ACK_RESET packet received, key:", key)
 		tcd.reset()
 
 	// PING packet received
@@ -71,7 +73,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		// Create ACK to ping packet and send it back to sender
 		pac.ackToPingCreateNew().writeTo(tcd)
 		// Show Log
-		pac.trudp.Log(DEBUGv, "PING      packet received, key:", key,
+		teolog.Log(teolog.DEBUGv, "PING      packet received, key:", key,
 			"id:", pac.getID(),
 			"expected id:", tcd.expectedID,
 			"data:", pac.getData(), string(pac.getData()))
@@ -80,14 +82,14 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	case ACKPing:
 		// Set trip time to ChannelData
 		tcd.stat.setTriptime(pac.getTriptime())
-		pac.trudp.Log(DEBUGv, "ACK_PING  packet received, key:", key,
+		teolog.Log(teolog.DEBUGv, "ACK_PING  packet received, key:", key,
 			"id:", pac.getID(),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
 
 	// UNKNOWN packet received
 	default:
-		pac.trudp.Log(DEBUGv, "UNKNOWN   packet received, key:", key, ", type:", packetType)
+		teolog.Log(teolog.DEBUGv, "UNKNOWN   packet received, key:", key, ", type:", packetType)
 	}
 
 	return
@@ -114,7 +116,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	// Valid data packet
 	case id == tcd.expectedID:
 		tcd.expectedID++
-		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
+		teolog.Log(teolog.DEBUGv, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
 		// Send received packet data to user level
 		tcd.trudp.sendEvent(tcd, GOT_DATA, pac.getData())
 		// Check packets in received queue and send it data to user level
@@ -122,20 +124,20 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
-		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
+		teolog.Log(teolog.DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
 		tcd.reset()
 		pac.packetDataProcess(tcd)
 
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
-		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
+		teolog.Log(teolog.DEBUGv, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
 		pac.resetCreateNew().writeTo(tcd) // Send reset
 		// Send event "RESET was sent" to user level
 		tcd.trudp.sendEvent(tcd, SEND_RESET, nil)
 
 	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:
-		tcd.trudp.Log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
+		teolog.Log(teolog.DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
 		// Set statistic REJECTED (already received) packet
 		tcd.stat.dropped()
 
@@ -144,10 +146,10 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	case id > tcd.expectedID:
 		_, _, err := tcd.receiveQueueFind(id)
 		if err != nil {
-			tcd.trudp.Log(DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
+			teolog.Log(teolog.DEBUGv, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
 			tcd.receiveQueueAdd(pac)
 		} else {
-			tcd.trudp.Log(DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
+			teolog.Log(teolog.DEBUGv, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
 			// Set statistic REJECTED (already received) packet
 			tcd.stat.dropped()
 		}

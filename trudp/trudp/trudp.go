@@ -4,6 +4,8 @@ import (
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 const Version = "3.0.0"
@@ -201,7 +203,6 @@ func Init(port int) (trudp *TRUDP) {
 	trudp = &TRUDP{
 		udp:              &udp{},
 		packet:           &packetType{},
-		logLevel:         CONNECT,
 		startTime:        time.Now(),
 		tcdmap:           make(map[string]*ChannelData),
 		chanEvent:        make(chan *EventData, chEventSize),
@@ -214,7 +215,7 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.proc = new(process).init(trudp)
 
 	localAddr := trudp.udp.localAddr()
-	trudp.Log(CONNECT, "start listenning at", localAddr)
+	teolog.Log(teolog.CONNECT, "start listenning at", localAddr)
 	trudp.sendEvent(nil, INITIALIZE, []byte(localAddr))
 
 	return
@@ -233,7 +234,7 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 	if err != nil {
 		panic(err)
 	}
-	trudp.Log(CONNECT, "connecting to host", rUDPAddr)
+	teolog.Log(teolog.CONNECT, "connecting to host", rUDPAddr)
 
 	// Send hello to remote host
 	trudp.udp.writeTo([]byte(helloMsg), rUDPAddr)
@@ -256,18 +257,18 @@ func (trudp *TRUDP) Run() {
 
 		nRead, addr, err := trudp.udp.readFrom(buffer)
 		if err != nil {
-			trudp.Log(CONNECT, "stop listenning at", trudp.udp.localAddr())
+			teolog.Log(teolog.CONNECT, "stop listenning at", trudp.udp.localAddr())
 			close(trudp.proc.chanRead)
 			trudp.proc.destroy()
 			trudp.proc.wg.Wait()
-			trudp.Log(CONNECT, "stopped")
+			teolog.Log(teolog.CONNECT, "stopped")
 			break
 		}
 
 		switch {
 		// Empty packet
 		case nRead == 0:
-			trudp.Log(DEBUGv, "empty paket received from:", addr)
+			teolog.Log(teolog.DEBUGv, "empty paket received from:", addr)
 
 		// Check trudp packet
 		case trudp.packet.check(buffer[:nRead]):
@@ -277,27 +278,27 @@ func (trudp *TRUDP) Run() {
 			// id := trudp.packet.getID(buffer[:nRead])
 			// tp := trudp.packet.getType(buffer[:nRead])
 			// data := trudp.packet.getData(buffer[:nRead])
-			// trudp.Log(DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),
+			// teolog.Log(teolog.DEBUGvv, "got trudp packet from:", addr, "data:", data, string(data),
 			// 	", channel:", ch, "packet id:", id, "type:", tp)
 
 		// Process connect message
 		case nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg:
-			trudp.Log(DEBUG, "got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+			teolog.Log(teolog.DEBUG, "got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 
 		// Process echo message Ping (send to Pong)
 		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
-			trudp.Log(DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
+			teolog.Log(teolog.DEBUG, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
 			trudp.udp.writeTo(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr)
 
 		// Process echo answer message Pong (answer to Ping)
 		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
 			var ts time.Time
 			ts.UnmarshalBinary(buffer[len(echoAnswerMsg):nRead])
-			trudp.Log(DEBUG, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
+			teolog.Log(teolog.DEBUG, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
 
 		// Not trudp packet received
 		default:
-			trudp.Log(DEBUG, "got (---==Not TRUDP==---)", nRead, "bytes from:", addr, "data: ", buffer[:nRead]) //, string(buffer[:nRead]))
+			teolog.Log(teolog.DEBUG, "got (---==Not TRUDP==---)", nRead, "bytes from:", addr, "data: ", buffer[:nRead]) //, string(buffer[:nRead]))
 			// Send received packet data to user level
 			tcd, _ := trudp.newChannelData(addr, 0)
 			tcd.trudp.sendEvent(tcd, GOT_DATA_NOTRUDP, buffer[:nRead])
@@ -313,7 +314,7 @@ func (trudp *TRUDP) Running() bool {
 // closeChannels Close all trudp channels
 func (trudp *TRUDP) closeChannels() {
 	for key, tcd := range trudp.tcdmap {
-		tcd.destroy(CONNECT, "close "+key)
+		tcd.destroy(teolog.CONNECT, "close "+key)
 	}
 }
 

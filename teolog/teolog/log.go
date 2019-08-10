@@ -1,4 +1,4 @@
-package trudp
+package teolog
 
 import (
 	"fmt"
@@ -27,10 +27,17 @@ const (
 	strUNKNOWN = "UNKNOWN"
 )
 
+type logParam struct {
+	level   int
+	useLogF bool
+}
+
+var param logParam
+
 // Log shows log message in terminal
-func (trudp *TRUDP) Log(level int, p ...interface{}) {
-	if level <= trudp.logLevel {
-		if trudp.logLogF {
+func Log(level int, p ...interface{}) {
+	if level <= param.level {
+		if param.useLogF {
 			log.Println(p...)
 		} else {
 			fmt.Println(p...)
@@ -38,13 +45,13 @@ func (trudp *TRUDP) Log(level int, p ...interface{}) {
 	}
 }
 
-// LogLevel sets TRUDP log level
+// Level sets log level
 // Avalable level values: NONE, CONNECT, MESSAGE, DEBUG, DEBUGv, DEBUGvv
-func (trudp *TRUDP) LogLevel(level interface{}, logLogF bool, flag int) {
+func Level(level interface{}, useLogF bool, flag int) {
 
 	// Set log type
-	trudp.logLogF = logLogF
-	if logLogF {
+	param.useLogF = useLogF
+	if useLogF {
 		if flag == 0 {
 			flag = log.LstdFlags
 		}
@@ -54,39 +61,39 @@ func (trudp *TRUDP) LogLevel(level interface{}, logLogF bool, flag int) {
 	// Set log level
 	switch l := level.(type) {
 	case int:
-		trudp.logLevel = l
+		param.level = l
 	case string:
 		switch l {
 		case strNONE:
-			trudp.logLevel = NONE
+			param.level = NONE
 		case strERROR:
-			trudp.logLevel = ERROR
+			param.level = ERROR
 		case strCONNECT:
-			trudp.logLevel = CONNECT
+			param.level = CONNECT
 		case strMESSAGE:
-			trudp.logLevel = MESSAGE
+			param.level = MESSAGE
 		case strDEBUG:
-			trudp.logLevel = DEBUG
+			param.level = DEBUG
 		case strDEBUGv:
-			trudp.logLevel = DEBUGv
+			param.level = DEBUGv
 		case strDEBUGvv:
-			trudp.logLevel = DEBUGvv
+			param.level = DEBUGvv
 		default:
-			trudp.logLevel = DEBUG
+			param.level = DEBUG
 		}
 	default:
-		trudp.logLevel = DEBUG
+		param.level = DEBUG
 	}
 
 	// Show log level
-	fmt.Println("show time in log:", trudp.logLogF)
-	fmt.Println("log level:", trudp.LogLevelString())
+	fmt.Println("show time in log:", param.useLogF)
+	fmt.Println("log level:", LogLevelString())
 }
 
 // LogLevelString return trudp log level in string format
-func (trudp *TRUDP) LogLevelString() (strLogLevel string) {
+func LogLevelString() (strLogLevel string) {
 
-	switch trudp.logLevel {
+	switch param.level {
 	case NONE:
 		strLogLevel = strNONE
 	case CONNECT:

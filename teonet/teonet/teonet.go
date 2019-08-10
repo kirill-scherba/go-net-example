@@ -14,6 +14,7 @@ import (
 	"log"
 	"unsafe"
 
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
@@ -175,7 +176,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.td = trudp.Init(param.Port)
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
-	teo.td.LogLevel(trudp.DEBUGvv, true, log.LstdFlags|log.Lmicroseconds)
+	teolog.Level(teolog.DEBUGvv, true, log.LstdFlags|log.Lmicroseconds)
 	if param.RPort > 0 {
 		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
 		teo.sendToTcd(tcd, 0, nil) //[]byte{0})
