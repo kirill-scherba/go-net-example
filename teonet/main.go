@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/kirill-scherba/net-example-go/teonet/teonet"
 )
@@ -22,21 +23,36 @@ func main() {
 		"\n",
 	)
 
-	// Parameters variables
-	var name string      // this client name
-	var port int         // local port
-	var raddr string     // remote host address
-	var rport, rchan int // remote host port and channel (for TRUDP)
-
-	// Parameters
-	flag.IntVar(&port, "p", 0, "local host port")
-	flag.StringVar(&name, "n", "teonet-go-01", "local host teonet name")
-	flag.StringVar(&raddr, "a", "localhost", "remote host address (to connect to remote host)")
-	flag.IntVar(&rchan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
-	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
+	// Teonet parameters
+	param := new(teonet.Parameters)
+	// This application Usage message
+	flag.Usage = func() {
+		fmt.Printf("usage: %s [OPTIONS] host_name\n\noptions:\n\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	// Teonet flags
+	flag.IntVar(&param.Port, "p", 0, "local host port")
+	flag.StringVar(&param.Network, "n", "local", "teonet network name")
+	flag.BoolVar(&param.ShowHelpF, "h", false, "show this help message")
+	flag.StringVar(&param.RAddr, "a", "localhost", "remote host address (to connect to remote host)")
+	flag.IntVar(&param.RChan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
+	flag.IntVar(&param.RPort, "r", 0, "remote host port (to connect to remote host)")
+	flag.BoolVar(&param.ShowTrudpStatF, "show-trudp", false, "show trudp statistic")
+	flag.BoolVar(&param.ShowPeersStatF, "show-peers", false, "show peers table")
 	flag.Parse()
+	// Teonet Arguments
+	args := flag.Args()
+	if param.ShowHelpF || len(args) == 0 {
+		if len(args) == 0 {
+			fmt.Printf("argument host_name not defined\n")
+		}
+		flag.Usage()
+		os.Exit(0)
+	}
+	param.Name = flag.Arg(0)
+	fmt.Printf("host name: %s\nnetwork: %s\n\n", param.Network, param.Name)
 
 	// Teonet connect and run
-	teo := teonet.Connect(name, port, raddr, rport)
+	teo := teonet.Connect(param)
 	teo.Run()
 }

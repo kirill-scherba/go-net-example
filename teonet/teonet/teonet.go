@@ -20,6 +20,18 @@ import (
 // Version Teonet version
 const Version = "3.0.0"
 
+// Parameters
+type Parameters struct {
+	Name           string // this host client name
+	Port           int    // local port
+	RAddr          string // remote host address
+	RPort, RChan   int    // remote host port and channel(for TRUdp only)
+	Network        string // teonet network name
+	ShowTrudpStatF bool   // show trudp statistic
+	ShowPeersStatF bool   // show peers table
+	ShowHelpF      bool   // show usage
+}
+
 // Packet is Teonet packet container
 type Packet struct {
 	packet []byte
@@ -143,28 +155,30 @@ func (rd *C.ksnCorePacketData) DataLen() int {
 
 // Teonet teonet connection data structure
 type Teonet struct {
-	td    *trudp.TRUDP     // TRUdp connection
-	name  string           // this host name
-	raddr string           // r-host address
-	rport int              // r-host port
-	kcr   *C.ksnCryptClass // crypto module
-	com   *command         // command module
-	arp   *arp             // peers arp table
+	td    *trudp.TRUDP // TRUdp connection
+	param *Parameters  // Teonet parameters
+	// name  string           // this host name
+	// raddr string           // r-host address
+	// rport int              // r-host port
+	kcr *C.ksnCryptClass // crypto module
+	com *command         // command module
+	arp *arp             // peers arp table
 }
 
 //var tcd *trudp.ChannelData
 
 // Connect initialize Teonet
-func Connect(name string, port int, raddr string, rport int) (teo *Teonet) {
-	teo = &Teonet{name: name, raddr: raddr, rport: rport, arp: &arp{m: make(map[string]*arpData)} /*, network: C.CString("local")*/}
+func Connect(param *Parameters) (teo *Teonet) {
+	teo = &Teonet{param: param}
 	teo.com = &command{teo}
 	teo.kcr = C.ksnCryptInit(nil)
-	teo.td = trudp.Init(port)
-	teo.td.ShowStatistic(true)
+	teo.td = trudp.Init(param.Port)
+	teo.td.ShowStatistic(param.ShowTrudpStatF)
+	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
 	teo.td.LogLevel(trudp.DEBUGvv, true, log.LstdFlags|log.Lmicroseconds)
-	if rport > 0 {
-		tcd := teo.td.ConnectChannel(raddr, rport, 0)
-		teo.sendToTcd(tcd, 0, []byte{0})
+	if param.RPort > 0 {
+		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
+		teo.sendToTcd(tcd, 0, nil) //[]byte{0})
 	}
 	return
 }
@@ -250,7 +264,7 @@ func (teo *Teonet) SendAnswer(rec *receiveData, cmd int, data []byte) (err error
 
 // sendToTcd send command to Teonet peer by known trudp channel
 func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err error) {
-	pac := packetCreateNew(cmd, teo.name, data)
+	pac := packetCreateNew(cmd, teo.param.Name, data)
 	// \TODO: encrypt data
 	return tcd.WriteTo(pac.packet)
 }

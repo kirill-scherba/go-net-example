@@ -38,7 +38,7 @@ func (com *command) connect(rec *receiveData) {
 	fmt.Printf(">====-- peer %s connected\n", rd.From())
 	//com.teo.SendTo(com.teo.name, C.CMD_NONE, []byte{0}) //C.CMD_CONNECT, nil)
 	//com.teo.sendToTcd(rec.tcd, C.CMD_CONNECT, nil)
-	// com.teo.sendToTcd(rec.tcd, 0, []byte{0})
+	com.teo.sendToTcd(rec.tcd, 0, []byte{0})
 	// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
 	// \TODO send 'connected' event to user level
 }
