@@ -45,8 +45,7 @@ func (com *command) connect(rec *receiveData) {
 // peer from arp table
 func (com *command) disconnect(rec *receiveData) {
 	rd := rec.rd
-	rec.tcd.CloseChannel()
-	delete(com.teo.arp.m, rd.From())
+	com.teo.arp.delete(rec)
 	teolog.DebugV(MODULE, "CMD_DISCONNECTED command processed, from:", rd.From())
 	// \TODO send 'disconnected' event to user level
 }

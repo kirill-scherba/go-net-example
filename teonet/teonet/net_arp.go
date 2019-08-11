@@ -33,6 +33,32 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	return
 }
 
+// delete remove peer from arp table and close trudp channel (by receiveData)
+func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
+	peer := rec.rd.From()
+	peerArp, ok := arp.m[peer]
+	if !ok {
+		return
+	}
+	peerArp.tcd.CloseChannel()
+	delete(arp.m, peer)
+	arp.print()
+	return
+}
+
+// delete remove peer from arp table /*and close trudp channel*/ (by trudp channel key)
+func (arp *arp) deleteKey(key string) (peerArp *arpData) {
+	for peer, peerArp := range arp.m {
+		if peerArp.tcd.MakeKey() == key {
+			peerArp.tcd.CloseChannel()
+			delete(arp.m, peer)
+			arp.print()
+			break
+		}
+	}
+	return
+}
+
 // sprint print teonet arp table
 func (arp *arp) print() {
 	if arp.teo.param.ShowPeersStatF {

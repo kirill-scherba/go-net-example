@@ -216,7 +216,7 @@ FOR:
 
 		case trudp.DISCONNECTED:
 			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
-			// \TODO: remove peer from arp map connected to this channel
+			teo.arp.deleteKey(string(packet))
 
 		case trudp.RESET_LOCAL:
 			err = errors.New("need to reconnect")
