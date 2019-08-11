@@ -14,12 +14,15 @@ import (
 	"log"
 	"unsafe"
 
+	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
 // Version Teonet version
 const Version = "3.0.0"
+
+var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
 
 // Parameters
 type Parameters struct {
@@ -209,11 +212,11 @@ FOR:
 		switch ev.Event {
 
 		case trudp.CONNECTED:
-			fmt.Println("got event: channel with key " + string(packet) + " connected")
+			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" connected")
 			//break FOR
 
 		case trudp.DISCONNECTED:
-			fmt.Println("got event: channel with key " + string(packet) + " disconnected")
+			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
 			// \TODO: remove peer from arp map connected to this channel
 
 		case trudp.RESET_LOCAL:
@@ -221,16 +224,16 @@ FOR:
 			break FOR
 
 		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
-			fmt.Printf("got %d bytes packet %v\n", len(packet), packet)
+			teolog.DebugVf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
 			var decryptLen C.size_t
 			C.ksnDecryptPackage(teo.kcr, unsafe.Pointer(&packet[0]), C.size_t(len(packet)),
 				&decryptLen)
 			if decryptLen > 0 {
 				packet = packet[2 : decryptLen+2]
+				teolog.DebugVf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
 			}
-			fmt.Printf("got(decripted) %d bytes packet %v\n", decryptLen, packet)
 			pac := &Packet{packet: packet}
-			fmt.Printf("(before parse) cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
+			teolog.DebugVvf(MODULE, "(before parse) cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
 			if rd, err = pac.Parse(); rd != nil {
 				// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
 				if !teo.com.process(&receiveData{rd, ev.Tcd}) {
@@ -239,7 +242,7 @@ FOR:
 			}
 
 		default:
-			fmt.Println("got event:", ev.Event)
+			teolog.Log(teolog.DEBUGvv, MODULE, "got event:", ev.Event)
 		}
 	}
 	return

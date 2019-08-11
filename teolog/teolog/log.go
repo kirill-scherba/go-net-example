@@ -38,42 +38,90 @@ type logParam struct {
 var param logParam
 
 // None show NONE log string
-func None(a ...interface{}) {
-	Log(NONE, a)
+func None(p ...interface{}) {
+	logOutput(2, NONE, p...)
+}
+
+// None show NONE log formatted string
+func Nonef(module string, format string, p ...interface{}) {
+	logOutputf(2, NONE, module, format, p...)
 }
 
 // Connect show CONNECT log string
-func Connect(a ...interface{}) {
-	Log(CONNECT, a)
+func Connect(p ...interface{}) {
+	logOutput(2, CONNECT, p...)
+}
+
+// Connect show CONNECT log formatted string
+func Connectf(module string, format string, p ...interface{}) {
+	logOutputf(2, CONNECT, module, format, p...)
 }
 
 // Error show ERROR log string
-func Error(a ...interface{}) {
-	Log(ERROR, a)
+func Error(p ...interface{}) {
+	logOutput(2, ERROR, p...)
+}
+
+// Error show ERROR log formatted string
+func Errorf(module string, format string, p ...interface{}) {
+	logOutputf(2, ERROR, module, format, p...)
 }
 
 // Debug show DEBUG log string
-func Debug(a ...interface{}) {
-	Log(DEBUG, a)
+func Debug(p ...interface{}) {
+	logOutput(2, DEBUG, p...)
 }
 
-// DebugV show DEBUGv string
-func DebugV(a ...interface{}) {
-	Log(DEBUGv, a)
+// Debug show DEBUG log formatted string
+func Debugf(module string, format string, p ...interface{}) {
+	logOutputf(2, DEBUG, module, format, p...)
+}
+
+// DebugV show DEBUGv log string
+func DebugV(p ...interface{}) {
+	logOutput(2, DEBUGv, p...)
+}
+
+// DebugV show DEBUGv formatted string
+func DebugVf(module string, format string, p ...interface{}) {
+	logOutputf(2, DEBUGv, module, format, p...)
 }
 
 // DebugVv show DEBUGvv log string
-func DebugVv(a ...interface{}) {
-	Log(DEBUGvv, a)
+func DebugVv(p ...interface{}) {
+	logOutput(2, DEBUGvv, p...)
+}
+
+// DebugVvf show DEBUGvv log formatted string
+func DebugVvf(module string, format string, p ...interface{}) {
+	logOutputf(2, DEBUGvv, module, format, p...)
 }
 
 // Log show log string
 func Log(level int, p ...interface{}) {
+	logOutput(2, level, p...)
+}
+
+// Log show log formatted string
+func Logf(level int, module string, format string, p ...interface{}) {
+	logOutputf(2, level, module, format, p...)
+}
+
+func logOutput(calldepth int, level int, p ...interface{}) {
 	if level <= param.level {
 		var pp []interface{}
 		pp = make([]interface{}, 0, 1+len(p))
 		pp = append(append(pp, LevelStringColor(level)), p...)
-		param.log.Output(2, fmt.Sprintln(pp...))
+		param.log.Output(calldepth+1, fmt.Sprintln(pp...))
+	}
+}
+
+func logOutputf(calldepth int, level int, module string, format string, p ...interface{}) {
+	if level <= param.level {
+		var pp []interface{}
+		pp = make([]interface{}, 0, 2+len(p))
+		pp = append(append(pp, LevelStringColor(level), module), p...)
+		param.log.Output(calldepth+1, fmt.Sprintf("%s %s "+format, pp...))
 	}
 }
 
