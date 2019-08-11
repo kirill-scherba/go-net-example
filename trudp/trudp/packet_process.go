@@ -3,7 +3,9 @@ package trudp
 import (
 	"fmt"
 	"net"
+	"strconv"
 
+	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
@@ -118,7 +120,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	// Valid data packet
 	case id == tcd.expectedID:
 		tcd.expectedID++
-		teolog.Log(teolog.DEBUGv, MODULE, _ANSI_LIGHTGREEN+"received valid packet id", id, _ANSI_NONE)
+		teolog.Log(teolog.DEBUGv, MODULE, teokeys.Color(teokeys.ANSILightGreen, "received valid packet id "+strconv.Itoa(int(id))))
 		// Send received packet data to user level
 		tcd.trudp.sendEvent(tcd, GOT_DATA, pac.getData())
 		// Check packets in received queue and send it data to user level

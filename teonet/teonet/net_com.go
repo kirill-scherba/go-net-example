@@ -3,7 +3,7 @@ package teonet
 //#include "net_com.h"
 import "C"
 import (
-	"fmt"
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 type command struct {
@@ -35,11 +35,9 @@ func (com *command) process(rec *receiveData) (processed bool) {
 // connect process 'connect' command and answer with 'connect' command
 func (com *command) connect(rec *receiveData) {
 	rd := rec.rd
-	fmt.Printf(">====-- peer %s connected\n", rd.From())
-	//com.teo.SendTo(com.teo.name, C.CMD_NONE, []byte{0}) //C.CMD_CONNECT, nil)
-	//com.teo.sendToTcd(rec.tcd, C.CMD_CONNECT, nil)
 	com.teo.sendToTcd(rec.tcd, 0, []byte{0})
 	// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
+	teolog.DebugV(MODULE, "CMD_CONNECT command processed, from:", rd.From())
 	// \TODO send 'connected' event to user level
 }
 
@@ -47,13 +45,14 @@ func (com *command) connect(rec *receiveData) {
 // peer from arp table
 func (com *command) disconnect(rec *receiveData) {
 	rd := rec.rd
-	fmt.Printf(">====-- peer %s disconnected\n", rd.From())
 	rec.tcd.CloseChannel()
 	delete(com.teo.arp.m, rd.From())
+	teolog.DebugV(MODULE, "CMD_DISCONNECTED command processed, from:", rd.From())
 	// \TODO send 'disconnected' event to user level
 }
 
 // echo process 'echo' command and answer with 'echo answer' command
 func (com *command) echo(rec *receiveData) {
 	com.teo.sendToTcd(rec.tcd, C.CMD_ECHO_ANSWER, rec.rd.Data())
+	teolog.DebugV(MODULE, "CMD_ECHO command processed, from:", rec.rd.From())
 }

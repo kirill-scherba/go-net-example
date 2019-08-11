@@ -10,7 +10,6 @@ package teonet
 import "C"
 import (
 	"errors"
-	"fmt"
 	"log"
 	"unsafe"
 
@@ -176,10 +175,10 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.td = trudp.Init(param.Port)
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
-	//ShowLogLevel
+	// Connect to remote host (r-host)
 	if param.RPort > 0 {
 		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
-		teo.sendToTcd(tcd, 0, nil) //[]byte{0})
+		teo.sendToTcd(tcd, 0, nil)
 	}
 	return
 }
@@ -190,11 +189,11 @@ func (teo *Teonet) Run() {
 		for {
 			rd, err := teo.read()
 			if err != nil {
-				fmt.Println(err)
+				teolog.Error(MODULE, err)
 				//break
 				continue
 			}
-			fmt.Printf("got packet: cmd %d from %s, data len: %d, data: %v\n",
+			teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
 				rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
 		}
 	}()
@@ -224,21 +223,23 @@ FOR:
 			break FOR
 
 		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
-			teolog.DebugVf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
+			teolog.DebugVvf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
 			var decryptLen C.size_t
-			C.ksnDecryptPackage(teo.kcr, unsafe.Pointer(&packet[0]), C.size_t(len(packet)),
-				&decryptLen)
+			packetPtr := unsafe.Pointer(&packet[0])
+			C.ksnDecryptPackage(teo.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
 			if decryptLen > 0 {
 				packet = packet[2 : decryptLen+2]
-				teolog.DebugVf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
+				teolog.DebugVvf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
 			}
 			pac := &Packet{packet: packet}
-			teolog.DebugVvf(MODULE, "(before parse) cmd: %d, name: %s, name len: %d\n", pac.Cmd(), pac.From(), pac.FromLen())
 			if rd, err = pac.Parse(); rd != nil {
+				teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
 				// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
 				if !teo.com.process(&receiveData{rd, ev.Tcd}) {
 					break FOR
 				}
+			} else {
+				teolog.Error(MODULE, "got invalid packet")
 			}
 
 		default:

@@ -26,8 +26,7 @@ func TestTRUDP(t *testing.T) {
 
 		// Set trudp log level
 		logLevel := "CONNECT"
-		teolog.Level(logLevel, true, log.LstdFlags|log.Lmicroseconds)
-		//tru2.LogLevel(logLevel, true, log.LstdFlags|log.Lmicroseconds)
+		teolog.Init(logLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
 
 		// Create test message
 		makeHello := func(idx int) string {

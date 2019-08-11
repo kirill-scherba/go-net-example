@@ -296,7 +296,7 @@ void *ksnDecryptPackage(ksnCryptClass *kcr, void *package, size_t package_len,
   *decrypt_len = _decrypt(kcr, package + ptr, package_len - ptr, kcr->key,
                           kcr->iv, decrypted);
 
-  printf("decript_len: %d\n", (int)*decrypt_len);
+  // printf("decript_len: %d\n", (int)*decrypt_len);
 
   // Copy decrypted data (if decrypted, or
   if (*decrypt_len) {

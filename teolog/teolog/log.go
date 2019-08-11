@@ -107,6 +107,7 @@ func Logf(level int, module string, format string, p ...interface{}) {
 	logOutputf(2, level, module, format, p...)
 }
 
+// Log show log string
 func logOutput(calldepth int, level int, p ...interface{}) {
 	if level <= param.level {
 		var pp []interface{}
@@ -116,6 +117,7 @@ func logOutput(calldepth int, level int, p ...interface{}) {
 	}
 }
 
+// Log show log formatted string
 func logOutputf(calldepth int, level int, module string, format string, p ...interface{}) {
 	if level <= param.level {
 		var pp []interface{}

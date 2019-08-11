@@ -58,7 +58,7 @@ func main() {
 		tru := trudp.Init(port)
 
 		// Set log level
-		teolog.Level(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
+		teolog.Init(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
 
 		// Set 'show statictic' flag
 		tru.ShowStatistic(showStat)
