@@ -3,6 +3,9 @@ package teolog
 import (
 	"fmt"
 	"log"
+	"os"
+
+	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 )
 
 // Type of log messages
@@ -28,43 +31,63 @@ const (
 )
 
 type logParam struct {
-	level   int
-	useLogF bool
+	level int
+	log   *log.Logger
 }
 
 var param logParam
 
-// Log shows log message in terminal
-func Log(level int /*module string,*/, p ...interface{}) {
+// None show NONE log string
+func None(a ...interface{}) {
+	Log(NONE, a)
+}
+
+// Connect show CONNECT log string
+func Connect(a ...interface{}) {
+	Log(CONNECT, a)
+}
+
+// Error show ERROR log string
+func Error(a ...interface{}) {
+	Log(ERROR, a)
+}
+
+// Debug show DEBUG log string
+func Debug(a ...interface{}) {
+	Log(DEBUG, a)
+}
+
+// DebugV show DEBUGv string
+func DebugV(a ...interface{}) {
+	Log(DEBUGv, a)
+}
+
+// DebugVv show DEBUGvv log string
+func DebugVv(a ...interface{}) {
+	Log(DEBUGvv, a)
+}
+
+// Log show log string
+func Log(level int, p ...interface{}) {
 	if level <= param.level {
 		var pp []interface{}
-		//if module == "" {
 		pp = make([]interface{}, 0, 1+len(p))
-		pp = append(append(pp, LevelString(level)), p...)
-		// } else {
-		// 	pp = make([]interface{}, 0, 2+len(p))
-		// 	pp = append(append(pp, LevelString(level), module), p...)
-		// }
-		if param.useLogF {
-			log.Println(pp...)
-		} else {
-			fmt.Println(pp...)
-		}
+		pp = append(append(pp, LevelStringColor(level)), p...)
+		param.log.Output(2, fmt.Sprintln(pp...))
 	}
 }
 
-// Level sets log level
-// Avalable level values: NONE, CONNECT, MESSAGE, DEBUG, DEBUGv, DEBUGvv
-func Level(level interface{}, useLogF bool, flag int) {
+// Init initial module and sets log level
+// Avalable level values: NONE, CONNECT, ERROR, MESSAGE, DEBUG, DEBUGv, DEBUGvv
+func Init(level interface{}, useLogF bool, flags int) {
 
-	// Set log type
-	param.useLogF = useLogF
-	if useLogF {
-		if flag == 0 {
-			flag = log.LstdFlags
-		}
-		log.SetFlags(flag)
+	param.log = log.New(os.Stdout, "", flags)
+
+	// Set log flags
+	if flags == 0 {
+		flags = log.LstdFlags
 	}
+	log.SetFlags(flags)
 
 	// Set log level
 	switch l := level.(type) {
@@ -94,15 +117,14 @@ func Level(level interface{}, useLogF bool, flag int) {
 	}
 
 	// Show log level
-	fmt.Println("show time in log:", param.useLogF)
 	fmt.Println("log level:", LevelString(param.level))
 	fmt.Println()
 }
 
-// LogLevelString return trudp log level in string format
+// LevelString return trudp log level in string format
 func LevelString(level int) (strLogLevel string) {
 
-	switch /*param.*/ level {
+	switch level {
 	case NONE:
 		strLogLevel = strNONE
 	case CONNECT:
@@ -120,6 +142,28 @@ func LevelString(level int) (strLogLevel string) {
 	default:
 		strLogLevel = strUNKNOWN
 	}
+	return
+}
 
+// LevelStringColor return trudp log level in string format with ansi collor
+func LevelStringColor(level int) (strLogLevel string) {
+	switch level {
+	case NONE:
+		strLogLevel = teokeys.Color(teokeys.ANSIGrey, strNONE)
+	case CONNECT:
+		strLogLevel = teokeys.Color(teokeys.ANSIGreen, strCONNECT)
+	case ERROR:
+		strLogLevel = teokeys.Color(teokeys.ANSIRed, strERROR)
+	case MESSAGE:
+		strLogLevel = teokeys.Color(teokeys.ANSICyan, strMESSAGE)
+	case DEBUG:
+		strLogLevel = teokeys.Color(teokeys.ANSIBlue, strDEBUG)
+	case DEBUGv:
+		strLogLevel = teokeys.Color(teokeys.ANSIBrown, strDEBUGv)
+	case DEBUGvv:
+		strLogLevel = teokeys.Color(teokeys.ANSIMagenta, strDEBUGvv)
+	default:
+		strLogLevel = strUNKNOWN
+	}
 	return
 }

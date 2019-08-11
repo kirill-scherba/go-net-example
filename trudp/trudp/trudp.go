@@ -11,7 +11,7 @@ import (
 
 const Version = "3.0.0"
 
-const MODULE = teokeys.ANSICyan + "trudp" + teokeys.ANSINone
+var MODULE = teokeys.Color(teokeys.ANSICyan, "(trudp)")
 
 const (
 	maxResendAttempt = 50   // (number) max number of resend packet from sendQueue

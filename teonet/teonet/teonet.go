@@ -166,6 +166,7 @@ type Teonet struct {
 
 // Connect initialize Teonet
 func Connect(param *Parameters) (teo *Teonet) {
+	teolog.Init(param.ShowLogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
 	teo = &Teonet{param: param}
 	teo.com = &command{teo}
 	teo.kcr = C.ksnCryptInit(nil)
@@ -173,7 +174,6 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
 	//ShowLogLevel
-	teolog.Level(param.ShowLogLevel, true, log.LstdFlags|log.Lmicroseconds)
 	if param.RPort > 0 {
 		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
 		teo.sendToTcd(tcd, 0, nil) //[]byte{0})
