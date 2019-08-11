@@ -42,7 +42,7 @@ func None(p ...interface{}) {
 	logOutput(2, NONE, p...)
 }
 
-// None show NONE log formatted string
+// Nonef show NONE log formatted string
 func Nonef(module string, format string, p ...interface{}) {
 	logOutputf(2, NONE, module, format, p...)
 }
@@ -52,7 +52,7 @@ func Connect(p ...interface{}) {
 	logOutput(2, CONNECT, p...)
 }
 
-// Connect show CONNECT log formatted string
+// Connectf show CONNECT log formatted string
 func Connectf(module string, format string, p ...interface{}) {
 	logOutputf(2, CONNECT, module, format, p...)
 }
@@ -62,9 +62,19 @@ func Error(p ...interface{}) {
 	logOutput(2, ERROR, p...)
 }
 
-// Error show ERROR log formatted string
+// Errorf show ERROR log formatted string
 func Errorf(module string, format string, p ...interface{}) {
 	logOutputf(2, ERROR, module, format, p...)
+}
+
+// Message show MESSAGE log string
+func Message(p ...interface{}) {
+	logOutput(2, MESSAGE, p...)
+}
+
+// Messagef show MESSAGE log formatted string
+func Messagef(module string, format string, p ...interface{}) {
+	logOutputf(2, MESSAGE, module, format, p...)
 }
 
 // Debug show DEBUG log string
@@ -72,7 +82,7 @@ func Debug(p ...interface{}) {
 	logOutput(2, DEBUG, p...)
 }
 
-// Debug show DEBUG log formatted string
+// Debugf show DEBUG log formatted string
 func Debugf(module string, format string, p ...interface{}) {
 	logOutputf(2, DEBUG, module, format, p...)
 }
@@ -82,7 +92,7 @@ func DebugV(p ...interface{}) {
 	logOutput(2, DEBUGv, p...)
 }
 
-// DebugV show DEBUGv formatted string
+// DebugVf show DEBUGv formatted string
 func DebugVf(module string, format string, p ...interface{}) {
 	logOutputf(2, DEBUGv, module, format, p...)
 }
@@ -102,7 +112,7 @@ func Log(level int, p ...interface{}) {
 	logOutput(2, level, p...)
 }
 
-// Log show log formatted string
+// Logf show log formatted string
 func Logf(level int, module string, format string, p ...interface{}) {
 	logOutputf(2, level, module, format, p...)
 }
