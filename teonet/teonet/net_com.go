@@ -6,6 +6,10 @@ import (
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
+const (
+	CmdHostInfo = C.CMD_HOST_INFO
+)
+
 type command struct {
 	teo *Teonet
 }

@@ -4,17 +4,32 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
 type arpData struct {
 	peer string
+	mode int
 	tcd  *trudp.ChannelData
 }
 
 type arp struct {
 	teo *Teonet
 	m   map[string]*arpData // arp map
+}
+
+// peerAdd create new peer in art table map without TCD. Used to create record
+// for this host only.
+func (arp *arp) peerAdd(peer string) (peerArp *arpData) {
+	peerArp, ok := arp.m[peer]
+	if ok {
+		return
+	}
+	peerArp = &arpData{peer: peer, mode: -1}
+	arp.m[peer] = peerArp
+	arp.print()
+	return
 }
 
 // newPeer create new peer in art table map or select existing
@@ -27,7 +42,7 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	}
 	peerArp = &arpData{peer: peer, tcd: rec.tcd}
 	// arp.teo.sendToTcd(rec.tcd, 0, []byte{0})
-	// arp.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
+	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
 	arp.m[peer] = peerArp
 	arp.print()
 	return
@@ -40,7 +55,9 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 	if !ok {
 		return
 	}
-	peerArp.tcd.CloseChannel()
+	if peerArp.tcd != nil {
+		peerArp.tcd.CloseChannel()
+	}
 	delete(arp.m, peer)
 	arp.print()
 	return
@@ -49,7 +66,7 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 // delete remove peer from arp table /*and close trudp channel*/ (by trudp channel key)
 func (arp *arp) deleteKey(key string) (peerArp *arpData) {
 	for peer, peerArp := range arp.m {
-		if peerArp.tcd.MakeKey() == key {
+		if peerArp.tcd != nil && peerArp.tcd.GetKey() == key {
 			peerArp.tcd.CloseChannel()
 			delete(arp.m, peer)
 			arp.print()
@@ -73,17 +90,27 @@ func (arp *arp) sprint() (str string) {
 		"  # Peer          | Mod | IP              | Port |  Trip time | TR-UDP trip time\n" +
 		div
 	num := 0
-	for peer, _ := range arp.m {
+	for peer, peerArp := range arp.m {
 		num++
+		var ip string
+		var port int
+		if peerArp.mode == -1 {
+			// \TODO get connected IP and Port
+			port = arp.teo.param.Port
+		} else {
+			addr := peerArp.tcd.GetAddr()
+			ip = addr.IP.String()
+			port = addr.Port
+		}
 		str += fmt.Sprintf("%3d %s%-15s%s %3d   %-15s  %5d   %7s %s  %s%s%s\n",
 			num, // num
-			"",
+			teokeys.ANSIGreen,
 			peer, // peer name,
-			"",
-			0,      // mod
-			"",     // ip
-			0,      // port
-			"", "", // triptime
+			teokeys.ANSINone,
+			peerArp.mode, // mod
+			ip,           // ip
+			port,         // port
+			"", "",       // triptime
 			"", "", "", // trudp triptime
 		)
 	}

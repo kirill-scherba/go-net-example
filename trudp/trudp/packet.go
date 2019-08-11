@@ -6,6 +6,8 @@ package trudp
 import "C"
 import (
 	"unsafe"
+
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
 // \TODO rename to trudpPacket
@@ -92,6 +94,7 @@ func (pac *packetType) destroy() {
 // or Send Service packet to trudp channel and destroy it
 func (pac *packetType) writeTo(tcd *ChannelData) {
 	pac.trudp.proc.chanWriter <- &writerType{pac, tcd.addr}
+	teolog.DebugV(MODULE, "send packet id", pac.getID(), "to trudp channel", tcd.GetKey())
 	if pac.sendQueueF {
 		tcd.sendQueueAdd(pac)
 		tcd.stat.send(len(pac.data))

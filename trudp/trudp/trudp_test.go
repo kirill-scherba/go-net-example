@@ -56,7 +56,7 @@ func TestTRUDP(t *testing.T) {
 					go func() {
 						_, rPort := tru_to.GetAddr()
 						tcd := tru.ConnectChannel("localhost", rPort, 0)
-						teolog.Log(teolog.CONNECT, MODULE, "start send to:", tcd.MakeKey())
+						teolog.Log(teolog.CONNECT, MODULE, "start send to:", tcd.GetKey())
 						for i := 0; i < numMessages; i++ {
 							tcd.WriteTo([]byte(makeHello(i)))
 						}
@@ -77,7 +77,7 @@ func TestTRUDP(t *testing.T) {
 					if data == makeHello(idx) {
 						idx++
 						if idx == numMessages {
-							teolog.Log(teolog.CONNECT, MODULE, "was received", numMessages, "records to", ev.Tcd.MakeKey())
+							teolog.Log(teolog.CONNECT, MODULE, "was received", numMessages, "records to", ev.Tcd.GetKey())
 							wg2.Done()
 						}
 					} else {

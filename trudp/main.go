@@ -90,7 +90,7 @@ func main() {
 						num++
 					}
 
-					teolog.Log(teolog.CONNECT, MODULE, "(main) channel "+tcd.MakeKey()+" sender stopped")
+					teolog.Log(teolog.CONNECT, MODULE, "(main) channel "+tcd.GetKey()+" sender stopped")
 					if !tru.Running() {
 						break
 					}

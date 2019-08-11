@@ -32,7 +32,8 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 		}
 		// Destroy this trudp channel if resendAttemp more than maxResendAttemp
 		if sqd.resendAttempt >= maxResendAttempt {
-			tcd.destroy(teolog.DEBUGv, fmt.Sprint("destroy channel ", tcd.MakeKey(), ": too much resends happens: ", sqd.resendAttempt))
+			tcd.destroy(teolog.DEBUGv, fmt.Sprint("destroy channel ", tcd.GetKey(),
+				": too much resends happens: ", sqd.resendAttempt))
 			break
 		}
 		// Resend packet, save resend to statistic and show message

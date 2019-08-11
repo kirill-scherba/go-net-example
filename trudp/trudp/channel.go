@@ -174,12 +174,17 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 // CloseChannel close trudp channel
 func (tcd *ChannelData) CloseChannel() {
 	tcd.destroy(teolog.DEBUGv,
-		fmt.Sprint("destroy channel ", tcd.MakeKey(), ": closed by user"),
+		fmt.Sprint("destroy channel ", tcd.GetKey(), ": closed by user"),
 	)
 }
 
-// MakeKey return trudp channel key
-func (tcd *ChannelData) MakeKey() string {
+// GetAddr return trudp channel address
+func (tcd *ChannelData) GetAddr() *net.UDPAddr {
+	return tcd.addr
+}
+
+// GetKey return trudp channel key
+func (tcd *ChannelData) GetKey() string {
 	return tcd.key
 }
 
@@ -200,7 +205,7 @@ func (tcd *ChannelData) keepAlive() {
 	// Destroy channel after disconnect time
 	if time.Since(tcd.stat.lastTimeReceived) >= disconnectTime {
 		tcd.destroy(teolog.DEBUGv,
-			fmt.Sprint("destroy channel ", tcd.MakeKey(),
+			fmt.Sprint("destroy channel ", tcd.GetKey(),
 				": does not answer long time: ", time.Since(tcd.stat.lastTimeReceived),
 			),
 		)

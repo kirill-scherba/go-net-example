@@ -175,6 +175,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.td = trudp.Init(param.Port)
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
+	teo.arp.peerAdd(param.Name)
 	// Connect to remote host (r-host)
 	if param.RPort > 0 {
 		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
