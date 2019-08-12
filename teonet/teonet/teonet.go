@@ -214,14 +214,13 @@ FOR:
 
 		case trudp.CONNECTED:
 			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" connected")
-			//break FOR
 
 		case trudp.DISCONNECTED:
 			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
 			teo.arp.deleteKey(string(packet))
 
 		case trudp.RESET_LOCAL:
-			err = errors.New("need to reconnect")
+			err = errors.New("need to reconnect " + ev.Tcd.GetKey())
 			break FOR
 
 		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
