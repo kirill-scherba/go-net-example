@@ -55,5 +55,6 @@ func main() {
 
 	// Teonet connect and run
 	teo := teonet.Connect(param)
+	teo.SetType([]string{"teo-go-example"})
 	teo.Run()
 }

@@ -85,11 +85,15 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	// ACK-to-PING packet received
 	case ACKPing:
 		// Set trip time to ChannelData
-		tcd.stat.setTriptime(pac.getTriptime())
+		triptime := pac.getTriptime()
+		tcd.stat.setTriptime(triptime)
 		teolog.Log(teolog.DEBUGv, MODULE, "ACK_PING packet received, key:", key,
 			"id:", pac.getID(),
 			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
 			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
+		if tcd.trudp.allowEvents > 0 { // \TODO use GOT_ACK_PING to check allow this event
+			tcd.trudp.sendEvent(tcd, GOT_ACK_PING, nil) // []byte(fmt.Sprintf("%.3f", triptime)))
+		}
 
 	// UNKNOWN packet received
 	default:

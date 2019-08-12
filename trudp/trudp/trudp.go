@@ -44,11 +44,12 @@ type TRUDP struct {
 	udp *udp
 
 	// Control maps, channels and function holder
-	tcdmap    map[string]*ChannelData // channel data map
-	chanEvent chan *EventData         // User level event channel
-	packet    *packetType             // packet functions holder
-	ticker    *time.Ticker            // timer ticler
-	proc      *process
+	tcdmap      map[string]*ChannelData // channel data map
+	chanEvent   chan *EventData         // User level event channel
+	allowEvents uint32                  // allow send events \TODO: use flags
+	packet      *packetType             // packet functions holder
+	ticker      *time.Ticker            // timer ticler
+	proc        *process                // process container
 
 	// Logger configuration
 	logLevel int  // trudp log level
@@ -250,6 +251,11 @@ func (trudp *TRUDP) Connect(rhost string, rport int) {
 			trudp.udp.writeTo(append([]byte(echoMsg), dt...), rUDPAddr)
 		}
 	}()
+}
+
+// AllowEvents set allow events flags
+func (trudp *TRUDP) AllowEvents(events uint32) {
+	trudp.allowEvents = events
 }
 
 // Run waits some data received from UDP port and procces it

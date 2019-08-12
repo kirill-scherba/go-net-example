@@ -188,6 +188,11 @@ func (tcd *ChannelData) GetKey() string {
 	return tcd.key
 }
 
+// GetTriptime return trudp channel triptime
+func (tcd *ChannelData) GetTriptime() (float32, float32) {
+	return tcd.stat.triptime, tcd.stat.triptimeMiddle
+}
+
 // canWrine return true if writeTo is allowed
 func (tcd *ChannelData) canWrite() bool {
 	return tcd.sendQueue.Len() < tcd.maxQueueSize /*&& tcd.receiveQueue.Len() < tcd.maxQueueSize*/

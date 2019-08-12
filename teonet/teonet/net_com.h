@@ -78,6 +78,19 @@ enum ksnCMD {
 
 #define CMD_TRUDP_CHECK(CMD) (!CMD || CMD == CMD_CONNECT || (CMD >= CMD_64_RESERVED && CMD < CMD_192_RESERVED))
 
+// #define DIG_IN_TEO_VER 3
+//
+// /**
+//  * Host info data structure
+//  */
+// typedef struct host_info_data {
+//
+//     uint8_t ver[DIG_IN_TEO_VER]; ///< Version
+//     uint8_t string_ar_num; ///< Number of elements in array length
+//     char string_ar[]; ///< String array structure: { name, type }
+//
+// } host_info_data;
+
 // /**
 //  * KSNet command class data
 //  */

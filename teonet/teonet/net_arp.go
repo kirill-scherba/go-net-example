@@ -2,6 +2,7 @@ package teonet
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
@@ -9,9 +10,11 @@ import (
 )
 
 type arpData struct {
-	peer string
-	mode int
-	tcd  *trudp.ChannelData
+	peer    string             // peer name
+	mode    int                // mode (-1 - this host; 1 - r-host; 0 - all other host)
+	version string             // teonet version
+	appType []string           // application types array
+	tcd     *trudp.ChannelData // trudp channel connection
 }
 
 type arp struct {
@@ -21,12 +24,12 @@ type arp struct {
 
 // peerAdd create new peer in art table map without TCD. Used to create record
 // for this host only.
-func (arp *arp) peerAdd(peer string) (peerArp *arpData) {
+func (arp *arp) peerAdd(peer, version string) (peerArp *arpData) {
 	peerArp, ok := arp.m[peer]
 	if ok {
 		return
 	}
-	peerArp = &arpData{peer: peer, mode: -1}
+	peerArp = &arpData{peer: peer, mode: -1, version: version}
 	arp.m[peer] = peerArp
 	arp.print()
 	return
@@ -85,36 +88,69 @@ func (arp *arp) print() {
 
 // sprint return teonet arp table string
 func (arp *arp) sprint() (str string) {
-	var div = "\033[2K" + strings.Repeat("-", 83) + "\n"
-	str = div +
-		"  # Peer          | Mod | IP              | Port |  Trip time | TR-UDP trip time\n" +
-		div
-	num := 0
-	for peer, peerArp := range arp.m {
+
+	var num = 0              // number of body line
+	const numadd = 7         // add lines to scroll aria
+	const clearl = "\033[2K" // clear line terminal code
+	var line = clearl + strings.Repeat("-", 80) + "\n"
+
+	// Sort peers table:
+	// read peers arp map keys to slice and sort it
+	keys := make([]string, len(arp.m))
+	for key := range arp.m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	// Header
+	str = "\0337" + // save cursor position
+		"\033[0;0H" + // set cursor to the top
+		//"\033[?7l" + // does not wrap
+		line +
+		clearl + "  # Peer          | Mod | Version | IP              |  Port | Triptime / midle\n" +
+		line
+
+	// Body
+	for _, peer := range keys {
+		peerArp, ok := arp.m[peer]
+		if !ok {
+			continue
+		}
 		num++
-		var ip string
 		var port int
+		var ip string
+		var triptime, triptimeMidle float32
 		if peerArp.mode == -1 {
 			// \TODO get connected IP and Port
 			port = arp.teo.param.Port
 		} else {
+			triptime, triptimeMidle = peerArp.tcd.GetTriptime()
 			addr := peerArp.tcd.GetAddr()
 			ip = addr.IP.String()
 			port = addr.Port
 		}
-		str += fmt.Sprintf("%3d %s%-15s%s %3d   %-15s  %5d   %7s %s  %s%s%s\n",
-			num, // num
-			teokeys.ANSIGreen,
-			peer, // peer name,
-			teokeys.ANSINone,
-			peerArp.mode, // mod
-			ip,           // ip
-			port,         // port
-			"", "",       // triptime
-			"", "", "", // trudp triptime
+		str += fmt.Sprintf(clearl+"%3d %s%-15s%s %3d %9s   %-15s %7d   %8.3f / %-8.3f\n",
+			num,               // num
+			teokeys.ANSIGreen, // (color begin)
+			peer,              // peer name
+			teokeys.ANSINone,  // (color end)
+			peerArp.mode,      // mod
+			peerArp.version,   // teonet version
+			ip,                // ip
+			port,              // port
+			triptime,          // triptime
+			triptimeMidle,     // triptime midle
 		)
 	}
-	str += div
+
+	// Footer
+	str += line + fmt.Sprintf(""+
+		clearl+"\n"+ // clear line
+		clearl+"\n"+ // clear line
+		"\033[%d;r"+ // setscroll mode
+		"\0338", // restore cursor position
+		num+numadd,
+	)
 
 	return
 }

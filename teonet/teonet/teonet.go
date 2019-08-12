@@ -173,9 +173,10 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.com = &command{teo}
 	teo.kcr = C.ksnCryptInit(nil)
 	teo.td = trudp.Init(param.Port)
+	teo.td.AllowEvents(1) // \TODO: set events to allow it
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
-	teo.arp.peerAdd(param.Name)
+	teo.arp.peerAdd(param.Name, teo.version())
 	// Connect to remote host (r-host)
 	if param.RPort > 0 {
 		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
@@ -243,6 +244,11 @@ FOR:
 				teolog.Error(MODULE, "got invalid packet")
 			}
 
+		case trudp.GOT_ACK_PING:
+			triptime, _ := ev.Tcd.GetTriptime()
+			teolog.DebugV(MODULE, "got GOT_ACK_PING, key:", ev.Tcd.GetKey(), "triptime:", triptime, "ms")
+			teo.arp.print()
+
 		default:
 			teolog.Log(teolog.DEBUGvv, MODULE, "got event:", ev.Event)
 		}
@@ -270,4 +276,36 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err 
 	pac := packetCreateNew(cmd, teo.param.Name, data)
 	// \TODO: encrypt data
 	return tcd.WriteTo(pac.packet)
+}
+
+// GetType return this teonet application type (array of types)
+func (teo *Teonet) GetType() []string {
+	// Select this host in arp table
+	peerArp, ok := teo.arp.m[teo.param.Name]
+	if !ok {
+		//err = errors.New("host " + teo.param.Name + " does not exist in arp table")
+		return nil
+	}
+	return peerArp.appType
+}
+
+// SetType set this teonet application type (array of types)
+func (teo *Teonet) SetType(appType []string) (err error) {
+
+	// Select this host in arp table
+	peerArp, ok := teo.arp.m[teo.param.Name]
+	if !ok {
+		err = errors.New("host " + teo.param.Name + " does not exist in arp table")
+		return
+	}
+
+	// Set application type
+	peerArp.appType = appType
+
+	return
+}
+
+// version return teonet version
+func (teo *Teonet) version() string {
+	return Version
 }
