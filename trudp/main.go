@@ -130,10 +130,10 @@ func main() {
 					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED", string(ev.Data))
 
 				case trudp.RESET_LOCAL:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) RESET_LOCAL executed at channel:", ev.Tcd.MakeKey())
+					teolog.Log(teolog.DEBUG, MODULE, "(main) RESET_LOCAL executed at channel:", ev.Tcd.GetKey())
 
 				case trudp.SEND_RESET:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:", ev.Tcd.MakeKey())
+					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:", ev.Tcd.GetKey())
 
 				default:
 					teolog.Log(teolog.ERROR, MODULE, "(main)")

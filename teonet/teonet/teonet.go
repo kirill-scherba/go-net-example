@@ -11,6 +11,8 @@ import "C"
 import (
 	"errors"
 	"log"
+	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
@@ -21,16 +23,17 @@ import (
 // Version Teonet version
 const Version = "3.0.0"
 
+// MODULE Teonet module name for using in logging
 var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
 
-// Parameters
+// Parameters teonet parameters
 type Parameters struct {
 	Name           string // this host client name
 	Port           int    // local port
 	RAddr          string // remote host address
 	RPort, RChan   int    // remote host port and channel(for TRUdp only)
 	Network        string // teonet network name
-	ShowLogLevel   string // show log messages level
+	LogLevel       string // show log messages level
 	ShowTrudpStatF bool   // show trudp statistic
 	ShowPeersStatF bool   // show peers table
 	ShowHelpF      bool   // show usage
@@ -159,28 +162,65 @@ func (rd *C.ksnCorePacketData) DataLen() int {
 
 // Teonet teonet connection data structure
 type Teonet struct {
-	td    *trudp.TRUDP     // TRUdp connection
-	param *Parameters      // Teonet parameters
-	kcr   *C.ksnCryptClass // C crypt module
-	com   *command         // Commands module
-	arp   *arp             // Arp module
+	td      *trudp.TRUDP     // TRUdp connection
+	param   *Parameters      // Teonet parameters
+	kcr     *C.ksnCryptClass // C crypt module
+	com     *command         // Commands module
+	arp     *arp             // Arp module
+	rhost   *rhostData       // R-host module
+	running bool             // Teonet running flag
+	wg      sync.WaitGroup   // Wait stopped
+}
+
+// check check for r-host trudp channel
+func (rhost *rhostData) check(tcd *trudp.ChannelData) {
+	if rhost.tcd == tcd {
+		rhost.wg.Done()
+	}
+}
+
+// rhostData r-host data
+type rhostData struct {
+	teo *Teonet            // Teonet connection
+	tcd *trudp.ChannelData // TRUDP channel data
+	wg  sync.WaitGroup     // Reconnect wait group
 }
 
 // Connect initialize Teonet
 func Connect(param *Parameters) (teo *Teonet) {
-	teolog.Init(param.ShowLogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-	teo = &Teonet{param: param}
+
+	// Init logger and create Teonet connection structure
+	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+	teo = &Teonet{param: param, running: true}
+
+	// Command and Crypto modules init
 	teo.com = &command{teo}
 	teo.kcr = C.ksnCryptInit(nil)
+
+	// Trudp init
 	teo.td = trudp.Init(param.Port)
 	teo.td.AllowEvents(1) // \TODO: set events to allow it
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
+
+	// Arp module init
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
 	teo.arp.peerAdd(param.Name, teo.version())
-	// Connect to remote host (r-host)
+
+	// R-host module init and Connect to remote host (r-host)
+	teo.rhost = &rhostData{teo: teo}
 	if param.RPort > 0 {
-		tcd := teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
-		teo.sendToTcd(tcd, 0, nil)
+		go func() {
+			teo.wg.Add(1)
+			for teo.running {
+				teolog.Connectf(MODULE, "connecting to r-host %s:%d:%d\n", param.RAddr, param.RPort, 0)
+				teo.rhost.tcd = teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
+				teo.sendToTcd(teo.rhost.tcd, 0, nil)
+				teo.rhost.wg.Add(1)
+				teo.rhost.wg.Wait()
+				time.Sleep(2 * time.Second)
+			}
+			teo.wg.Done()
+		}()
 	}
 	return
 }
@@ -188,18 +228,21 @@ func Connect(param *Parameters) (teo *Teonet) {
 // Run start Teonet event loop
 func (teo *Teonet) Run() {
 	go func() {
-		for {
+		teo.wg.Add(1)
+		for teo.running {
 			rd, err := teo.read()
 			if err != nil {
 				teolog.Error(MODULE, err)
-				//break
 				continue
 			}
 			teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
 				rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
 		}
+		teo.wg.Done()
 	}()
 	teo.td.Run()
+	teo.running = false
+	teo.wg.Wait()
 }
 
 // read read and parse network packet
@@ -217,6 +260,7 @@ FOR:
 
 		case trudp.DISCONNECTED:
 			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
+			teo.rhost.check(ev.Tcd)
 			teo.arp.deleteKey(string(packet))
 
 		case trudp.RESET_LOCAL:
@@ -233,14 +277,15 @@ FOR:
 				teolog.DebugVvf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
 			}
 			pac := &Packet{packet: packet}
-			if rd, err = pac.Parse(); rd != nil {
-				teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
+			if rd, err = pac.Parse(); err == nil {
+				//teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
 				// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
 				if !teo.com.process(&receiveData{rd, ev.Tcd}) {
 					break FOR
 				}
 			} else {
-				teolog.Error(MODULE, "got invalid packet")
+				teolog.Error(MODULE, "got invalid packet", rd)
+				rd = nil
 			}
 
 		case trudp.GOT_ACK_PING:

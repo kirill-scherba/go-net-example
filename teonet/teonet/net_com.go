@@ -11,6 +11,7 @@ import (
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
+// Teonet commands
 const (
 	CmdHostInfo = C.CMD_HOST_INFO
 )

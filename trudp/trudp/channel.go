@@ -142,7 +142,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData,
 		key:          key,
 		id:           firstPacketID,
 		expectedID:   firstPacketID,
-		stat:         channelStat{trudp: trudp, timeStarted: now, lastTimeReceived: now},
+		stat:         channelStat{trudp: trudp, timeStarted: now, lastTimeReceived: now, triptimeMiddle: maxRTT},
 		sendTestMsgF: false,
 		maxQueueSize: trudp.defaultQueueSize,
 	}

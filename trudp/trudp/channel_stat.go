@@ -55,11 +55,18 @@ func (realTime *realTimeSpeed) calculate(length int) {
 // setTriptime save triptime to the ChannelData
 func (tcs *channelStat) setTriptime(triptime float32) {
 	tcs.triptime = triptime
-	if tcs.triptimeMiddle == 0 {
+	// if tcs.triptimeMiddle == 0 {
+	// 	tcs.triptimeMiddle = tcs.triptime
+	// 	return
+	// }
+	if tcs.triptimeMiddle == maxRTT {
 		tcs.triptimeMiddle = tcs.triptime
-		return
+	} else {
+		tcs.triptimeMiddle = (tcs.triptimeMiddle*10 + tcs.triptime) / 11
+		if tcs.triptimeMiddle > maxRTT {
+			tcs.triptimeMiddle = maxRTT
+		}
 	}
-	tcs.triptimeMiddle = (tcs.triptimeMiddle*10 + tcs.triptime) / 11
 	tcs.lastTripTimeReceived = time.Now()
 }
 
