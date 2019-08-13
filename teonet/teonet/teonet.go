@@ -269,6 +269,7 @@ FOR:
 
 		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
 			teolog.DebugVvf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
+			// \TODO memry leak hear ====
 			var decryptLen C.size_t
 			packetPtr := unsafe.Pointer(&packet[0])
 			C.ksnDecryptPackage(teo.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
@@ -276,6 +277,7 @@ FOR:
 				packet = packet[2 : decryptLen+2]
 				teolog.DebugVvf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
 			}
+			// end memory leak ====
 			pac := &Packet{packet: packet}
 			if rd, err = pac.Parse(); err == nil {
 				//teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
