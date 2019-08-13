@@ -1,10 +1,18 @@
+// Copyright 2019 Kirill Scherba <kirill@scherba.ru> as Teokeys Author.
+// All rights reserved. Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package teokeys
 
-// CLI hotkeys
+// CLI cursor position, colors and hotkeys processing module
+// Created 2019-08-10 by Kirill Scherba <kirill@scherba.ru>
 
 //// CGO definition (don't delay or edit it):
 //#include "rutil.h"
 import "C"
+
+// Version is Teokeys package version
+const Version = "3.0.0"
 
 // Ansi collors
 const (
@@ -31,4 +39,9 @@ const (
 // Color add ansi color to string
 func Color(color string, text string) string {
 	return color + text + ANSINone
+}
+
+// GetchNb non block getch() return 0 if no keys pressed
+func GetchNb() int {
+	return int(C.nb_getch())
 }

@@ -8,7 +8,7 @@
  * be cross-platform (at least Windows and Linux).
  *
  * About: Copyright
- * (c) 2014 Kirill Scheba
+ * (c) 2014 Kirill Scherba
  * Modified for using in ksnet library.
  *
  * The original code was created by:
