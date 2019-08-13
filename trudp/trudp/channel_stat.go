@@ -168,7 +168,7 @@ func (tcs *channelStat) statFooter(length int) (str string) {
 		}
 
 		str += fmt.Sprintf("%6d %6d %6d ",
-			len(tcs.trudp.proc.chanRead),   // channel read udp Size
+			len(tcs.trudp.proc.chanReader), // channel read udp Size
 			len(tcs.trudp.proc.chanWriter), // channel write udp Size
 			len(tcs.trudp.chanEvent),       // eventsQueueSize
 		)

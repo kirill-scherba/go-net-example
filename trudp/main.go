@@ -136,7 +136,7 @@ func main() {
 					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:", ev.Tcd.GetKey())
 
 				default:
-					teolog.Log(teolog.ERROR, MODULE, "(main)")
+					teolog.Log(teolog.ERROR, MODULE, "(main) event:", ev.Event)
 				}
 			}
 		}()

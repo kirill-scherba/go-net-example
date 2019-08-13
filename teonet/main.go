@@ -38,6 +38,7 @@ func main() {
 	flag.IntVar(&param.RPort, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&param.LogLevel, "log-level", "DEBUG", "show log messages level")
 	flag.BoolVar(&param.ShowTrudpStatF, "show-trudp", false, "show trudp statistic")
+	flag.BoolVar(&param.ForbidHotkeysF, "forbid-hotkeys", false, "forbid hotkeys")
 	flag.BoolVar(&param.ShowPeersStatF, "show-peers", false, "show peers table")
 	flag.BoolVar(&param.ShowHelpF, "h", false, "show this help message")
 	flag.Parse()

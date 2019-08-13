@@ -10,6 +10,7 @@ package teonet
 import "C"
 import (
 	"errors"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -34,6 +35,7 @@ type Parameters struct {
 	RPort, RChan   int    // remote host port and channel(for TRUdp only)
 	Network        string // teonet network name
 	LogLevel       string // show log messages level
+	ForbidHotkeysF bool   // forbid hotkeys menu
 	ShowTrudpStatF bool   // show trudp statistic
 	ShowPeersStatF bool   // show peers table
 	ShowHelpF      bool   // show usage
@@ -162,14 +164,16 @@ func (rd *C.ksnCorePacketData) DataLen() int {
 
 // Teonet teonet connection data structure
 type Teonet struct {
-	td      *trudp.TRUDP     // TRUdp connection
-	param   *Parameters      // Teonet parameters
-	kcr     *C.ksnCryptClass // C crypt module
-	com     *command         // Commands module
-	arp     *arp             // Arp module
-	rhost   *rhostData       // R-host module
-	running bool             // Teonet running flag
-	wg      sync.WaitGroup   // Wait stopped
+	td      *trudp.TRUDP        // TRUdp connection
+	param   *Parameters         // Teonet parameters
+	kcr     *C.ksnCryptClass    // C crypt module
+	com     *command            // Commands module
+	arp     *arp                // Arp module
+	rhost   *rhostData          // R-host module
+	running bool                // Teonet running flag
+	wg      sync.WaitGroup      // Wait stopped
+	ticker  *time.Ticker        // Idle timer ticker (to use in hokeys)
+	menu    *teokeys.HotkeyMenu // Hotkey menu
 }
 
 // check check for r-host trudp channel
@@ -222,6 +226,68 @@ func Connect(param *Parameters) (teo *Teonet) {
 			teo.wg.Done()
 		}()
 	}
+
+	// Timer ticker
+	teo.ticker = time.NewTicker(250 * time.Millisecond)
+
+	// Hotkeys CreateMenu
+	if !teo.param.ForbidHotkeysF {
+		teo.menu = teokeys.CreateMenu("Hot keys list:", "") // "(pressed key: '%c')\n")
+		teo.menu.Add([]int{'h', '?', 'H'}, "show this help screen", teo.menu.Usage)
+		teo.menu.Add('p', "show peers", func() {
+			var mode string
+			if teo.param.ShowPeersStatF {
+				teo.param.ShowPeersStatF = false
+				mode = "off" + "\033[r" + "\0338"
+			} else {
+				teo.param.ShowPeersStatF = true
+				teo.param.ShowTrudpStatF = false
+				mode = "on"
+			}
+			teo.td.ShowStatistic(param.ShowTrudpStatF)
+			fmt.Println("\nshow peers", mode)
+		})
+		teo.menu.Add('u', "show trudp statistics", func() {
+			var mode string
+			if teo.param.ShowTrudpStatF {
+				teo.param.ShowTrudpStatF = false
+				mode = "off" + "\033[r" + "\0338"
+			} else {
+				teo.param.ShowTrudpStatF = true
+				teo.param.ShowPeersStatF = false
+				mode = "on"
+			}
+			teo.td.ShowStatistic(param.ShowTrudpStatF)
+			fmt.Println("\nshow trudp", mode)
+		})
+		teo.menu.Add('n', "show 'none' messages", func() {
+			fmt.Print("\b")
+			param.LogLevel = "NONE"
+			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+		})
+		teo.menu.Add('c', "show 'connect' messages", func() {
+			fmt.Print("\b")
+			param.LogLevel = "CONNECT"
+			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+		})
+		teo.menu.Add('d', "show 'debug' messages", func() {
+			fmt.Print("\b")
+			param.LogLevel = "DEBUG"
+			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+		})
+		teo.menu.Add('v', "show 'debug_v' messages", func() {
+			fmt.Print("\b")
+			param.LogLevel = "DEBUGv"
+			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+		})
+		teo.menu.Add('w', "show 'debug_vv' messages", func() {
+			fmt.Print("\b")
+			param.LogLevel = "DEBUGvv"
+			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+		})
+		teo.menu.Add('q', "quit this application", teo.menu.Quit)
+	}
+
 	return
 }
 
@@ -249,56 +315,66 @@ func (teo *Teonet) Run() {
 func (teo *Teonet) read() (rd *C.ksnCorePacketData, err error) {
 FOR:
 	for {
-		ev := <-teo.td.ChanEvent()
-		packet := ev.Data
+		select {
+		// Trudp event
+		case ev := <-teo.td.ChanEvent():
+			packet := ev.Data
 
-		// Process trudp events
-		switch ev.Event {
+			// Process trudp events
+			switch ev.Event {
 
-		case trudp.CONNECTED:
-			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" connected")
+			case trudp.CONNECTED:
+				teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" connected")
 
-		case trudp.DISCONNECTED:
-			teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
-			teo.rhost.check(ev.Tcd)
-			teo.arp.deleteKey(string(packet))
+			case trudp.DISCONNECTED:
+				teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
+				teo.rhost.check(ev.Tcd)
+				teo.arp.deleteKey(string(packet))
 
-		case trudp.RESET_LOCAL:
-			err = errors.New("need to reconnect " + ev.Tcd.GetKey())
-			break FOR
+			case trudp.RESET_LOCAL:
+				err = errors.New("need to reconnect " + ev.Tcd.GetKey())
+				break FOR
 
-		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
-			teolog.DebugVvf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
-			// Decrypt
-			var decryptLen C.size_t
-			packetPtr := unsafe.Pointer(&packet[0])
-			C.ksnDecryptPackage(teo.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
-			if decryptLen > 0 {
-				packet = packet[2 : decryptLen+2]
-				teolog.DebugVvf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
-			} else {
-				teolog.DebugVvf(MODULE, "can't decript %d bytes packet (try to use without decrypt)\n", len(packet))
-			}
-			// Create Packet and parse it
-			pac := &Packet{packet: packet}
-			if rd, err = pac.Parse(); err == nil {
-				//teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
-				// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
-				if !teo.com.process(&receiveData{rd, ev.Tcd}) {
-					break FOR
+			case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
+				teolog.DebugVvf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
+				// Decrypt
+				var decryptLen C.size_t
+				packetPtr := unsafe.Pointer(&packet[0])
+				C.ksnDecryptPackage(teo.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
+				if decryptLen > 0 {
+					packet = packet[2 : decryptLen+2]
+					teolog.DebugVvf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
+				} else {
+					teolog.DebugVvf(MODULE, "can't decript %d bytes packet (try to use without decrypt)\n", len(packet))
 				}
-			} else {
-				teolog.Error(MODULE, "got invalid (not teonet) packet", rd)
-				rd = nil
+				// Create Packet and parse it
+				pac := &Packet{packet: packet}
+				if rd, err = pac.Parse(); err == nil {
+					//teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
+					// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
+					if !teo.com.process(&receiveData{rd, ev.Tcd}) {
+						break FOR
+					}
+				} else {
+					teolog.Error(MODULE, "got invalid (not teonet) packet") //, rd)
+					rd = nil
+				}
+
+			case trudp.GOT_ACK_PING:
+				triptime, _ := ev.Tcd.GetTriptime()
+				teolog.DebugV(MODULE, "got GOT_ACK_PING, key:", ev.Tcd.GetKey(), "triptime:", triptime, "ms")
+				teo.arp.print()
+
+			default:
+				teolog.Log(teolog.DEBUGvv, MODULE, "got event:", ev.Event)
 			}
 
-		case trudp.GOT_ACK_PING:
-			triptime, _ := ev.Tcd.GetTriptime()
-			teolog.DebugV(MODULE, "got GOT_ACK_PING, key:", ev.Tcd.GetKey(), "triptime:", triptime, "ms")
-			teo.arp.print()
-
-		default:
-			teolog.Log(teolog.DEBUGvv, MODULE, "got event:", ev.Event)
+		// Timer iddle event
+		case <-teo.ticker.C:
+			//teolog.Debug(MODULE, "ticker event")
+			if teo.menu != nil && !teo.param.ForbidHotkeysF {
+				teo.menu.Check()
+			}
 		}
 	}
 	return

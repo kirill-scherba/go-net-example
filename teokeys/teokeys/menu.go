@@ -35,8 +35,15 @@ func CreateMenu(usageTitle, pressed string) (hk *HotkeyMenu) {
 }
 
 // Add add record to hotkey menu
-func (hk *HotkeyMenu) Add(hkey []int, usage string, f func()) {
-	hk.menu = append(hk.menu, Hotkey{hkey: hkey, usage: usage, f: f})
+func (hk *HotkeyMenu) Add(ikey interface{}, usage string, f func()) {
+	switch hkey := ikey.(type) {
+	case []int:
+		hk.menu = append(hk.menu, Hotkey{hkey: hkey, usage: usage, f: f})
+	case int, int32:
+		hk.menu = append(hk.menu, Hotkey{hkey: append([]int(nil), int(hkey.(int32))), usage: usage, f: f})
+	default:
+		panic(fmt.Sprintf("can't use type %T in HotkeyMenu.Add\n", hkey))
+	}
 }
 
 var line = strings.Repeat("-", 68) + "\n"
@@ -61,7 +68,7 @@ func (hk *HotkeyMenu) Getch() (ch int) {
 		if ch != 0 {
 			break
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(250 * time.Millisecond)
 	}
 	return
 }
@@ -90,7 +97,20 @@ func (hk *HotkeyMenu) Process(ch int) {
 	}
 }
 
-// Run get char and process it
+// Run get char and process it once
+func (hk *HotkeyMenu) Check() (ch int) {
+	ch = GetchNb()
+	if ch == 0 {
+		return
+	}
+	if hk.pressed != "" {
+		fmt.Printf("\b"+hk.pressed, ch)
+	}
+	hk.Process(ch)
+	return
+}
+
+// Run get char and process it forewer
 func (hk *HotkeyMenu) Run() {
 	for {
 		ch := hk.Getch()

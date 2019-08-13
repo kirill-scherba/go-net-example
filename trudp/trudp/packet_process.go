@@ -34,8 +34,12 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 
 	// DATA packet received
 	case DATA:
+
+		// \TODO: drop this packet if EQ len >= MaxValue
+		// if len(pac.trudp.chanEvent) > 16 {
+		// 	break
+		// }
 		// Create ACK packet and send it back to sender
-		//go
 		pac.ackCreateNew().writeTo(tcd)
 		tcd.stat.received(len(pac.data))
 		// Show Log

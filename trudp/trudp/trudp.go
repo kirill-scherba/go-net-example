@@ -21,9 +21,9 @@ const (
 	defaultRTT       = 30   // (ms) default retransmit time in ms
 	maxRTT           = 500  // (ms) default maximum time in ms
 	firstPacketID    = 0    // (number) first packet ID and first expectedID number
-	chReadSize       = 1024 // Size of read channele used to got data from udp
-	chWriteSize      = 96   // Size of write channele used to send data from users level and than send it to remote host
-	chEventSize      = 96   // Size or read channel used to send messages to user level
+	chRWUdpSize      = 1024 // Size of read and write channel used to got/send data from udp
+	chWriteSize      = 256  // 96 // Size of writer channel used to send data from users level and than send it to remote host
+	chEventSize      = 256  // 96 // Size or read channel used to send messages to user level
 
 	// DefaultQueueSize is size of send and receive queue
 	DefaultQueueSize = 96
@@ -267,7 +267,7 @@ func (trudp *TRUDP) Run() {
 		nRead, addr, err := trudp.udp.readFrom(buffer)
 		if err != nil {
 			teolog.Log(teolog.CONNECT, MODULE, "stop listenning at", trudp.udp.localAddr())
-			close(trudp.proc.chanRead)
+			close(trudp.proc.chanReader)
 			trudp.proc.destroy()
 			trudp.proc.wg.Wait()
 			teolog.Log(teolog.CONNECT, MODULE, "stopped")
@@ -282,7 +282,7 @@ func (trudp *TRUDP) Run() {
 		// Check trudp packet
 		case trudp.packet.check(buffer[:nRead]):
 			packet := &packetType{trudp: trudp, data: buffer[:nRead]}
-			trudp.proc.chanRead <- &readType{addr, packet}
+			trudp.proc.chanReader <- &readerType{addr, packet}
 			// ch := trudp.packet.getChannel(buffer[:nRead])
 			// id := trudp.packet.getID(buffer[:nRead])
 			// tp := trudp.packet.getType(buffer[:nRead])

@@ -90,7 +90,7 @@ func (arp *arp) print() {
 func (arp *arp) sprint() (str string) {
 
 	var num = 0              // number of body line
-	const numadd = 7         // add lines to scroll aria
+	const numadd = 6         // add lines to scroll aria
 	const clearl = "\033[2K" // clear line terminal code
 	var line = clearl + strings.Repeat("-", 80) + "\n"
 
@@ -146,7 +146,7 @@ func (arp *arp) sprint() (str string) {
 	// Footer
 	str += line + fmt.Sprintf(""+
 		clearl+"\n"+ // clear line
-		clearl+"\n"+ // clear line
+		//clearl+"\n"+ // clear line
 		"\033[%d;r"+ // setscroll mode
 		"\0338", // restore cursor position
 		num+numadd,

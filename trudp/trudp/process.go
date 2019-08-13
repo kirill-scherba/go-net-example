@@ -20,7 +20,7 @@ import (
 // process data structure
 type process struct {
 	trudp       *TRUDP           // link to trudp
-	chanRead    chan *readType   // channel to read (used to process packets received from udp)
+	chanReader  chan *readerType // channel to read (used to process packets received from udp)
 	chanWrite   chan *writeType  // channel to write (used to send data from user level)
 	chanWriter  chan *writerType // channel to write (used to write data to udp)
 	timerResend <-chan time.Time // resend packet from send queue timer
@@ -31,7 +31,7 @@ type process struct {
 }
 
 // read channel data structure
-type readType struct {
+type readerType struct {
 	addr   *net.UDPAddr
 	packet *packetType
 }
@@ -60,9 +60,9 @@ func (proc *process) init(trudp *TRUDP) *process {
 	resendTime := defaultRTT * time.Millisecond
 
 	// Init channels and timers
-	proc.chanWriter = make(chan *writerType, chReadSize)
-	proc.chanWrite = make(chan *writeType, chWriteSize)
-	proc.chanRead = make(chan *readType, chReadSize)
+	proc.chanReader = make(chan *readerType, chRWUdpSize) // read from udp channel
+	proc.chanWriter = make(chan *writerType, chRWUdpSize) // write to udp channel
+	proc.chanWrite = make(chan *writeType, chWriteSize)   // write from user level
 	//
 	proc.timerResend = time.After(resendTime)
 
@@ -91,7 +91,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 			select {
 
 			// Process read packet (received from udp)
-			case readPac, ok := <-proc.chanRead:
+			case readPac, ok := <-proc.chanReader:
 				if !ok {
 					if !chanWriteClosedF {
 						chanWriteClosedF = true
