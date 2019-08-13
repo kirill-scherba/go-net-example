@@ -232,7 +232,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// Hotkeys CreateMenu
 	if !teo.param.ForbidHotkeysF {
-		teo.menu = teokeys.CreateMenu("Hot keys list:", "") // "(pressed key: '%c')\n")
+		teo.menu = teokeys.CreateMenu("\bHot keys list:", "")
 		teo.menu.Add([]int{'h', '?', 'H'}, "show this help screen", teo.menu.Usage)
 		teo.menu.Add('p', "show peers", func() {
 			var mode string
