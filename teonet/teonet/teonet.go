@@ -269,15 +269,17 @@ FOR:
 
 		case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
 			teolog.DebugVvf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
-			// \TODO memry leak hear ====
+			// Decrypt
 			var decryptLen C.size_t
 			packetPtr := unsafe.Pointer(&packet[0])
 			C.ksnDecryptPackage(teo.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
 			if decryptLen > 0 {
 				packet = packet[2 : decryptLen+2]
 				teolog.DebugVvf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
+			} else {
+				teolog.DebugVvf(MODULE, "can't decript %d bytes packet (try to use without decrypt)\n", len(packet))
 			}
-			// end memory leak ====
+			// Create Packet and parse it
 			pac := &Packet{packet: packet}
 			if rd, err = pac.Parse(); err == nil {
 				//teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
@@ -286,7 +288,7 @@ FOR:
 					break FOR
 				}
 			} else {
-				teolog.Error(MODULE, "got invalid packet", rd)
+				teolog.Error(MODULE, "got invalid (not teonet) packet", rd)
 				rd = nil
 			}
 

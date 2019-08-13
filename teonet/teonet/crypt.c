@@ -285,6 +285,15 @@ void *ksnDecryptPackage(ksnCryptClass *kcr, void *package, size_t package_len,
 
   *decrypt_len = *((uint16_t *)package);
   ptr += sizeof(uint16_t);
+
+  // Check packet valid to decrypt
+  // printf("decrypt %d bytes from %d bytes package\n", *decrypt_len,
+  //           package_len - ptr);
+  if(*decrypt_len > package_len - ptr) {
+    *decrypt_len = 0;
+    return NULL;
+  }
+
   unsigned char *decrypted = malloc(package_len - ptr); //*decrypt_len + 1);
 
 // Decrypt the package
