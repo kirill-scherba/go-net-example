@@ -14,16 +14,17 @@ const Version = "3.0.0"
 var MODULE = teokeys.Color(teokeys.ANSICyan, "(trudp)")
 
 const (
-	maxResendAttempt = 50   // (number) max number of resend packet from sendQueue
-	maxBufferSize    = 2048 // (bytes) send buffer size in bytes
-	pingAfter        = 1000 // (ms) send ping afret in ms
-	disconnectAfter  = 3000 // (ms) disconnect afret in ms
-	defaultRTT       = 30   // (ms) default retransmit time in ms
-	maxRTT           = 500  // (ms) default maximum time in ms
-	firstPacketID    = 0    // (number) first packet ID and first expectedID number
-	chRWUdpSize      = 1024 // Size of read and write channel used to got/send data from udp
-	chWriteSize      = 256  // 96 // Size of writer channel used to send data from users level and than send it to remote host
-	chEventSize      = 256  // 96 // Size or read channel used to send messages to user level
+	maxResendAttempt = 50               // (number) max number of resend packet from sendQueue
+	maxBufferSize    = 2048             // (bytes) send buffer size in bytes
+	pingAfter        = 1000             // (ms) send ping afret in ms
+	disconnectAfter  = 3000             // (ms) disconnect afret in ms
+	defaultRTT       = 30               // (ms) default retransmit time in ms
+	maxRTT           = 500              // (ms) default maximum time in ms
+	firstPacketID    = 0                // (number) first packet ID and first expectedID number
+	chRWUdpSize      = 1024             // Size of read and write channel used to got/send data from udp
+	chWriteSize      = 256              // Size of writer channel used to send data from users level and than send it to remote host
+	maxRQueue        = 4096             // Max size of receive queue
+	chEventSize      = 2048 + maxRQueue // Size or read channel used to send messages to user level
 
 	// DefaultQueueSize is size of send and receive queue
 	DefaultQueueSize = 96
@@ -223,6 +224,11 @@ func Init(port int) (trudp *TRUDP) {
 	trudp.sendEvent(nil, INITIALIZE, []byte(localAddr))
 
 	return
+}
+
+// sendEventAvailable return true if send event available
+func (trudp *TRUDP) sendEventAvailable() bool {
+	return len(trudp.chanEvent) < (chEventSize - maxRQueue - 16)
 }
 
 // sendEvent Send event to user level (to event callback or channel)

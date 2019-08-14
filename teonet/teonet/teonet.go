@@ -356,7 +356,7 @@ FOR:
 						break FOR
 					}
 				} else {
-					teolog.Error(MODULE, "got invalid (not teonet) packet") //, rd)
+					teolog.DebugVv(MODULE, teokeys.Color(teokeys.ANSIRed, "got invalid (not teonet) packet"))
 					rd = nil
 				}
 

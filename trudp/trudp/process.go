@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -66,6 +67,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 	//
 	proc.timerResend = time.After(resendTime)
 
+	var ebzdik1 = 0
+
 	// Module worker
 	go func() {
 
@@ -99,7 +102,16 @@ func (proc *process) init(trudp *TRUDP) *process {
 					}
 					break
 				}
-				readPac.packet.process(readPac.addr)
+				// Process packets if chanEvent is available receive it to avoid deadlock
+				// \TODO: May be drop only data packets but process asks and packets
+				// which we wait to free receive queue
+				if trudp.sendEventAvailable() {
+					readPac.packet.process(readPac.addr)
+					ebzdik1 = 0
+				} else {
+					teolog.Error(MODULE, "ebzdik-1 chanEvent: "+strconv.Itoa(len(trudp.chanEvent))+" <===- ", ebzdik1)
+					ebzdik1++
+				}
 
 			// Process write packet (received from user level, need write to udp)
 			case writePac, ok := <-proc.chanWrite:
@@ -153,7 +165,6 @@ func (proc *process) init(trudp *TRUDP) *process {
 // writeTo  write packet to trudp channel or write packet to write queue
 func (proc *process) writeTo(writePac *writeType) {
 	tcd := writePac.tcd
-	//if len(tcd.writeQueue) == 0 && tcd.canWrite() {
 	if len(tcd.writeQueue) == 0 && tcd.canWrite() {
 		proc.writeToDirect(writePac)
 	} else {

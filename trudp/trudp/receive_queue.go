@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
@@ -48,6 +49,11 @@ func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) {
 		e, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
 		if err != nil {
 			break
+		}
+		// \TODO: this a critical place where we have packet in received queue but
+		// has not place in event queue and can't read new packet bekause afraid deadlock
+		if !tcd.trudp.sendEventAvailable() {
+			teolog.Error(MODULE, "ebzdik-2:"+strconv.Itoa(len(tcd.trudp.chanEvent)))
 		}
 		tcd.expectedID++
 		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:", rqd.packet.getID())
