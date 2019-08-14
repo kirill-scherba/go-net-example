@@ -25,7 +25,7 @@ type realTimeSpeed struct {
 	speedMbSec  float32    // Speed in mb/second
 }
 
-var line = "\033[2K" + strings.Repeat("-", 188) + "\n"
+var line = "\033[2K" + strings.Repeat("-", 190) + "\n"
 
 // calculate function calculate real time packets speed in pac/sec and mb/sec
 func (realTime *realTimeSpeed) calculate(length int) {
@@ -134,7 +134,7 @@ func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) str
 			"\033[2K"+
 			"  # Key                          Send   Pac/sec   Total(mb) Ping(ms) / Wait(ms) |"+
 			"   Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |"+
-			" SQ l/max   WQ   RQ    UrQ    UwQ     EQ \n"+
+			" SQ l/max   WQ   RQ    UrQ    UwQ     EQ/WQ \n"+
 			line,
 		addr,
 		runningTime,
@@ -150,7 +150,7 @@ func (tcs *channelStat) statFooter(length int) (str string) {
 			str += fmt.Sprintf(""+
 				"%3d %-24.*s %8d  %8d %10.3f        -  /       -  %8d  %8d %10.3f %8d %8d(%d%%) %8d(%d%%)      -      -      - ",
 				length, // Number of channels
-				0, "",  // Empty
+				1, "-", // Empty
 				tcs.trudp.packets.send,                               // Total send packet
 				tcs.trudp.packets.sendRT.speedPacSec,                 // Total send packet/sec
 				float64(tcs.trudp.packets.sendLength)/(1024*1024),    // Total send in mb
@@ -167,10 +167,11 @@ func (tcs *channelStat) statFooter(length int) (str string) {
 			str += strings.Repeat(" ", 166)
 		}
 
-		str += fmt.Sprintf("%6d %6d %6d ",
+		str += fmt.Sprintf("%6d %6d %6d/%-6d ",
 			len(tcs.trudp.proc.chanReader), // channel read udp Size
 			len(tcs.trudp.proc.chanWriter), // channel write udp Size
-			len(tcs.trudp.chanEvent),       // eventsQueueSize
+			len(tcs.trudp.chanEvent),       // events channel size
+			len(tcs.trudp.proc.chanWrite),  // write from user channel size
 		)
 	}
 	str = line + str + fmt.Sprintf(
