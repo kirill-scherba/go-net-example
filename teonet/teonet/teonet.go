@@ -176,8 +176,9 @@ type Teonet struct {
 	menu    *teokeys.HotkeyMenu // Hotkey menu
 }
 
-// check check for r-host trudp channel
-func (rhost *rhostData) check(tcd *trudp.ChannelData) {
+// reconnect reconnect to r-host if selected in function parameters channel is
+// r-host trudp channel
+func (rhost *rhostData) reconnect(tcd *trudp.ChannelData) {
 	if rhost.tcd == tcd {
 		rhost.wg.Done()
 	}
@@ -242,6 +243,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 			} else {
 				teo.param.ShowPeersStatF = true
 				teo.param.ShowTrudpStatF = false
+				teo.arp.print()
 				mode = "on"
 			}
 			teo.td.ShowStatistic(param.ShowTrudpStatF)
@@ -328,7 +330,7 @@ FOR:
 
 			case trudp.DISCONNECTED:
 				teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
-				teo.rhost.check(ev.Tcd)
+				teo.rhost.reconnect(ev.Tcd)
 				teo.arp.deleteKey(string(packet))
 
 			case trudp.RESET_LOCAL:

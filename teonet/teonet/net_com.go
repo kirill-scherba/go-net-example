@@ -33,6 +33,9 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	case C.CMD_DISCONNECTED:
 		com.disconnect(rec)
 
+	case C.CMD_CONNECT_R:
+		//rhost.connect(rec)
+
 	case C.CMD_ECHO:
 		com.echo(rec)
 
