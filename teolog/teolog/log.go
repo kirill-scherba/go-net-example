@@ -154,24 +154,7 @@ func Init(level interface{}, useLogF bool, flags int) {
 	case int:
 		param.level = l
 	case string:
-		switch l {
-		case strNONE:
-			param.level = NONE
-		case strERROR:
-			param.level = ERROR
-		case strCONNECT:
-			param.level = CONNECT
-		case strMESSAGE:
-			param.level = MESSAGE
-		case strDEBUG:
-			param.level = DEBUG
-		case strDEBUGv:
-			param.level = DEBUGv
-		case strDEBUGvv:
-			param.level = DEBUGvv
-		default:
-			param.level = DEBUG
-		}
+		param.level = LogLevel(l)
 	default:
 		param.level = DEBUG
 	}
@@ -179,6 +162,29 @@ func Init(level interface{}, useLogF bool, flags int) {
 	// Show log level
 	fmt.Println("log level:", LevelString(param.level))
 	fmt.Println()
+}
+
+// LogLevel return trudp log level in int format
+func LogLevel(lstr string) (level int) {
+	switch lstr {
+	case strNONE:
+		level = NONE
+	case strERROR:
+		level = ERROR
+	case strCONNECT:
+		level = CONNECT
+	case strMESSAGE:
+		level = MESSAGE
+	case strDEBUG:
+		level = DEBUG
+	case strDEBUGv:
+		level = DEBUGv
+	case strDEBUGvv:
+		level = DEBUGvv
+	default:
+		level = DEBUG
+	}
+	return
 }
 
 // LevelString return trudp log level in string format

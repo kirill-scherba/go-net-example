@@ -221,8 +221,21 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// Hotkeys CreateMenu
 	if !teo.param.ForbidHotkeysF {
+		setLogLevel := func(loglevel int) {
+			fmt.Print("\b")
+			logstr := teolog.LevelString(loglevel)
+			if param.LogLevel == logstr {
+				logstr = teolog.LevelString(teolog.NONE)
+			}
+			param.LogLevel = logstr
+			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+		}
 		teo.menu = teokeys.CreateMenu("\bHot keys list:", "")
-		teo.menu.Add([]int{'h', '?', 'H'}, "show this help screen", teo.menu.Usage)
+		teo.menu.Add([]int{'h', '?', 'H'}, "show this help screen", func() {
+			//logLevel := param.LogLevel
+			setLogLevel(teolog.NONE)
+			teo.menu.Usage()
+		})
 		teo.menu.Add('p', "show peers", func() {
 			var mode string
 			if teo.param.ShowPeersStatF {
@@ -250,24 +263,19 @@ func Connect(param *Parameters) (teo *Teonet) {
 			teo.td.ShowStatistic(param.ShowTrudpStatF)
 			fmt.Println("\nshow trudp", mode)
 		})
-		setLogLevel := func(loglevel int) {
-			fmt.Print("\b")
-			logstr := teolog.LevelString(loglevel)
-			if param.LogLevel == logstr {
-				logstr = teolog.LevelString(teolog.NONE)
-			}
-			param.LogLevel = logstr
-			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-		}
 		teo.menu.Add('n', "show 'none' messages", func() { setLogLevel(teolog.NONE) })
 		teo.menu.Add('c', "show 'connect' messages", func() { setLogLevel(teolog.CONNECT) })
 		teo.menu.Add('d', "show 'debug' messages", func() { setLogLevel(teolog.DEBUG) })
 		teo.menu.Add('v', "show 'debug_v' messages", func() { setLogLevel(teolog.DEBUGv) })
 		teo.menu.Add('w', "show 'debug_vv' messages", func() { setLogLevel(teolog.DEBUGvv) })
 		teo.menu.Add('q', "quit this application", func() {
+			logLevel := param.LogLevel
+			setLogLevel(teolog.NONE)
 			fmt.Printf("\bPress y to quit application: ")
 			teo.menu.Stop(true)
 			ch := teo.menu.Getch()
+			fmt.Println()
+			setLogLevel(teolog.LogLevel(logLevel))
 			if ch == 'y' || ch == 'Y' {
 				teo.menu.Stop(false)
 				teo.menu.Quit()
