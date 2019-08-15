@@ -5,8 +5,6 @@ package teonet
 //#include <stdlib.h>
 //#include "crypt.h"
 //#include "net_core.h"
-/*
- */
 import "C"
 import (
 	"errors"
@@ -27,7 +25,7 @@ const Version = "3.0.0"
 // MODULE Teonet module name for using in logging
 var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
 
-// Parameters teonet parameters
+// Parameters is Teonet parameters
 type Parameters struct {
 	Name           string // this host client name
 	Port           int    // local port
@@ -174,21 +172,6 @@ type Teonet struct {
 	wg      sync.WaitGroup      // Wait stopped
 	ticker  *time.Ticker        // Idle timer ticker (to use in hokeys)
 	menu    *teokeys.HotkeyMenu // Hotkey menu
-}
-
-// reconnect reconnect to r-host if selected in function parameters channel is
-// r-host trudp channel
-func (rhost *rhostData) reconnect(tcd *trudp.ChannelData) {
-	if rhost.tcd == tcd {
-		rhost.wg.Done()
-	}
-}
-
-// rhostData r-host data
-type rhostData struct {
-	teo *Teonet            // Teonet connection
-	tcd *trudp.ChannelData // TRUDP channel data
-	wg  sync.WaitGroup     // Reconnect wait group
 }
 
 // Connect initialize Teonet
