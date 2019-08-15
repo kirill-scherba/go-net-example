@@ -40,14 +40,16 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	peer := rec.rd.From()
 	peerArp, ok := arp.m[peer]
 	if ok {
-		//trudp.Log(DEBUGvv, "the ChannelData with key", key, "selected")
+		// Cloase discovery channel (if there is new channel with same teone name)
+		if rec.tcd != rec.tcd {
+			rec.tcd.CloseChannel()
+		}
 		return
 	}
 	peerArp = &arpData{peer: peer, tcd: rec.tcd}
-	// arp.teo.sendToTcd(rec.tcd, 0, []byte{0})
-	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
 	arp.m[peer] = peerArp
 	arp.print()
+	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
 	return
 }
 

@@ -13,7 +13,7 @@ import (
 
 // Teonet commands
 const (
-	CmdHostInfo = C.CMD_HOST_INFO
+	CmdHostInfo = C.CMD_HOST_INFO // Request host info, allow JSON in request
 )
 
 type command struct {
@@ -28,13 +28,13 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	switch cmd {
 
 	case C.CMD_NONE, C.CMD_CONNECT:
-		com.connect(rec)
+		com.connect(rec, cmd)
 
 	case C.CMD_DISCONNECTED:
 		com.disconnect(rec)
 
 	case C.CMD_CONNECT_R:
-		com.teo.rhost.connect(rec)
+		com.teo.rhost.cmdConnect(rec)
 
 	case C.CMD_ECHO:
 		com.echo(rec)
@@ -55,9 +55,11 @@ func (com *command) process(rec *receiveData) (processed bool) {
 }
 
 // connect process 'connect' command and answer with 'connect' command
-func (com *command) connect(rec *receiveData) {
+func (com *command) connect(rec *receiveData, cmd int) {
 	rd := rec.rd
-	com.teo.sendToTcd(rec.tcd, 0, []byte{0})
+	if cmd == C.CMD_CONNECT {
+		com.teo.sendToTcd(rec.tcd, 0, []byte{0})
+	}
 	// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
 	teolog.DebugV(MODULE, "CMD_CONNECT command processed, from:", rd.From())
 	// \TODO send 'connected' event to user level

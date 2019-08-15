@@ -24,6 +24,7 @@ type Hotkey struct {
 type HotkeyMenu struct {
 	usageTitle string
 	pressed    string
+	stopped    bool
 	quitF      bool
 	menu       []Hotkey
 }
@@ -99,14 +100,16 @@ func (hk *HotkeyMenu) Process(ch int) {
 
 // Run get char and process it once
 func (hk *HotkeyMenu) Check() (ch int) {
-	ch = GetchNb()
-	if ch == 0 {
-		return
+	if !hk.stopped {
+		ch = GetchNb()
+		if ch == 0 {
+			return
+		}
+		if hk.pressed != "" {
+			fmt.Printf("\b"+hk.pressed, ch)
+		}
+		hk.Process(ch)
 	}
-	if hk.pressed != "" {
-		fmt.Printf("\b"+hk.pressed, ch)
-	}
-	hk.Process(ch)
 	return
 }
 
@@ -127,4 +130,9 @@ func (hk *HotkeyMenu) Run() {
 // Process quit from Getch(). And the Getch() will reurn 0
 func (hk *HotkeyMenu) Quit() {
 	hk.quitF = true
+}
+
+// Stop depricate hotkeys if stopped parameter is true or allow if false
+func (hk *HotkeyMenu) Stop(stopped bool) {
+	hk.stopped = stopped
 }

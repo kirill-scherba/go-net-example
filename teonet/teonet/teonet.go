@@ -22,6 +22,11 @@ import (
 // Version Teonet version
 const Version = "3.0.0"
 
+const (
+	localhostIP   = "127.0.0.1"
+	localhostIPv6 = "::1"
+)
+
 // MODULE Teonet module name for using in logging
 var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
 
@@ -202,7 +207,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 			for teo.running {
 				teolog.Connectf(MODULE, "connecting to r-host %s:%d:%d\n", param.RAddr, param.RPort, 0)
 				teo.rhost.tcd = teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
-				teo.sendToTcd(teo.rhost.tcd, 0, nil)
+				teo.rhost.connect()
 				teo.rhost.wg.Add(1)
 				teo.rhost.wg.Wait()
 				time.Sleep(2 * time.Second)
@@ -245,32 +250,32 @@ func Connect(param *Parameters) (teo *Teonet) {
 			teo.td.ShowStatistic(param.ShowTrudpStatF)
 			fmt.Println("\nshow trudp", mode)
 		})
-		teo.menu.Add('n', "show 'none' messages", func() {
+		setLogLevel := func(loglevel int) {
 			fmt.Print("\b")
-			param.LogLevel = "NONE"
+			logstr := teolog.LevelString(loglevel)
+			if param.LogLevel == logstr {
+				logstr = teolog.LevelString(teolog.NONE)
+			}
+			param.LogLevel = logstr
 			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+		}
+		teo.menu.Add('n', "show 'none' messages", func() { setLogLevel(teolog.NONE) })
+		teo.menu.Add('c', "show 'connect' messages", func() { setLogLevel(teolog.CONNECT) })
+		teo.menu.Add('d', "show 'debug' messages", func() { setLogLevel(teolog.DEBUG) })
+		teo.menu.Add('v', "show 'debug_v' messages", func() { setLogLevel(teolog.DEBUGv) })
+		teo.menu.Add('w', "show 'debug_vv' messages", func() { setLogLevel(teolog.DEBUGvv) })
+		teo.menu.Add('q', "quit this application", func() {
+			fmt.Printf("\bPress y to quit application: ")
+			teo.menu.Stop(true)
+			ch := teo.menu.Getch()
+			if ch == 'y' || ch == 'Y' {
+				teo.menu.Stop(false)
+				teo.menu.Quit()
+				teo.Close()
+			} else {
+				teo.menu.Stop(false)
+			}
 		})
-		teo.menu.Add('c', "show 'connect' messages", func() {
-			fmt.Print("\b")
-			param.LogLevel = "CONNECT"
-			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-		})
-		teo.menu.Add('d', "show 'debug' messages", func() {
-			fmt.Print("\b")
-			param.LogLevel = "DEBUG"
-			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-		})
-		teo.menu.Add('v', "show 'debug_v' messages", func() {
-			fmt.Print("\b")
-			param.LogLevel = "DEBUGv"
-			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-		})
-		teo.menu.Add('w', "show 'debug_vv' messages", func() {
-			fmt.Print("\b")
-			param.LogLevel = "DEBUGvv"
-			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-		})
-		teo.menu.Add('q', "quit this application", teo.menu.Quit)
 	}
 
 	return
@@ -282,27 +287,41 @@ func (teo *Teonet) Run() {
 		teo.wg.Add(1)
 		for teo.running {
 			rd, err := teo.read()
-			if err != nil {
+			if err != nil || rd == nil {
 				teolog.Error(MODULE, err)
 				continue
 			}
 			teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
 				rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
 		}
+		fmt.Printf("before quit -2 ....\n")
 		teo.wg.Done()
 	}()
 	teo.td.Run()
 	teo.running = false
+	fmt.Printf("before quit 1 ....\n")
 	teo.wg.Wait()
+	fmt.Printf("before quit 2 ....\n")
 }
 
-// read read and parse network packet
+// Close stops Teonet running
+func (teo *Teonet) Close() {
+	teo.running = false
+	teo.td.Close()
+	fmt.Printf("before quit -1 ....\n")
+}
+
+// read reads and parse network packet
 func (teo *Teonet) read() (rd *C.ksnCorePacketData, err error) {
 FOR:
-	for {
+	for teo.running {
 		select {
 		// Trudp event
-		case ev := <-teo.td.ChanEvent():
+		case ev, ok := <-teo.td.ChanEvent():
+			if !ok {
+				fmt.Printf("before quit 0 ....\n")
+				break FOR
+			}
 			packet := ev.Data
 
 			// Process trudp events
@@ -317,8 +336,9 @@ FOR:
 				teo.arp.deleteKey(string(packet))
 
 			case trudp.RESET_LOCAL:
-				err = errors.New("need to reconnect " + ev.Tcd.GetKey())
-				break FOR
+				err = errors.New("need reconnect to " + ev.Tcd.GetKey())
+				//ev.Tcd.CloseChannel()
+				//break FOR
 
 			case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
 				teolog.DebugVvf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
