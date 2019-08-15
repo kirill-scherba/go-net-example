@@ -292,6 +292,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 // Run start Teonet event loop
 func (teo *Teonet) Run() {
 	go func() {
+		defer teo.td.ChanEventClosed()
 		teo.wg.Add(1)
 		for teo.running {
 			rd, err := teo.read()
@@ -313,12 +314,12 @@ func (teo *Teonet) Run() {
 // Close stops Teonet running
 func (teo *Teonet) Close() {
 	teo.running = false
+	teo.arp.deleteAll()
 	teo.td.Close()
 }
 
 // read reads and parse network packet
 func (teo *Teonet) read() (rd *C.ksnCorePacketData, err error) {
-	defer teo.td.ChanEventClosed()
 FOR:
 	for teo.running {
 		select {

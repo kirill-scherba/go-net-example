@@ -131,6 +131,14 @@ func (rhost *rhostData) reconnect(tcd *trudp.ChannelData) {
 	}
 }
 
+// isrhost check if selected trudp channel is channel of r-host
+func (rhost *rhostData) isrhost(tcd *trudp.ChannelData) (isRhost bool) {
+	if rhost.tcd == tcd {
+		isRhost = true
+	}
+	return
+}
+
 // getIPs return string slice with local IP address of this host
 func (rhost *rhostData) getIPs() (ips []string, err error) {
 	ifaces, err := net.Interfaces()

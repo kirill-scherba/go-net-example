@@ -350,6 +350,7 @@ func (trudp *TRUDP) ChanEvent() <-chan *EventData {
 
 // ChanEventClosed signalling that event channel reader routine sucessfully closed
 func (trudp *TRUDP) ChanEventClosed() {
+	teolog.Log(teolog.DEBUG, MODULE, "ChanEventClosed")
 	trudp.proc.wg.Done()
 }
 

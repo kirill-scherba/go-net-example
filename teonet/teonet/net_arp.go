@@ -47,6 +47,9 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 		return
 	}
 	peerArp = &arpData{peer: peer, tcd: rec.tcd}
+	if arp.teo.rhost.isrhost(rec.tcd) {
+		peerArp.mode = 1
+	}
 	arp.m[peer] = peerArp
 	arp.print()
 	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
@@ -79,6 +82,19 @@ func (arp *arp) deleteKey(key string) (peerArp *arpData) {
 		}
 	}
 	return
+}
+
+// deleteAll remove all peers from arp table
+func (arp *arp) deleteAll() {
+	for peer, arpData := range arp.m {
+		if arpData.tcd != nil {
+			if arpData.mode == 1 {
+				arp.teo.rhost.reconnect(arpData.tcd)
+			}
+			arpData.tcd.CloseChannel()
+		}
+		delete(arp.m, peer)
+	}
 }
 
 // sprint print teonet arp table
