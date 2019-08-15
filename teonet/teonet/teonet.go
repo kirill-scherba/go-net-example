@@ -294,32 +294,29 @@ func (teo *Teonet) Run() {
 			teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
 				rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
 		}
-		fmt.Printf("before quit -2 ....\n")
 		teo.wg.Done()
 	}()
 	teo.td.Run()
 	teo.running = false
-	fmt.Printf("before quit 1 ....\n")
 	teo.wg.Wait()
-	fmt.Printf("before quit 2 ....\n")
+	teolog.Connect(MODULE, "stopped")
 }
 
 // Close stops Teonet running
 func (teo *Teonet) Close() {
 	teo.running = false
 	teo.td.Close()
-	fmt.Printf("before quit -1 ....\n")
 }
 
 // read reads and parse network packet
 func (teo *Teonet) read() (rd *C.ksnCorePacketData, err error) {
+	defer teo.td.ChanEventClosed()
 FOR:
 	for teo.running {
 		select {
 		// Trudp event
 		case ev, ok := <-teo.td.ChanEvent():
 			if !ok {
-				fmt.Printf("before quit 0 ....\n")
 				break FOR
 			}
 			packet := ev.Data
