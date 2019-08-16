@@ -115,6 +115,11 @@ func (tcd *ChannelData) WriteTo(data []byte) (err error) {
 	return
 }
 
+// WriteToUnsafe send data to remote host by UDP
+func (tcd *ChannelData) WriteToUnsafe(data []byte) (int, error) {
+	return tcd.trudp.udp.writeTo(data, tcd.addr)
+}
+
 // makeKey return trudp channel key
 func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
 	return addr.String() + ":" + strconv.Itoa(ch)
