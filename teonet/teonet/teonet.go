@@ -183,17 +183,18 @@ type Teonet struct {
 // Connect initialize Teonet
 func Connect(param *Parameters) (teo *Teonet) {
 
-	// Init logger and create Teonet connection structure
-	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
+	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
 
 	// Command and Crypto modules init
 	teo.com = &command{teo}
-	teo.kcr = C.ksnCryptInit(nil)
+	cnetwork := append([]byte(param.Network), 0)
+	teo.kcr = C.ksnCryptInit((*C.char)(unsafe.Pointer(&cnetwork[0])))
 
 	// Trudp init
 	teo.td = trudp.Init(param.Port)
-	teo.td.AllowEvents(1) // \TODO: set events to allow it
+	teo.td.AllowEvents(1) // \TODO: set events connected by '||'' to allow it
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 
 	// Arp module init
@@ -204,14 +205,18 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.rhost = &rhostData{teo: teo}
 	if param.RPort > 0 {
 		go func() {
+			reconnect := 0
 			teo.wg.Add(1)
 			for teo.running {
+				if reconnect > 0 {
+					time.Sleep(2 * time.Second)
+				}
 				teolog.Connectf(MODULE, "connecting to r-host %s:%d:%d\n", param.RAddr, param.RPort, 0)
 				teo.rhost.tcd = teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
 				teo.rhost.connect()
 				teo.rhost.wg.Add(1)
 				teo.rhost.wg.Wait()
-				time.Sleep(2 * time.Second)
+				reconnect++
 			}
 			teo.wg.Done()
 		}()
@@ -298,7 +303,8 @@ func Connect(param *Parameters) (teo *Teonet) {
 // Run start Teonet event loop
 func (teo *Teonet) Run() {
 	appType := teo.GetType()
-	for {
+	for teo.running {
+
 		// Reader
 		go func() {
 			defer teo.td.ChanEventClosed()
@@ -314,6 +320,7 @@ func (teo *Teonet) Run() {
 			}
 			teo.wg.Done()
 		}()
+
 		// Start running
 		teo.td.Run()
 		teo.running = false
@@ -321,16 +328,14 @@ func (teo *Teonet) Run() {
 		teolog.Connect(MODULE, "stopped")
 
 		// Reconnect
-		if !teo.reconnect {
-			//break
-			return
+		if teo.reconnect {
+			teolog.Connect(MODULE, "reconnect...")
+			time.Sleep(1 * time.Second)
+			teo = Connect(teo.param)
+			teo.SetType(appType)
+			teo.reconnect = false
+			teo.running = true
 		}
-		teolog.Connect(MODULE, "reconnect...")
-		teo.reconnect = false
-		teo.running = true
-		teo = Connect(teo.param)
-		teo.SetType(appType)
-		teo.Run()
 	}
 }
 
@@ -434,6 +439,12 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err 
 	pac := packetCreateNew(cmd, teo.param.Name, data)
 	// \TODO: encrypt data
 	return tcd.WriteTo(pac.packet)
+}
+
+// sendToTcd send command to Teonet peer by known trudp channel
+func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd int, data []byte) (int, error) {
+	pac := packetCreateNew(cmd, teo.param.Name, data)
+	return tcd.WriteToUnsafe(pac.packet)
 }
 
 // GetType return this teonet application type (array of types)
