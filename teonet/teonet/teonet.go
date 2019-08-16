@@ -167,16 +167,17 @@ func (rd *C.ksnCorePacketData) DataLen() int {
 
 // Teonet teonet connection data structure
 type Teonet struct {
-	td      *trudp.TRUDP        // TRUdp connection
-	param   *Parameters         // Teonet parameters
-	kcr     *C.ksnCryptClass    // C crypt module
-	com     *command            // Commands module
-	arp     *arp                // Arp module
-	rhost   *rhostData          // R-host module
-	running bool                // Teonet running flag
-	wg      sync.WaitGroup      // Wait stopped
-	ticker  *time.Ticker        // Idle timer ticker (to use in hokeys)
-	menu    *teokeys.HotkeyMenu // Hotkey menu
+	td        *trudp.TRUDP        // TRUdp connection
+	param     *Parameters         // Teonet parameters
+	kcr       *C.ksnCryptClass    // C crypt module
+	com       *command            // Commands module
+	arp       *arp                // Arp module
+	rhost     *rhostData          // R-host module
+	menu      *teokeys.HotkeyMenu // Hotkey menu
+	ticker    *time.Ticker        // Idle timer ticker (to use in hokeys)
+	running   bool                // Teonet running flag
+	reconnect bool                // Teonet reconnect flag
+	wg        sync.WaitGroup      // Wait stopped
 }
 
 // Connect initialize Teonet
@@ -268,6 +269,11 @@ func Connect(param *Parameters) (teo *Teonet) {
 		teo.menu.Add('d', "show 'debug' messages", func() { setLogLevel(teolog.DEBUG) })
 		teo.menu.Add('v', "show 'debug_v' messages", func() { setLogLevel(teolog.DEBUGv) })
 		teo.menu.Add('w', "show 'debug_vv' messages", func() { setLogLevel(teolog.DEBUGvv) })
+		teo.menu.Add('r', "reconnect this application", func() {
+			teo.reconnect = true
+			teo.menu.Quit()
+			teo.Close()
+		})
 		teo.menu.Add('q', "quit this application", func() {
 			logLevel := param.LogLevel
 			setLogLevel(teolog.NONE)
@@ -291,24 +297,41 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 // Run start Teonet event loop
 func (teo *Teonet) Run() {
-	go func() {
-		defer teo.td.ChanEventClosed()
-		teo.wg.Add(1)
-		for teo.running {
-			rd, err := teo.read()
-			if err != nil || rd == nil {
-				teolog.Error(MODULE, err)
-				continue
+	appType := teo.GetType()
+	for {
+		// Reader
+		go func() {
+			defer teo.td.ChanEventClosed()
+			teo.wg.Add(1)
+			for teo.running {
+				rd, err := teo.read()
+				if err != nil || rd == nil {
+					teolog.Error(MODULE, err)
+					continue
+				}
+				teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
+					rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
 			}
-			teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
-				rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
+			teo.wg.Done()
+		}()
+		// Start running
+		teo.td.Run()
+		teo.running = false
+		teo.wg.Wait()
+		teolog.Connect(MODULE, "stopped")
+
+		// Reconnect
+		if !teo.reconnect {
+			//break
+			return
 		}
-		teo.wg.Done()
-	}()
-	teo.td.Run()
-	teo.running = false
-	teo.wg.Wait()
-	teolog.Connect(MODULE, "stopped")
+		teolog.Connect(MODULE, "reconnect...")
+		teo.reconnect = false
+		teo.running = true
+		teo = Connect(teo.param)
+		teo.SetType(appType)
+		teo.Run()
+	}
 }
 
 // Close stops Teonet running
@@ -426,7 +449,6 @@ func (teo *Teonet) GetType() []string {
 
 // SetType set this teonet application type (array of types)
 func (teo *Teonet) SetType(appType []string) (err error) {
-
 	// Select this host in arp table
 	peerArp, ok := teo.arp.m[teo.param.Name]
 	if !ok {
