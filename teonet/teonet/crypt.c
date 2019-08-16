@@ -14,8 +14,6 @@
 #include <openssl/evp.h>
 
 #include "crypt.h"
-//#include "ev_mgr.h"
-//#include "utils/rlutil.h"
 
 #define MODULE _ANSI_BROWN "net_crypt" _ANSI_NONE
 
@@ -27,16 +25,14 @@ int num_crypt_module = 0;
  *
  * @return Pointer to created ksnCryptClass
  */
-ksnCryptClass *ksnCryptInit(void *ke) {
-
-  //#define kev ((ksnetEvMgrClass *)ke)
+ksnCryptClass *ksnCryptInit(char *network) {
 
   ksnCryptClass *kcr = malloc(sizeof(ksnCryptClass));
   if (kcr == NULL) {
     fprintf(stderr, "Insufficient memory");
     exit(EXIT_FAILURE);
   }
-  kcr->ke = ke;
+  kcr->ke = NULL;
 
   // A 128 bit IV
   const char *iv = "0123456789012345";
@@ -53,7 +49,7 @@ ksnCryptClass *ksnCryptInit(void *ke) {
   // if (kev != NULL && kev->ksn_cfg.net_key[0])
   //   strncpy((char *)kcr->key, kev->ksn_cfg.net_key, KEY_SIZE);
   // if (kev != NULL && kev->ksn_cfg.network[0])
-  strncpy((char *)kcr->key, /*kev->ksn_cfg.network*/ "local", KEY_SIZE);
+  strncpy((char *)kcr->key, network, KEY_SIZE);
   kcr->key_len = strlen((char *)kcr->key); // 32 - 256 bits
   kcr->blocksize = BLOCK_SIZE;
 
@@ -61,7 +57,6 @@ ksnCryptClass *ksnCryptInit(void *ke) {
   if (!num_crypt_module) {
     ERR_load_crypto_strings();
     OpenSSL_add_all_algorithms();
-    // OPENSSL_config(NULL);
   }
   num_crypt_module++;
 
@@ -89,7 +84,6 @@ void ksnCryptDestroy(ksnCryptClass *kcr) {
 }
 
 void handleErrors(void) {
-
   ERR_print_errors_fp(stderr);
   // abort();
 }
@@ -289,7 +283,8 @@ void *ksnDecryptPackage(ksnCryptClass *kcr, void *package, size_t package_len,
   // Check packet valid to decrypt
   // printf("decrypt %d bytes from %d bytes package\n", *decrypt_len,
   //           package_len - ptr);
-  if(*decrypt_len > package_len - ptr) {
+  // if (*decrypt_len > package_len - ptr) {
+  if (!ksnCheckEncrypted(package, package_len)) {
     *decrypt_len = 0;
     return NULL;
   }

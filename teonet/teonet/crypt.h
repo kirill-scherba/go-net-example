@@ -30,7 +30,7 @@ typedef struct ksnCryptClass {
 extern "C" {
 #endif
 
-ksnCryptClass *ksnCryptInit(void *ke);
+ksnCryptClass *ksnCryptInit(char *network);
 void ksnCryptDestroy(ksnCryptClass *kcr);
 void *ksnEncryptPackage(ksnCryptClass *kcr, void *package, size_t package_len,
                         void *buffer, size_t *encrypt_len);
