@@ -13,7 +13,8 @@ import (
 
 // Teonet commands
 const (
-	CmdHostInfo = C.CMD_HOST_INFO // Request host info, allow JSON in request
+	CmdDisconnect = C.CMD_DISCONNECTED // Send to peers signal about disconnect
+	CmdHostInfo   = C.CMD_HOST_INFO    // Request host info, allow JSON in request
 )
 
 type command struct {

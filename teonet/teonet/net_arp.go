@@ -86,14 +86,23 @@ func (arp *arp) deleteKey(key string) (peerArp *arpData) {
 
 // deleteAll remove all peers from arp table
 func (arp *arp) deleteAll() {
-	for peer, arpData := range arp.m {
+
+	for _, arpData := range arp.m {
 		if arpData.tcd != nil {
 			if arpData.mode == 1 {
 				arp.teo.rhost.reconnect(arpData.tcd)
 			}
-			arpData.tcd.CloseChannel()
+			//for _, arpd := range arp.m {
+			if arpData.mode != -1 {
+				arp.teo.sendToTcd(arpData.tcd, CmdDisconnect, nil) // append([]byte(arp.teo.param.Name), 0))
+				fmt.Printf("send disconnect to %s\n", arpData.peer)
+				//}
+				//}
+				arpData.tcd.CloseChannel()
+				arp.print()
+			}
 		}
-		delete(arp.m, peer)
+		//delete(arp.m, peer)
 	}
 }
 
