@@ -172,7 +172,9 @@ func Init(level interface{}, useLogF bool, flags int, filter string) {
 
 	// Show log level and log filter
 	fmt.Println("log level:", LevelString(param.level))
-	fmt.Println("log filter:", param.filter)
+	if param.filter != "" {
+		fmt.Println("log filter:", param.filter)
+	}
 	fmt.Println()
 }
 

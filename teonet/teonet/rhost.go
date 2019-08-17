@@ -120,7 +120,7 @@ func (rhost *rhostData) connect() {
 	}
 	binary.Write(buf, binary.LittleEndian, C.uint32_t(port))
 	data := buf.Bytes()
-	fmt.Printf("Port: %d\ndata_len: %d\ndata: %v\n", port, len(data), data)
+	fmt.Printf("Connect to r-host, send local IPs\nip: %v\nport: %d\n", ips, port)
 
 	// Send command to r-host
 	rhost.teo.sendToTcd(rhost.tcd, C.CMD_CONNECT_R, data)
@@ -162,7 +162,6 @@ func (rhost *rhostData) getIPs() (ips []string, err error) {
 				ip = v.IP
 			}
 			ips = append(ips, ip.String())
-			fmt.Printf("IP: %s\n", ip)
 		}
 	}
 	return
