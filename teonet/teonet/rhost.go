@@ -89,6 +89,7 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		if arp.mode != -1 && peer != from {
 			rhost.teo.SendTo(peer, C.CMD_CONNECT,
 				makeData(from, rec.tcd.GetAddr().IP.String(), rec.tcd.GetAddr().Port))
+			// \TODO: the discovery channel created here (issue #15)
 		}
 	}
 
