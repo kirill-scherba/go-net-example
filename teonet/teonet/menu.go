@@ -1,8 +1,11 @@
 package teonet
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
@@ -20,7 +23,8 @@ func (teo *Teonet) createMenu() {
 				logstr = teolog.LevelString(teolog.NONE)
 			}
 			teo.param.LogLevel = logstr
-			teolog.Init(teo.param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile, teo.param.LogFilter)
+			teolog.Init(teo.param.LogLevel, true,
+				log.LstdFlags|log.Lmicroseconds|log.Lshortfile, teo.param.LogFilter)
 		}
 
 		teo.menu = teokeys.CreateMenu("\bHot keys list:", "")
@@ -72,11 +76,14 @@ func (teo *Teonet) createMenu() {
 			teo.menu.Stop(true)
 
 			go func() {
-				var filter string
 				fmt.Printf("\benter log filter: ")
-				fmt.Scanf("%s", &filter)
-				teo.param.LogFilter = filter
-				teolog.SetFilter(filter)
+				in := bufio.NewReader(os.Stdin)
+				if filter, err := in.ReadString('\n'); err == nil {
+					teo.param.LogFilter = strings.TrimRightFunc(filter, func(c rune) bool {
+						return c == '\r' || c == '\n'
+					})
+					teolog.SetFilter(teo.param.LogFilter)
+				}
 
 				setLogLevel(teolog.LogLevel(logLevel))
 				teo.menu.Stop(false)
