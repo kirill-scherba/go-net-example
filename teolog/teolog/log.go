@@ -69,6 +69,11 @@ func Errorf(module string, format string, p ...interface{}) {
 	logOutputf(2, ERROR, module, format, p...)
 }
 
+// Errorfd show ERROR formatted string (with calldepth)
+func Errorfd(calldepth int, module string, format string, p ...interface{}) {
+	logOutputf(calldepth+2, DEBUGv, module, format, p...)
+}
+
 // Message show MESSAGE log string
 func Message(p ...interface{}) {
 	logOutput(2, MESSAGE, p...)
@@ -97,6 +102,11 @@ func DebugV(p ...interface{}) {
 // DebugVf show DEBUGv formatted string
 func DebugVf(module string, format string, p ...interface{}) {
 	logOutputf(2, DEBUGv, module, format, p...)
+}
+
+// DebugVfd show DEBUGv formatted string (with calldepth)
+func DebugVfd(calldepth int, module string, format string, p ...interface{}) {
+	logOutputf(calldepth+2, DEBUGv, module, format, p...)
 }
 
 // DebugVv show DEBUGvv log string

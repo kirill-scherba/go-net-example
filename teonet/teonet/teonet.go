@@ -201,8 +201,8 @@ FOR:
 				}
 
 			case trudp.GOT_ACK_PING:
-				triptime, _ := ev.Tcd.GetTriptime()
-				teolog.DebugV(MODULE, "got GOT_ACK_PING, key:", ev.Tcd.GetKey(), "triptime:", triptime, "ms")
+				// triptime, _ := ev.Tcd.GetTriptime()
+				// teolog.DebugVv(MODULE, "got GOT_ACK_PING, key:", ev.Tcd.GetKey(), "triptime:", triptime, "ms")
 				teo.arp.print()
 
 			default:
