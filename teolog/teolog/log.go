@@ -147,7 +147,7 @@ func logOutputf(calldepth int, level int, module string, format string, p ...int
 
 // Init initial module and sets log level
 // Avalable level values: NONE, CONNECT, ERROR, MESSAGE, DEBUG, DEBUGv, DEBUGvv
-func Init(level interface{}, useLogF bool, flags int) {
+func Init(level interface{}, useLogF bool, flags int, filter string) {
 
 	param.log = log.New(os.Stdout, "", flags)
 
@@ -167,8 +167,12 @@ func Init(level interface{}, useLogF bool, flags int) {
 		param.level = DEBUG
 	}
 
-	// Show log level
+	// Set log filter
+	SetFilter(filter)
+
+	// Show log level and log filter
 	fmt.Println("log level:", LevelString(param.level))
+	fmt.Println("log filter:", param.filter)
 	fmt.Println()
 }
 

@@ -20,7 +20,7 @@ func (teo *Teonet) createMenu() {
 				logstr = teolog.LevelString(teolog.NONE)
 			}
 			teo.param.LogLevel = logstr
-			teolog.Init(teo.param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+			teolog.Init(teo.param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile, teo.param.LogFilter)
 		}
 
 		teo.menu = teokeys.CreateMenu("\bHot keys list:", "")
@@ -69,20 +69,18 @@ func (teo *Teonet) createMenu() {
 		teo.menu.Add('f', "set log messages filter", func() {
 			logLevel := teo.param.LogLevel
 			setLogLevel(teolog.NONE)
+			fmt.Print("\bunder construction....\n\n")
+			fmt.Printf("\bEnter log filter: ")
 			teo.menu.Stop(true)
 
-			filter := teolog.GetFilter()
-			if filter != "" {
-				fmt.Printf("\bcurrent log filter: %s\n", filter)
-			}
-			fmt.Printf("\benter log filter: ")
+			var filter string
 			fmt.Scanf("%s", &filter)
-			if filter != "" {
-				fmt.Printf("lof filter set to: %s\n", filter)
-			} else {
-				fmt.Println("lof filter removed")
-			}
+			//fmt.Printf("Yuo type: %s\n", filter)
+			teo.param.LogFilter = filter
 			teolog.SetFilter(filter)
+
+			// teo.menu.Getch()
+			// fmt.Println()
 
 			setLogLevel(teolog.LogLevel(logLevel))
 			teo.menu.Stop(false)

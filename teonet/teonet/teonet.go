@@ -40,6 +40,7 @@ type Parameters struct {
 	RPort, RChan   int    // remote host port and channel(for TRUdp only)
 	Network        string // teonet network name
 	LogLevel       string // show log messages level
+	LogFilter      string // log messages filter
 	ForbidHotkeysF bool   // forbid hotkeys menu
 	ShowTrudpStatF bool   // show trudp statistic
 	ShowPeersStatF bool   // show peers table
@@ -67,7 +68,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
-	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile, param.LogFilter)
 
 	// Command and Crypto modules init
 	teo.com = &command{teo}

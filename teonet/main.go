@@ -40,6 +40,7 @@ func main() {
 	flag.IntVar(&param.RChan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
 	flag.IntVar(&param.RPort, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&param.LogLevel, "log-level", "DEBUG", "show log messages level")
+	flag.StringVar(&param.LogFilter, "log-filter", "", "set log messages filter")
 	flag.BoolVar(&param.ShowTrudpStatF, "show-trudp", false, "show trudp statistic")
 	flag.BoolVar(&param.ForbidHotkeysF, "forbid-hotkeys", false, "forbid hotkeys")
 	flag.BoolVar(&param.ShowPeersStatF, "show-peers", false, "show peers table")
