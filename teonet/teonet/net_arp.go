@@ -41,7 +41,7 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	peer := rec.rd.From()
 	peerArp, ok := arp.m[peer]
 	if ok {
-		// Close discovery channel (if there is new channel with same teone name)
+		// Close discovery channel (if there is new channel with same teonet name)
 		// \TODO: Check if this channel really closed (issue #15)
 		if rec.tcd != rec.tcd {
 			rec.tcd.CloseChannel()

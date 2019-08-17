@@ -70,9 +70,11 @@ func (com *command) error(rd *C.ksnCorePacketData, descr string) {
 
 // connect process 'connect' command and answer with 'connect' command
 func (com *command) connect(rec *receiveData, cmd int) {
-	com.log(rec.rd, "CMD_CONNECT command")
 	if cmd == C.CMD_CONNECT {
+		com.log(rec.rd, "CMD_CONNECT command")
 		com.teo.sendToTcd(rec.tcd, 0, []byte{0})
+	} else {
+		com.log(rec.rd, "CMD_NONE command")
 	}
 	// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
 	// \TODO send 'connected' event to user level
@@ -88,13 +90,15 @@ func (com *command) disconnect(rec *receiveData) {
 
 // echo process 'echo' command and answer with 'echo answer' command
 func (com *command) echo(rec *receiveData) {
-	com.log(rec.rd, "CMD_ECHO command")
+	com.log(rec.rd, "CMD_ECHO command, data: "+
+		C.GoString((*C.char)(unsafe.Pointer(&rec.rd.Data()[0]))))
 	com.teo.sendToTcd(rec.tcd, C.CMD_ECHO_ANSWER, rec.rd.Data())
 }
 
 // echo process 'echoAnswer' command
 func (com *command) echoAnswer(rec *receiveData) {
-	com.log(rec.rd, "CMD_ECHO_ANSWER command")
+	com.log(rec.rd, "CMD_ECHO_ANSWER command, data: "+
+		C.GoString((*C.char)(unsafe.Pointer(&rec.rd.Data()[0]))))
 }
 
 // hostInfo process 'hostInfo' command and send host info to peer from
