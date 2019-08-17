@@ -58,13 +58,13 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 // log command processed log message
 func (com *command) log(rd *C.ksnCorePacketData, descr string) {
-	teolog.DebugVfd(1, MODULE, "cmd: %d, from: %s, data_len: %d (%s)",
+	teolog.DebugVfd(1, MODULE, "got cmd: %d, from: %s, data_len: %d (%s)",
 		rd.Cmd(), rd.From(), rd.DataLen(), descr)
 }
 
 // error command processed with error log message
 func (com *command) error(rd *C.ksnCorePacketData, descr string) {
-	teolog.Errorfd(1, MODULE, "cmd: %d, from: %s, data_len: %d (%s)",
+	teolog.Errorfd(1, MODULE, "got cmd: %d, from: %s, data_len: %d (%s)",
 		rd.Cmd(), rd.From(), rd.DataLen(), descr)
 }
 

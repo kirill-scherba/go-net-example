@@ -163,29 +163,30 @@ FOR:
 			switch ev.Event {
 
 			case trudp.CONNECTED:
-				teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" connected")
+				teolog.Connect(MODULE, "got CONNECTED event, channel key: "+string(packet))
 
 			case trudp.DISCONNECTED:
-				teolog.Connect(MODULE, "got event: channel with key "+string(packet)+" disconnected")
+				teolog.Connect(MODULE, "got DISCONNECTED event, channel key: "+string(packet))
 				teo.rhost.reconnect(ev.Tcd)
 				teo.arp.deleteKey(string(packet))
 
 			case trudp.RESET_LOCAL:
-				err = errors.New("need reconnect to " + ev.Tcd.GetKey())
+				err = errors.New("got RESET_LOCAL event, channel key: " + ev.Tcd.GetKey())
+				teolog.Connect(MODULE, err.Error())
 				//ev.Tcd.CloseChannel()
 				//break FOR
 
 			case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
-				teolog.DebugVvf(MODULE, "got %d bytes packet %v\n", len(packet), packet)
+				teolog.DebugVvf(MODULE, "got %d bytes packet, channel key: %s\n", len(packet), ev.Tcd.GetKey())
 				// Decrypt
 				var decryptLen C.size_t
 				packetPtr := unsafe.Pointer(&packet[0])
 				C.ksnDecryptPackage(teo.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
 				if decryptLen > 0 {
 					packet = packet[2 : decryptLen+2]
-					teolog.DebugVvf(MODULE, "decripted %d bytes packet %v\n", decryptLen, packet)
+					teolog.DebugVvf(MODULE, "decripted to %d bytes packet, channel key: %s\n", decryptLen, ev.Tcd.GetKey())
 				} else {
-					teolog.DebugVvf(MODULE, "can't decript %d bytes packet (try to use without decrypt)\n", len(packet))
+					teolog.DebugVvf(MODULE, "can't decript %d bytes packet (try to use without decrypt), channel key: %s\n", len(packet), ev.Tcd.GetKey())
 				}
 				// Create Packet and parse it
 				pac := &Packet{packet: packet}
@@ -196,7 +197,7 @@ FOR:
 						break FOR
 					}
 				} else {
-					teolog.DebugVv(MODULE, teokeys.Color(teokeys.ANSIRed, "got invalid (not teonet) packet"))
+					teolog.DebugVvf(MODULE, teokeys.Color(teokeys.ANSIRed, "got invalid (not teonet) packet")+", channel key: %s\n", ev.Tcd.GetKey())
 					rd = nil
 				}
 
@@ -206,12 +207,16 @@ FOR:
 				teo.arp.print()
 
 			default:
-				teolog.Log(teolog.DEBUGvv, MODULE, "got event:", ev.Event)
+				var key string
+				if ev.Tcd != nil {
+					key = ev.Tcd.GetKey()
+				}
+				teolog.Logf(teolog.DEBUGvv, MODULE, "got unknown event: %d, channel key: %s\n", ev.Event, key)
 			}
 
 		// Timer iddle event
 		case <-teo.ticker.C:
-			//teolog.Debug(MODULE, "ticker event")
+			//teolog.Debug(MODULE, "got ticker event")
 			if teo.menu != nil && !teo.param.ForbidHotkeysF {
 				teo.menu.Check()
 			}
