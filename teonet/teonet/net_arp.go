@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
+	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
@@ -41,9 +42,10 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	peer := rec.rd.From()
 	peerArp, ok := arp.m[peer]
 	if ok {
-		// Close discovery channel (if there is new channel with same teonet name)
-		// \TODO: Check if this channel really closed (issue #15)
-		if rec.tcd != rec.tcd {
+		// Close discovery channel (if there is new channel with same peer name)
+		if rec.tcd != peerArp.tcd {
+			teolog.DebugVf(MODULE, "the peer %s is already connected at channel %s, "+
+				"now it try connect at channel %s\n", peer, peerArp.tcd.GetKey(), rec.tcd.GetKey())
 			rec.tcd.CloseChannel()
 		}
 		return
