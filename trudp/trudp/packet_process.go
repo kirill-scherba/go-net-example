@@ -9,8 +9,6 @@ import (
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
-//const MODULE = "trudp_packet"
-
 // Packet type
 const (
 	DATA     = iota //(0x0)
@@ -39,85 +37,87 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		// if len(pac.trudp.chanEvent) > 16 {
 		// 	break
 		// }
+
+		// Show Log
+		teolog.DebugVf(MODULE, "got DATA packet id: %d, channel: %s, "+
+			"expected id: %d, data_len: %d",
+			pac.getID(), key, tcd.expectedID, len(pac.data),
+		)
+
 		// Create ACK packet and send it back to sender
 		pac.ackCreateNew().writeTo(tcd)
 		tcd.stat.received(len(pac.data))
-		// Show Log
-		teolog.Log(teolog.DEBUGv, MODULE, "DATA packet received, key:", key,
-			"id:", pac.getID(),
-			"expected id:", tcd.expectedID,
-			"data length:", len(pac.data),
-			"data:", pac.getData())
+
 		// Process received queue
 		pac.packetDataProcess(tcd)
 
 	// ACK-to-data packet received
 	case ACK:
+
+		// Show Log
+		teolog.DebugVf(MODULE, "got ACK packet id: %d, channel: %s, "+
+			"triptime: %.3f ms\n",
+			pac.getID(), key, tcd.stat.triptime,
+		)
+
 		// Set trip time to ChannelData
 		tcd.stat.setTriptime(pac.getTriptime())
 		tcd.stat.ackReceived()
-		// Show Log
-		teolog.Log(teolog.DEBUGv, MODULE, "ACK packet received, key:", key,
-			"id:", pac.getID(),
-			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
-			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
+
 		// Remove packet from send queue
 		tcd.sendQueueRemove(pac)
 		tcd.trudp.proc.writeQueueWriteTo(tcd)
 
 	// RESET packet received
 	case RESET:
-		teolog.Log(teolog.DEBUGv, MODULE, "RESET packet received, key:", key)
+
+		teolog.DebugV(MODULE, "got RESET packet, channel:", key)
 		pac.ackToResetCreateNew().writeTo(tcd)
 		tcd.reset()
 
 	// ACK-to-reset packet received
 	case ACKReset:
-		teolog.Log(teolog.DEBUGv, MODULE, "ACK_RESET packet received, key:", key)
+
+		teolog.DebugV(MODULE, "got ACK_RESET packet, channel:", key)
 		tcd.reset()
 
 	// PING packet received
 	case PING:
+
+		// Show Log
+		teolog.DebugVf(MODULE, "got PING packet id: %d, channel: %s, data: %s\n",
+			pac.getID(), key, string(pac.getData()),
+		)
 		// Create ACK to ping packet and send it back to sender
 		pac.ackToPingCreateNew().writeTo(tcd)
-		// Show Log
-		teolog.Log(teolog.DEBUGv, MODULE, "PING packet received, key:", key,
-			"id:", pac.getID(),
-			"expected id:", tcd.expectedID,
-			"data:", pac.getData(), string(pac.getData()))
 
 	// ACK-to-PING packet received
 	case ACKPing:
+
+		// Show Log
+		teolog.DebugVf(MODULE, "got ACK_PING packet id: %d, channel: %s, "+
+			"triptime: %.3f ms\n",
+			pac.getID(), key, tcd.stat.triptime,
+		)
+
 		// Set trip time to ChannelData
 		triptime := pac.getTriptime()
 		tcd.stat.setTriptime(triptime)
-		teolog.Log(teolog.DEBUGv, MODULE, "ACK_PING packet received, key:", key,
-			"id:", pac.getID(),
-			"trip time:", fmt.Sprintf("%.3f", tcd.stat.triptime), "ms",
-			"trip time midle:", fmt.Sprintf("%.3f", tcd.stat.triptimeMiddle), "ms")
+
+		// Send event to user level
 		if tcd.trudp.allowEvents > 0 { // \TODO use GOT_ACK_PING to check allow this event
 			tcd.trudp.sendEvent(tcd, GOT_ACK_PING, nil) // []byte(fmt.Sprintf("%.3f", triptime)))
 		}
 
 	// UNKNOWN packet received
 	default:
-		teolog.Log(teolog.DEBUGv, MODULE, "UNKNOWN packet received, key:", key, ", type:", packetType)
+		teolog.DebugV(MODULE, "UNKNOWN packet received, channel:", key,
+			", type:", packetType,
+		)
 	}
 
 	return
 }
-
-const (
-	_ANSI_NONE = "\033[0m"
-	_ANSI_CLS  = "\033[2J"
-
-	_ANSI_RED        = "\033[22;31m"
-	_ANSI_LIGHTGREEN = "\033[01;32m"
-	_ANSI_LIGHTRED   = "\033[01;31m"
-	_ANSI_LIGHTBLUE  = "\033[01;34m"
-	_ANSI_YELLOW     = "\033[01;33m"
-	_ANSI_BROWN      = "\033[22;33m"
-)
 
 // packetDataProcess process received data packet, check receivedQueue and
 // send received data and events to user level
@@ -128,7 +128,8 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	// Valid data packet
 	case id == tcd.expectedID:
 		tcd.expectedID++
-		teolog.Log(teolog.DEBUGv, MODULE, teokeys.Color(teokeys.ANSILightGreen, "received valid packet id "+strconv.Itoa(int(id))))
+		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightGreen,
+			"received valid packet id: "+strconv.Itoa(int(id))))
 		// Send received packet data to user level
 		tcd.trudp.sendEvent(tcd, GOT_DATA, pac.getData())
 		// Check packets in received queue and send it data to user level
@@ -136,20 +137,23 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
-		teolog.Log(teolog.DEBUGv, MODULE, _ANSI_LIGHTRED+"received invalid packet id", id, "reset locally"+_ANSI_NONE)
+		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightRed,
+			fmt.Sprintf("received invalid packet id: %d, reset locally", id)))
 		tcd.reset()
 		pac.packetDataProcess(tcd)
 
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
-		teolog.Log(teolog.DEBUGv, MODULE, _ANSI_LIGHTRED+"received invalid packet id", id, "send reset remote host"+_ANSI_NONE)
+		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightRed,
+			fmt.Sprintf("received invalid packet id: %d, send reset to remote host", id)))
 		pac.resetCreateNew().writeTo(tcd) // Send reset
 		// Send event "RESET was sent" to user level
 		tcd.trudp.sendEvent(tcd, SEND_RESET, nil)
 
 	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:
-		teolog.Log(teolog.DEBUGv, MODULE, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already processed"+_ANSI_NONE)
+		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightBlue,
+			fmt.Sprintf("skip received packet id: %d, already processed", id)))
 		// Set statistic REJECTED (already received) packet
 		tcd.stat.dropped()
 
@@ -158,10 +162,12 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	case id > tcd.expectedID:
 		_, _, err := tcd.receiveQueueFind(id)
 		if err != nil {
-			teolog.Log(teolog.DEBUGv, MODULE, _ANSI_YELLOW+"move received packet to received queue, id", id, "wait previouse packets"+_ANSI_NONE)
+			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSIYellow,
+				fmt.Sprintf("put packet id: %d to received queue, wait previouse packets", id)))
 			tcd.receiveQueueAdd(pac)
 		} else {
-			teolog.Log(teolog.DEBUGv, MODULE, _ANSI_LIGHTBLUE+"skipping received packet id", id, "already in receive queue"+_ANSI_NONE)
+			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightBlue,
+				fmt.Sprintf("skip received packet id: %d, already in receive queue", id)))
 			// Set statistic REJECTED (already received) packet
 			tcd.stat.dropped()
 		}

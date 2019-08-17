@@ -158,7 +158,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData,
 	// Add to channels map
 	trudp.tcdmap[key] = tcd
 
-	teolog.Log(teolog.CONNECT, MODULE, "channel with key", key, "connected")
+	teolog.Log(teolog.CONNECT, MODULE, "channel", key, "connected")
 	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
 
 	return
@@ -209,7 +209,7 @@ func (tcd *ChannelData) keepAlive() {
 	// Send ping after sleep time
 	if time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime {
 		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
-		teolog.Log(teolog.DEBUGv, MODULE, "send ping to", tcd.key)
+		teolog.Log(teolog.DEBUGv, MODULE, "send ping to channel: ", tcd.key)
 	}
 
 	// Destroy channel after disconnect time

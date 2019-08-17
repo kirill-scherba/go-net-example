@@ -298,22 +298,26 @@ func (trudp *TRUDP) Run() {
 
 		// Process connect message
 		case nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg:
-			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "bytes 'connect' message from:", addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "bytes 'connect' message from:",
+				addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
 
 		// Process echo message Ping (send to Pong)
 		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
-			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "byte 'ping' command from:", addr, buffer[:nRead])
+			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "byte 'ping' command from:",
+				addr, buffer[:nRead])
 			trudp.udp.writeTo(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr)
 
 		// Process echo answer message Pong (answer to Ping)
 		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
 			var ts time.Time
 			ts.UnmarshalBinary(buffer[len(echoAnswerMsg):nRead])
-			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "byte 'pong' command from:", addr, "trip time:", time.Since(ts), buffer[:nRead])
+			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "byte 'pong' command from:",
+				addr, "trip time:", time.Since(ts), buffer[:nRead])
 
 		// Not trudp packet received
 		default:
-			teolog.Log(teolog.DEBUG, MODULE, "got (---==Not TRUDP==---)", nRead, "bytes from:", addr, "data: ", buffer[:nRead]) //, string(buffer[:nRead]))
+			teolog.Log(teolog.DEBUGv, MODULE, "got (---==Not TRUDP==---)", nRead,
+				"bytes from:", addr)
 			// Send received packet data to user level
 			tcd, _ := trudp.newChannelData(addr, 0)
 			tcd.trudp.sendEvent(tcd, GOT_DATA_NOTRUDP, buffer[:nRead])

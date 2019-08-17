@@ -94,7 +94,8 @@ func (pac *packetType) destroy() {
 // or Send Service packet to trudp channel and destroy it
 func (pac *packetType) writeTo(tcd *ChannelData) {
 	pac.trudp.proc.chanWriter <- &writerType{pac, tcd.addr}
-	teolog.DebugV(MODULE, "send packet id", pac.getID(), "to trudp channel", tcd.GetKey())
+	teolog.DebugVf(MODULE, "send %s packet id: %d, to channel: %s\n",
+		pac.getTypeString(), pac.getID(), tcd.GetKey())
 	if pac.sendQueueF {
 		tcd.sendQueueAdd(pac)
 		tcd.stat.send(len(pac.data))
@@ -117,9 +118,30 @@ func (pac *packetType) getID() uint32 {
 	return uint32(C.trudpPacketGetId(unsafe.Pointer(&pac.data[0])))
 }
 
-// getType reurn packet type
+// getType return packet type
 func (pac *packetType) getType() int {
 	return int(C.trudpPacketGetType(unsafe.Pointer(&pac.data[0])))
+}
+
+// getTypeStr return packet type in string format
+// DATA(0x0), ACK(0x1), RESET(0x2), ACK_RESET(0x3), PING(0x4), ACK_PING(0x5)
+func (pac *packetType) getTypeString() string {
+	switch int(C.trudpPacketGetType(unsafe.Pointer(&pac.data[0]))) {
+	case 0:
+		return "DATA"
+	case 1:
+		return "ACK"
+	case 2:
+		return "RESET"
+	case 3:
+		return "ACK_RESET"
+	case 4:
+		return "PING"
+	case 5:
+		return "ACK_PING"
+	default:
+		return "UNKNOWN"
+	}
 }
 
 // getData return trudp packet data

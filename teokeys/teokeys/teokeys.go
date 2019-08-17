@@ -27,7 +27,7 @@ const (
 	ANSICyan         = C._ANSI_CYAN
 	ANSIGrey         = C._ANSI_GREY
 	ANSIDarkGrey     = C._ANSI_DARKGREY
-	ANSILightGred    = C._ANSI_LIGHTRED
+	ANSILightRed     = C._ANSI_LIGHTRED
 	ANSILightGreen   = C._ANSI_LIGHTGREEN
 	ANSIYellow       = C._ANSI_YELLOW
 	ANSILightBlue    = C._ANSI_LIGHTBLUE

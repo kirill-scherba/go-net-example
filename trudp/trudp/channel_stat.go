@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 )
 
 // channelStat structure contain channel statistic variables
@@ -206,7 +208,7 @@ func droppedP(packets *packetsStat) (retval uint32) {
 func (tcs *channelStat) statBody(tcd *ChannelData, idx, page int) (retstr string) {
 
 	retstr = fmt.Sprintf("\033[2K"+
-		"%3d "+_ANSI_BROWN+"%-24.*s"+_ANSI_NONE+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d %13s %8d(%d%%) %9s %4d %4d      -      -      - \n",
+		"%3d "+teokeys.ANSIBrown+"%-24.*s"+teokeys.ANSINone+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d %13s %8d(%d%%) %9s %4d %4d      -      -      - \n",
 
 		idx+1,                 // trudp channel number (in statistic screen)
 		len(tcd.key), tcd.key, // key len and key

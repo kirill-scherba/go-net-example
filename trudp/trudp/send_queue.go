@@ -39,7 +39,7 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 		// Resend packet, save resend to statistic and show message
 		sqd.packet.writeTo(tcd)
 		tcd.stat.repeat(true)
-		teolog.Log(teolog.DEBUGvv, MODULE, "resend sendQueue packet with",
+		teolog.Log(teolog.DEBUGvv, MODULE, "resend sendQueue packet ",
 			"id:", sqd.packet.getID(),
 			"attempt:", sqd.resendAttempt)
 	}
@@ -69,7 +69,7 @@ func (tcd *ChannelData) sendQueueAdd(packet *packetType) {
 			sendTime:    now,
 			arrivalTime: arrivalTime,
 		})
-		teolog.Log(teolog.DEBUGvv, MODULE, "add to send queue, id", packet.getID())
+		teolog.Log(teolog.DEBUGvv, MODULE, "add to send queue, id:", packet.getID())
 	} else {
 		sqd.arrivalTime = arrivalTime
 		sqd.resendAttempt++
@@ -96,7 +96,7 @@ func (tcd *ChannelData) sendQueueRemove(packet *packetType) {
 	if err == nil {
 		sqd.packet.destroy()
 		tcd.sendQueue.Remove(e)
-		teolog.Log(teolog.DEBUGvv, MODULE, "remove from send queue, id", id)
+		teolog.Log(teolog.DEBUGvv, MODULE, "remove from send queue, id:", id)
 	}
 }
 
