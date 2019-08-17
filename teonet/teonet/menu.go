@@ -71,14 +71,16 @@ func (teo *Teonet) createMenu() {
 			setLogLevel(teolog.NONE)
 			teo.menu.Stop(true)
 
-			var filter string
-			fmt.Printf("\benter log filter: ")
-			fmt.Scanf("%s", &filter)
-			teo.param.LogFilter = filter
-			teolog.SetFilter(filter)
+			func() {
+				var filter string
+				fmt.Printf("\benter log filter: ")
+				fmt.Scanf("%s", &filter)
+				teo.param.LogFilter = filter
+				teolog.SetFilter(filter)
 
-			setLogLevel(teolog.LogLevel(logLevel))
-			teo.menu.Stop(false)
+				setLogLevel(teolog.LogLevel(logLevel))
+				teo.menu.Stop(false)
+			}()
 		})
 
 		teo.menu.Add('r', "reconnect this application", func() {
