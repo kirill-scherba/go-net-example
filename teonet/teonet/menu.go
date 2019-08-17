@@ -71,7 +71,7 @@ func (teo *Teonet) createMenu() {
 			setLogLevel(teolog.NONE)
 			teo.menu.Stop(true)
 
-			func() {
+			go func() {
 				var filter string
 				fmt.Printf("\benter log filter: ")
 				fmt.Scanf("%s", &filter)
