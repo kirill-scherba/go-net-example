@@ -69,11 +69,17 @@ func (teo *Teonet) createMenu() {
 		teo.menu.Add('f', "set log messages filter", func() {
 			logLevel := teo.param.LogLevel
 			setLogLevel(teolog.NONE)
-			fmt.Println("\bunder construction....")
-			fmt.Printf("\bPress eny key to continue")
+			fmt.Print("\bunder construction....\n\n")
+			fmt.Printf("\bEnter log filter: ")
 			teo.menu.Stop(true)
+
+			var filter string
+			fmt.Scanf("%s", &filter)
+			fmt.Printf("Yuo type: %s\n", filter)
+
 			teo.menu.Getch()
 			fmt.Println()
+
 			setLogLevel(teolog.LogLevel(logLevel))
 			teo.menu.Stop(false)
 		})
