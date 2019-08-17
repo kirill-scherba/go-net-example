@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 )
@@ -31,8 +32,9 @@ const (
 )
 
 type logParam struct {
-	level int
-	log   *log.Logger
+	level  int
+	log    *log.Logger
+	filter string
 }
 
 var param logParam
@@ -123,7 +125,10 @@ func logOutput(calldepth int, level int, p ...interface{}) {
 		var pp []interface{}
 		pp = make([]interface{}, 0, 1+len(p))
 		pp = append(append(pp, LevelStringColor(level)), p...)
-		param.log.Output(calldepth+1, fmt.Sprintln(pp...))
+		msg := fmt.Sprintln(pp...)
+		if checkFilter(msg) {
+			param.log.Output(calldepth+1, msg)
+		}
 	}
 }
 
@@ -133,7 +138,10 @@ func logOutputf(calldepth int, level int, module string, format string, p ...int
 		var pp []interface{}
 		pp = make([]interface{}, 0, 2+len(p))
 		pp = append(append(pp, LevelStringColor(level), module), p...)
-		param.log.Output(calldepth+1, fmt.Sprintf("%s %s "+format, pp...))
+		msg := fmt.Sprintf("%s %s "+format, pp...)
+		if checkFilter(msg) {
+			param.log.Output(calldepth+1, msg)
+		}
 	}
 }
 
@@ -232,4 +240,22 @@ func LevelStringColor(level int) (strLogLevel string) {
 		strLogLevel = strUNKNOWN
 	}
 	return
+}
+
+// Get logger filter
+func GetFilter() string {
+	return param.filter
+}
+
+// Set logger filter
+func SetFilter(filter string) {
+	param.filter = filter
+}
+
+// checkFilter parse log message strings and return true if filter allow (show message)
+func checkFilter(message string) bool {
+	if param.filter == "" {
+		return true
+	}
+	return strings.Contains(message, param.filter)
 }
