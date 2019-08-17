@@ -10,7 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -175,6 +178,7 @@ type Teonet struct {
 	rhost     *rhostData          // R-host module
 	menu      *teokeys.HotkeyMenu // Hotkey menu
 	ticker    *time.Ticker        // Idle timer ticker (to use in hokeys)
+	ctrlc     bool                // Ctrl+C is on flag (for use in reconnect)
 	running   bool                // Teonet running flag
 	reconnect bool                // Teonet reconnect flag
 	wg        sync.WaitGroup      // Wait stopped
@@ -302,7 +306,6 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 // Run start Teonet event loop
 func (teo *Teonet) Run() {
-	appType := teo.GetType()
 	for teo.running {
 
 		// Reader
@@ -329,10 +332,15 @@ func (teo *Teonet) Run() {
 
 		// Reconnect
 		if teo.reconnect {
+			appType := teo.GetType()
+			ctrlc := teo.ctrlc
 			teolog.Connect(MODULE, "reconnect...")
 			time.Sleep(1 * time.Second)
 			teo = Connect(teo.param)
 			teo.SetType(appType)
+			if ctrlc {
+				teo.CtrlC()
+			}
 			teo.reconnect = false
 			teo.running = true
 		}
@@ -476,4 +484,25 @@ func (teo *Teonet) SetType(appType []string) (err error) {
 // version return teonet version
 func (teo *Teonet) version() string {
 	return Version
+}
+
+// CtrlC process Ctrl+C to close Teonet
+func (teo *Teonet) CtrlC() {
+	teo.ctrlc = true
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			switch sig {
+			case syscall.SIGINT:
+				teo.Close()
+				close(c)
+				return
+			case syscall.SIGCLD:
+				fallthrough
+			default:
+				fmt.Printf("sig: %x\n", sig)
+			}
+		}
+	}()
 }

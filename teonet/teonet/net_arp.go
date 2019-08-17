@@ -86,7 +86,6 @@ func (arp *arp) deleteKey(key string) (peerArp *arpData) {
 
 // deleteAll remove all peers from arp table
 func (arp *arp) deleteAll() {
-
 	for peer, arpData := range arp.m {
 		if arpData.tcd != nil {
 			if arpData.mode == 1 {

@@ -8,6 +8,9 @@ import (
 	"github.com/kirill-scherba/net-example-go/teonet/teonet"
 )
 
+// Version is this application version
+const Version = "0.0.1"
+
 func main() {
 
 	// Teonet logo
@@ -18,8 +21,8 @@ func main() {
 		"  | |  __/ (_) | | | |  __/ |_ \n" +
 		"  |_|\\___|\\___/|_| |_|\\___|\\__|\n" +
 		"\n" +
-		"Teonet test application ver " +
-		teonet.Version +
+		"Teonet-go test application ver " + Version +
+		", based on teonet ver " + teonet.Version +
 		"\n",
 	)
 
@@ -56,6 +59,7 @@ func main() {
 
 	// Teonet connect and run
 	teo := teonet.Connect(param)
-	teo.SetType([]string{"teo-go-example"})
+	teo.SetType([]string{"teo-go"})
+	teo.CtrlC()
 	teo.Run()
 }

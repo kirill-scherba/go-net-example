@@ -126,7 +126,7 @@ func (rhost *rhostData) connect() {
 // reconnect reconnect to r-host if selected in function parameters channel is
 // r-host trudp channel
 func (rhost *rhostData) reconnect(tcd *trudp.ChannelData) {
-	if rhost.tcd == tcd {
+	if rhost.isrhost(tcd) && rhost.teo.param.RPort > 0 {
 		rhost.wg.Done()
 	}
 }
