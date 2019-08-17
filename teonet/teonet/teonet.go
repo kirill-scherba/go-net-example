@@ -243,6 +243,8 @@ func (teo *Teonet) SendAnswer(rec *receiveData, cmd int, data []byte) (err error
 // sendToTcd send command to Teonet peer by known trudp channel
 func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err error) {
 	pac := teo.packetCreateNew(cmd, teo.param.Name, data)
+	to, _ := teo.arp.peer(tcd)
+	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to, len(data))
 	// \TODO: encrypt data
 	return tcd.WriteTo(pac.packet)
 }
@@ -250,6 +252,9 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err 
 // sendToTcd send command to Teonet peer by known trudp channel
 func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd int, data []byte) (int, error) {
 	pac := teo.packetCreateNew(cmd, teo.param.Name, data)
+	to, _ := teo.arp.peer(tcd)
+	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d (send direct udp)\n", cmd, to, len(data))
+	// \TODO: encrypt data
 	return tcd.WriteToUnsafe(pac.packet)
 }
 

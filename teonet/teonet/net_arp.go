@@ -1,6 +1,7 @@
 package teonet
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -70,6 +71,16 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 	delete(arp.m, peer)
 	arp.print()
 	return
+}
+
+// peer return peer name (find by tcd)
+func (arp *arp) peer(tcd *trudp.ChannelData) (string, error) {
+	for peer, peerArp := range arp.m {
+		if peerArp.tcd != nil && peerArp.tcd == tcd {
+			return peer, nil
+		}
+	}
+	return "unknown", errors.New("not found")
 }
 
 // delete remove peer from arp table /*and close trudp channel*/ (by trudp channel key)

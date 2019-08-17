@@ -70,31 +70,31 @@ func (com *command) error(rd *C.ksnCorePacketData, descr string) {
 
 // connect process 'connect' command and answer with 'connect' command
 func (com *command) connect(rec *receiveData, cmd int) {
+	com.log(rec.rd, "CMD_CONNECT command")
 	if cmd == C.CMD_CONNECT {
 		com.teo.sendToTcd(rec.tcd, 0, []byte{0})
 	}
 	// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
-	com.log(rec.rd, "CMD_CONNECT command processed")
 	// \TODO send 'connected' event to user level
 }
 
 // disconnect process 'disconnect' comman and close trudp channel and delete
 // peer from arp table
 func (com *command) disconnect(rec *receiveData) {
+	com.log(rec.rd, "CMD_DISCONNECTED command")
 	com.teo.arp.delete(rec)
-	com.log(rec.rd, "CMD_DISCONNECTED command processed")
 	// \TODO send 'disconnected' event to user level
 }
 
 // echo process 'echo' command and answer with 'echo answer' command
 func (com *command) echo(rec *receiveData) {
+	com.log(rec.rd, "CMD_ECHO command")
 	com.teo.sendToTcd(rec.tcd, C.CMD_ECHO_ANSWER, rec.rd.Data())
-	com.log(rec.rd, "CMD_ECHO command processed")
 }
 
 // echo process 'echoAnswer' command
 func (com *command) echoAnswer(rec *receiveData) {
-	com.log(rec.rd, "CMD_ECHO_ANSWER command processed")
+	com.log(rec.rd, "CMD_ECHO_ANSWER command")
 }
 
 // hostInfo process 'hostInfo' command and send host info to peer from
@@ -108,6 +108,7 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 		com.error(rec.rd, "CMD_HOST_INFO command processed with error: "+err.Error())
 		return
 	}
+	com.log(rec.rd, "CMD_HOST_INFO command")
 
 	// Version
 	ver := strings.Split(com.teo.version(), ".")
@@ -131,7 +132,6 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 	// Send answer with host infor data
 	com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO_ANSWER, data)
 
-	com.log(rec.rd, "CMD_HOST_INFO command processed")
 	return
 }
 
@@ -163,11 +163,10 @@ func (com *command) hostInfoAnswer(rec *receiveData) (err error) {
 		com.error(rec.rd, "CMD_HOST_INFO_ANSWER command processed with error: "+err.Error())
 		return
 	}
+	com.log(rec.rd, "CMD_HOST_INFO_ANSWER command")
 	peerArp.version = version
 	peerArp.appType = stringAr[1:]
 	com.teo.arp.print()
-
-	com.log(rec.rd, "CMD_HOST_INFO_ANSWER command processed")
 
 	return
 }
