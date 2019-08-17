@@ -91,76 +91,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.ticker = time.NewTicker(250 * time.Millisecond)
 
 	// Hotkeys CreateMenu
-	if !teo.param.ForbidHotkeysF {
-		setLogLevel := func(loglevel int) {
-			fmt.Print("\b")
-			logstr := teolog.LevelString(loglevel)
-			if param.LogLevel == logstr {
-				logstr = teolog.LevelString(teolog.NONE)
-			}
-			param.LogLevel = logstr
-			teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-		}
-		teo.menu = teokeys.CreateMenu("\bHot keys list:", "")
-		teo.menu.Add([]int{'h', '?', 'H'}, "show this help screen", func() {
-			//logLevel := param.LogLevel
-			setLogLevel(teolog.NONE)
-			teo.menu.Usage()
-		})
-		teo.menu.Add('p', "show peers", func() {
-			var mode string
-			if teo.param.ShowPeersStatF {
-				teo.param.ShowPeersStatF = false
-				mode = "off" + "\033[r" + "\0338"
-			} else {
-				teo.param.ShowPeersStatF = true
-				teo.param.ShowTrudpStatF = false
-				teo.arp.print()
-				mode = "on"
-			}
-			teo.td.ShowStatistic(param.ShowTrudpStatF)
-			fmt.Println("\nshow peers", mode)
-		})
-		teo.menu.Add('u', "show trudp statistics", func() {
-			var mode string
-			if teo.param.ShowTrudpStatF {
-				teo.param.ShowTrudpStatF = false
-				mode = "off" + "\033[r" + "\0338"
-			} else {
-				teo.param.ShowTrudpStatF = true
-				teo.param.ShowPeersStatF = false
-				mode = "on"
-			}
-			teo.td.ShowStatistic(param.ShowTrudpStatF)
-			fmt.Println("\nshow trudp", mode)
-		})
-		teo.menu.Add('n', "show 'none' messages", func() { setLogLevel(teolog.NONE) })
-		teo.menu.Add('c', "show 'connect' messages", func() { setLogLevel(teolog.CONNECT) })
-		teo.menu.Add('d', "show 'debug' messages", func() { setLogLevel(teolog.DEBUG) })
-		teo.menu.Add('v', "show 'debug_v' messages", func() { setLogLevel(teolog.DEBUGv) })
-		teo.menu.Add('w', "show 'debug_vv' messages", func() { setLogLevel(teolog.DEBUGvv) })
-		teo.menu.Add('r', "reconnect this application", func() {
-			teo.reconnect = true
-			teo.menu.Quit()
-			teo.Close()
-		})
-		teo.menu.Add('q', "quit this application", func() {
-			logLevel := param.LogLevel
-			setLogLevel(teolog.NONE)
-			fmt.Printf("\bPress y to quit application: ")
-			teo.menu.Stop(true)
-			ch := teo.menu.Getch()
-			fmt.Println()
-			setLogLevel(teolog.LogLevel(logLevel))
-			if ch == 'y' || ch == 'Y' {
-				teo.menu.Stop(false)
-				teo.menu.Quit()
-				teo.Close()
-			} else {
-				teo.menu.Stop(false)
-			}
-		})
-	}
+	teo.createMenu()
 
 	return
 }
