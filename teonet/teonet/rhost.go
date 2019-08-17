@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
@@ -26,9 +27,10 @@ import (
 
 // rhostData r-host data
 type rhostData struct {
-	teo *Teonet            // Teonet connection
-	tcd *trudp.ChannelData // TRUDP channel data
-	wg  sync.WaitGroup     // Reconnect wait group
+	teo     *Teonet            // Teonet connection
+	tcd     *trudp.ChannelData // TRUDP channel data
+	running bool               // R-Host module running (connected or try to connect)
+	wg      sync.WaitGroup     // Reconnect wait group
 }
 
 // cmdConnect process command CMD_CONNECT_R - a peer want connect to r-host
@@ -126,7 +128,7 @@ func (rhost *rhostData) connect() {
 // reconnect reconnect to r-host if selected in function parameters channel is
 // r-host trudp channel
 func (rhost *rhostData) reconnect(tcd *trudp.ChannelData) {
-	if rhost.isrhost(tcd) && rhost.teo.param.RPort > 0 {
+	if rhost.isrhost(tcd) && rhost.running {
 		rhost.wg.Done()
 	}
 }
@@ -163,4 +165,30 @@ func (rhost *rhostData) getIPs() (ips []string, err error) {
 		}
 	}
 	return
+}
+
+// run starts connection and reconnection to r-host
+func (rhost *rhostData) run() {
+	if rhost.teo.param.RPort > 0 {
+		rhost.running = true
+		go func() {
+			reconnect := 0
+			rhost.teo.wg.Add(1)
+			for rhost.teo.running {
+				if reconnect > 0 {
+					time.Sleep(2 * time.Second)
+				}
+				addr := rhost.teo.param.RAddr
+				port := rhost.teo.param.RPort
+				teolog.Connectf(MODULE, "connecting to r-host %s:%d:%d\n", addr, port, 0)
+				rhost.tcd = rhost.teo.td.ConnectChannel(addr, port, 0)
+				rhost.connect()
+				rhost.wg.Add(1)
+				rhost.wg.Wait()
+				reconnect++
+			}
+			rhost.teo.wg.Done()
+			rhost.running = false
+		}()
+	}
 }

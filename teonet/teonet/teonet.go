@@ -85,24 +85,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// R-host module init and Connect to remote host (r-host)
 	teo.rhost = &rhostData{teo: teo}
-	if param.RPort > 0 {
-		go func() {
-			reconnect := 0
-			teo.wg.Add(1)
-			for teo.running {
-				if reconnect > 0 {
-					time.Sleep(2 * time.Second)
-				}
-				teolog.Connectf(MODULE, "connecting to r-host %s:%d:%d\n", param.RAddr, param.RPort, 0)
-				teo.rhost.tcd = teo.td.ConnectChannel(param.RAddr, param.RPort, 0)
-				teo.rhost.connect()
-				teo.rhost.wg.Add(1)
-				teo.rhost.wg.Wait()
-				reconnect++
-			}
-			teo.wg.Done()
-		}()
-	}
+	teo.rhost.run()
 
 	// Timer ticker
 	teo.ticker = time.NewTicker(250 * time.Millisecond)
@@ -368,11 +351,11 @@ func (teo *Teonet) version() string {
 func (teo *Teonet) CtrlC() {
 	teo.ctrlc = true
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, os.Kill)
 	go func() {
 		for sig := range c {
 			switch sig {
-			case syscall.SIGINT:
+			case syscall.SIGINT, syscall.SIGKILL:
 				teo.Close()
 				close(c)
 				return
