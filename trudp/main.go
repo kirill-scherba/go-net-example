@@ -26,7 +26,8 @@ func main() {
 		port  int
 
 		// Logger parameters
-		logLevel string
+		logLevel  string
+		logFilter string
 
 		// Integer parameters
 		maxQueueSize  int
@@ -45,7 +46,8 @@ func main() {
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
-	flag.StringVar(&logLevel, "log", "CONNECT", "application log level")
+	flag.StringVar(&logLevel, "log-level", "CONNECT", "application log level")
+	flag.StringVar(&logFilter, "log-filter", "", "application log filter")
 	flag.IntVar(&sendSleepTime, "t", 0, "send timeout in microseconds")
 	flag.BoolVar(&sendTest, "send-test", false, "send test data")
 	flag.BoolVar(&sendAnswer, "answer", false, "send answer")
@@ -58,7 +60,7 @@ func main() {
 		tru := trudp.Init(port)
 
 		// Set log level
-		teolog.Init(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds)
+		teolog.Init(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds, logFilter)
 
 		// Set 'show statictic' flag
 		tru.ShowStatistic(showStat)
