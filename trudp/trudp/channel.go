@@ -183,6 +183,11 @@ func (tcd *ChannelData) CloseChannel() {
 	)
 }
 
+// GetCh return trudp channel
+func (tcd *ChannelData) GetCh() int {
+	return tcd.ch
+}
+
 // GetAddr return trudp channel address
 func (tcd *ChannelData) GetAddr() *net.UDPAddr {
 	return tcd.addr

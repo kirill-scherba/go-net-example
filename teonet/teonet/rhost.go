@@ -65,6 +65,10 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 
 	// \TODO: Does not create connection if connection with this address an port [issue #15]
 	// already exists
+	if _, ok := rhost.teo.arp.find(addr, int(port), 0); ok {
+		fmt.Println(addr, int(port), 0, "already exsists")
+		return
+	}
 
 	// Create new reconnection
 	tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
@@ -100,7 +104,7 @@ func (rhost *rhostData) cmdConnectR(rec *receiveData) {
 		binary.Write(buf, binary.LittleEndian, byte(0))
 		binary.Write(buf, binary.LittleEndian, []byte(addr))
 		binary.Write(buf, binary.LittleEndian, byte(0))
-		binary.Write(buf, binary.LittleEndian, C.uint32_t(port))
+		binary.Write(buf, binary.LittleEndian, uint32(port))
 		return buf.Bytes()
 	}
 

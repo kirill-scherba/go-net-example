@@ -11,6 +11,7 @@ import (
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
+// arpData arp map record data structure
 type arpData struct {
 	peer    string             // peer name
 	mode    int                // mode (-1 - this host; 1 - r-host; 0 - all other host)
@@ -19,8 +20,9 @@ type arpData struct {
 	tcd     *trudp.ChannelData // trudp channel connection
 }
 
+// arp teonet module structure
 type arp struct {
-	teo *Teonet
+	teo *Teonet             // ponter to Teonet
 	m   map[string]*arpData // arp map
 }
 
@@ -61,8 +63,48 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 }
 
 // find finds peer in teonet peer arp table
-func (arp *arp) find(peer string) (peerArp *arpData, ok bool) {
-	peerArp, ok = arp.m[peer]
+// variants of parameters:
+//  - find by peer name: <peer string>
+//  - find by tcd: <tcd *trudp.ChannelData>
+//  - find by addr, port and channel: <addr string, port int, channel int>
+func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
+	fmt.Println("arp.find len(i):", len(i))
+	switch len(i) {
+	case 1:
+		switch p := i[0].(type) {
+
+		// Find by peer name
+		case string:
+			fmt.Println("arp.find i[0].type: string =", p)
+			peerArp, ok = arp.m[p]
+			return
+
+		// Find by tcd
+		case *trudp.ChannelData:
+			fmt.Println("arp.find i[0].type: *trudp.ChannelData")
+			for _, peerArp = range arp.m {
+				if peerArp.tcd != nil && peerArp.tcd == p {
+					ok = true
+					return
+				}
+			}
+		}
+
+	// \TODO: Find by address and port
+	case 3:
+		var addr string = i[0].(string)
+		var port int = i[1].(int)
+		var ch int = i[2].(int)
+		fmt.Println("addr", addr, "port", port, "ch", ch)
+		for _, peerArp = range arp.m {
+			if peerArp.tcd != nil &&
+				peerArp.tcd.GetAddr().IP.String() == addr &&
+				peerArp.tcd.GetAddr().Port == port && peerArp.tcd.GetCh() == ch {
+				ok = true
+				return
+			}
+		}
+	}
 	return
 }
 
