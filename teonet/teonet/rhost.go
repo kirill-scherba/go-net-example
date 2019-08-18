@@ -215,7 +215,12 @@ func (rhost *rhostData) getIPs() (ips []string, err error) {
 				ip = v.IP
 			}
 			a := ip.String()
-			if strings.IndexByte(a, ':') >= 0 { // correct ipv6 address
+			// Check ipv6 address add [] if ipv6 allowed and
+			// skip this address if ipv6 not allowed
+			if strings.IndexByte(a, ':') >= 0 {
+				if !rhost.teo.param.AllowIPv6 {
+					continue
+				}
 				a = "[" + a + "]"
 			}
 			ips = append(ips, a)

@@ -45,6 +45,7 @@ type Parameters struct {
 	ShowTrudpStatF bool   // show trudp statistic
 	ShowPeersStatF bool   // show peers table
 	ShowHelpF      bool   // show usage
+	AllowIPv6      bool   // Allow IPv6 support (not supported in Teonet-C)
 }
 
 // Teonet teonet connection data structure

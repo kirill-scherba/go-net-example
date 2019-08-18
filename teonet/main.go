@@ -45,6 +45,7 @@ func main() {
 	flag.BoolVar(&param.ForbidHotkeysF, "forbid-hotkeys", false, "forbid hotkeys")
 	flag.BoolVar(&param.ShowPeersStatF, "show-peers", false, "show peers table")
 	flag.BoolVar(&param.ShowHelpF, "h", false, "show this help message")
+	flag.BoolVar(&param.AllowIPv6, "ipv6", true, "show this help message")
 	flag.Parse()
 	// Teonet Arguments
 	args := flag.Args()
