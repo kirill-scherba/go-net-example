@@ -92,6 +92,7 @@ func (teo *Teonet) createMenu() {
 
 		teo.menu.Add('r', "reconnect this application", func() {
 			teo.reconnect = true
+			fmt.Printf("\b")
 			teo.menu.Quit()
 			teo.Close()
 		})

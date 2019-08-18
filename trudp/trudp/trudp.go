@@ -319,7 +319,7 @@ func (trudp *TRUDP) Run() {
 			teolog.Log(teolog.DEBUGv, MODULE, "got (---==Not TRUDP==---)", nRead,
 				"bytes from:", addr)
 			// Send received packet data to user level
-			tcd, _ := trudp.newChannelData(addr, 0)
+			tcd, _, _ := trudp.newChannelData(addr, 0, true)
 			tcd.trudp.sendEvent(tcd, GOT_DATA_NOTRUDP, buffer[:nRead])
 		}
 	}

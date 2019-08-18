@@ -41,23 +41,33 @@ func (arp *arp) peerAdd(peer, version string) (peerArp *arpData) {
 
 // newPeer create new peer in art table map or select existing
 func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
+
 	peer := rec.rd.From()
+
 	peerArp, ok := arp.m[peer]
-	if ok {
-		// Close discovery channel (if there is new channel with same peer name)
+	if peerArp, ok = arp.find(peer); ok {
 		if rec.tcd != peerArp.tcd {
 			teolog.DebugVf(MODULE, "the peer %s is already connected at channel %s, "+
-				"now it try connect at channel %s\n", peer, peerArp.tcd.GetKey(), rec.tcd.GetKey())
+				"now it try connect at channel %s\n",
+				peer, peerArp.tcd.GetKey(), rec.tcd.GetKey())
 			rec.tcd.CloseChannel()
 		}
 		return
 	}
+
+	if peerArp, ok = arp.find(rec); ok {
+		teolog.DebugVf(MODULE, "the connection %s already associated with peer %s",
+			rec.tcd.GetKey(), peer)
+		return
+	}
+
 	peerArp = &arpData{peer: peer, tcd: rec.tcd}
 	if arp.teo.rhost.isrhost(rec.tcd) {
 		peerArp.mode = 1
 	}
 	arp.m[peer] = peerArp
 	arp.print()
+	arp.teo.sendToTcd(rec.tcd, CmdNone, []byte{0})
 	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
 	return
 }
@@ -68,20 +78,20 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 //  - find by tcd: <tcd *trudp.ChannelData>
 //  - find by addr, port and channel: <addr string, port int, channel int>
 func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
-	fmt.Println("arp.find len(i):", len(i))
+	//fmt.Println("arp.find len(i):", len(i))
 	switch len(i) {
 	case 1:
 		switch p := i[0].(type) {
 
 		// Find by peer name
 		case string:
-			fmt.Println("arp.find i[0].type: string =", p)
+			//fmt.Println("arp.find i[0].type: string =", p)
 			peerArp, ok = arp.m[p]
 			return
 
 		// Find by tcd
 		case *trudp.ChannelData:
-			fmt.Println("arp.find i[0].type: *trudp.ChannelData")
+			//fmt.Println("arp.find i[0].type: *trudp.ChannelData")
 			for _, peerArp = range arp.m {
 				if peerArp.tcd != nil && peerArp.tcd == p {
 					ok = true
@@ -95,7 +105,7 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 		var addr string = i[0].(string)
 		var port int = i[1].(int)
 		var ch int = i[2].(int)
-		fmt.Println("addr", addr, "port", port, "ch", ch)
+		//fmt.Println("addr", addr, "port", port, "ch", ch)
 		for _, peerArp = range arp.m {
 			if peerArp.tcd != nil &&
 				peerArp.tcd.GetAddr().IP.String() == addr &&
@@ -154,12 +164,12 @@ func (arp *arp) deleteAll() {
 				arp.teo.rhost.reconnect(arpData.tcd)
 			}
 			if arpData.mode != -1 {
+				teolog.DebugVvf(MODULE, "send disconnect to %s\n", arpData.peer)
 				// \TODO: Very strange!!! Teont C applications send disconnect without
 				// data. If we send disconect withou data it dose not processed correctly
 				//arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, arp.teo.Host())
 				arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, []byte{0})
 				//arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, nil)
-				fmt.Printf("send disconnect to %s\n", arpData.peer)
 				arpData.tcd.CloseChannel()
 			}
 		}

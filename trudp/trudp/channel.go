@@ -126,17 +126,17 @@ func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
 }
 
 // newChannelData create new TRUDP ChannelData or select existing
-func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int) (tcd *ChannelData, key string) {
+func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate bool) (tcd *ChannelData, key string, ok bool) {
 
 	key = trudp.makeKey(addr, ch)
 
 	// Channel data select
-	tcd, ok := trudp.tcdmap[key]
-	if ok {
+	tcd, ok = trudp.tcdmap[key]
+	if ok || !ok && !canCreate {
 		//teolog.Log(teolog.DEBUGvv, MODULE, "the ChannelData with key", key, "selected")
 		return
 	}
-
+	ok = true
 	now := time.Now()
 
 	// Channel data create
@@ -172,7 +172,7 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 		panic(err)
 	}
 	teolog.Log(teolog.CONNECT, MODULE, "connecting to host", rUDPAddr, "at channel", ch)
-	tcd, _ = trudp.newChannelData(rUDPAddr, ch)
+	tcd, _, _ = trudp.newChannelData(rUDPAddr, ch, true)
 	return
 }
 

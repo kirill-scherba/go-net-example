@@ -52,19 +52,19 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 	binary.Read(buf, binary.LittleEndian, &port)
 	peer = strings.TrimSuffix(peer, "\x00") // remove leading 0
 	addr = strings.TrimSuffix(addr, "\x00") // remove leading 0
-	fmt.Println("data:", data)
-	fmt.Println(peer, addr, port)
+	//fmt.Println("data:", data)
+	//fmt.Println(peer, addr, port)
 
 	// Does not process this command if peer already connected
 	if _, ok := rhost.teo.arp.find(peer); ok {
-		fmt.Println(peer, "already connected")
+		teolog.DebugVv(MODULE, "peer already connected")
 		return
 	}
 
-	// \TODO: Does not create connection if connection with this address an port [issue #15]
+	// Does not create connection if connection with this address an port
 	// already exists
 	if _, ok := rhost.teo.arp.find(addr, int(port), 0); ok {
-		fmt.Println(addr, int(port), 0, "already exsists")
+		teolog.DebugVv(MODULE, "connection", addr, int(port), 0, "already exsists")
 		return
 	}
 
@@ -74,7 +74,16 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 	// Replay to address received in command data
 	rhost.teo.sendToTcd(tcd, C.CMD_NONE, []byte{0})
 
-	// \TODO: Disconnect this connection if it does not added to peers arp table during timeout [issue #15]
+	// Disconnect this connection if it does not added to peers arp table during timeout [issue #15]
+	go func(tcd *trudp.ChannelData) {
+		time.Sleep(1500 * time.Millisecond)
+		//fmt.Println("check: ", tcd.GetKey())
+		if _, ok := rhost.teo.arp.find(tcd); !ok {
+			teolog.DebugVv(MODULE, "connection", addr, int(port), 0, "with peer does not established during timeout")
+			tcd.CloseChannel()
+			return
+		}
+	}(tcd)
 }
 
 // cmdConnectR process command CMD_CONNECT_R - a peer want connect to r-host

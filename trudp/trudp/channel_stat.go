@@ -210,8 +210,8 @@ func (tcs *channelStat) statBody(tcd *ChannelData, idx, page int) (retstr string
 	retstr = fmt.Sprintf("\033[2K"+
 		"%3d "+teokeys.ANSIBrown+"%-24.*s"+teokeys.ANSINone+" %8d  %8d %10.3f%9.3f  /%8.3f  %8d  %8d %10.3f %8d %13s %8d(%d%%) %9s %4d %4d      -      -      - \n",
 
-		idx+1,                 // trudp channel number (in statistic screen)
-		len(tcd.key), tcd.key, // key len and key
+		idx+1,       // trudp channel number (in statistic screen)
+		24, tcd.key, // key len and key
 		tcs.packets.send,                               // packets send
 		tcs.packets.sendRT.speedPacSec,                 // float64(tcs.packets.send)/timeSinceStart, // send speed in packets/sec
 		float64(tcs.packets.sendLength)/(1024*1024),    // send total in mb

@@ -23,7 +23,11 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	processed = false
 
 	ch := pac.getChannel()
-	tcd, key := pac.trudp.newChannelData(addr, ch)
+	tcd, key, ok := pac.trudp.newChannelData(addr, ch, pac.getType() == DATA)
+	if !ok {
+		return
+	}
+
 	tcd.stat.setLastTimeReceived()
 
 	packetType := pac.getType()

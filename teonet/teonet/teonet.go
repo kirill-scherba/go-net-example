@@ -127,7 +127,8 @@ func (teo *Teonet) Run() {
 		if teo.reconnect {
 			appType := teo.GetType()
 			ctrlc := teo.ctrlc
-			teolog.Connect(MODULE, "reconnect...")
+			//teolog.Connect(MODULE, "reconnect...")
+			fmt.Println("reconnect...")
 			time.Sleep(1 * time.Second)
 			teo = Connect(teo.param)
 			teo.SetType(appType)

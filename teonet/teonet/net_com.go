@@ -15,6 +15,7 @@ import (
 
 // Teonet commands
 const (
+	CmdNone       = C.CMD_NONE         // Cmd none used as first peers command
 	CmdDisconnect = C.CMD_DISCONNECTED // Send to peers signal about disconnect
 	CmdHostInfo   = C.CMD_HOST_INFO    // Request host info, allow JSON in request
 )
@@ -76,7 +77,8 @@ func (com *command) connect(rec *receiveData, cmd int) {
 		com.teo.rhost.cmdConnect(rec)
 	} else {
 		com.log(rec.rd, "CMD_NONE command")
-		// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
+		//com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
+		//com.teo.sendToTcd(rec.tcd, C.CMD_NONE, []byte{0})
 	}
 	// \TODO ??? send 'connected' event to user level
 }
