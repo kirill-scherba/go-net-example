@@ -63,7 +63,7 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 }
 
 // find finds peer in teonet peer arp table
-// variants of parameters:
+// function uses diferent tarameters:
 //  - find by peer name: <peer string>
 //  - find by tcd: <tcd *trudp.ChannelData>
 //  - find by addr, port and channel: <addr string, port int, channel int>
@@ -154,7 +154,11 @@ func (arp *arp) deleteAll() {
 				arp.teo.rhost.reconnect(arpData.tcd)
 			}
 			if arpData.mode != -1 {
-				arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, nil)
+				// \TODO: Very strange!!! Teont C applications send disconnect without
+				// data. If we send disconect withou data it dose not processed correctly
+				//arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, arp.teo.Host())
+				arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, []byte{0})
+				//arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, nil)
 				fmt.Printf("send disconnect to %s\n", arpData.peer)
 				arpData.tcd.CloseChannel()
 			}

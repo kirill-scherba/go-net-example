@@ -5,6 +5,7 @@ package teonet
 import "C"
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -83,7 +84,7 @@ func (com *command) connect(rec *receiveData, cmd int) {
 // disconnect process 'disconnect' comman and close trudp channel and delete
 // peer from arp table
 func (com *command) disconnect(rec *receiveData) {
-	com.log(rec.rd, "CMD_DISCONNECTED command")
+	com.log(rec.rd, fmt.Sprint("CMD_DISCONNECTED command ", rec.rd.Data(), string(rec.rd.Data())))
 	com.teo.arp.delete(rec)
 	// \TODO send 'disconnected' event to user level
 }

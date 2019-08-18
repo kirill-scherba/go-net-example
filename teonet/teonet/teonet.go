@@ -269,6 +269,11 @@ func (teo *Teonet) GetType() []string {
 	return peerArp.appType
 }
 
+// Host return host name byte array with leading zerro
+func (teo *Teonet) Host() []byte {
+	return append([]byte(teo.param.Name), 0)
+}
+
 // SetType set this teonet application type (array of types)
 func (teo *Teonet) SetType(appType []string) (err error) {
 	// Select this host in arp table

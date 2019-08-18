@@ -38,6 +38,7 @@ type rhostData struct {
 // command data structure: <peer *C.char> <addr *C.char> <port uint32>
 func (rhost *rhostData) cmdConnect(rec *receiveData) {
 
+	// Data present
 	data := rec.rd.Data()
 	if data == nil {
 		return
@@ -51,9 +52,6 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 	binary.Read(buf, binary.LittleEndian, &port)
 	peer = strings.TrimSuffix(peer, "\x00") // remove leading 0
 	addr = strings.TrimSuffix(addr, "\x00") // remove leading 0
-	if strings.IndexByte(addr, ':') >= 0 {  // correct ipv6 address
-		addr = "[" + addr + "]"
-	}
 	fmt.Println("data:", data)
 	fmt.Println(peer, addr, port)
 
@@ -207,7 +205,11 @@ func (rhost *rhostData) getIPs() (ips []string, err error) {
 			case *net.IPAddr:
 				ip = v.IP
 			}
-			ips = append(ips, ip.String())
+			a := ip.String()
+			if strings.IndexByte(a, ':') >= 0 { // correct ipv6 address
+				a = "[" + a + "]"
+			}
+			ips = append(ips, a)
 		}
 	}
 	return
