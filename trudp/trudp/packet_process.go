@@ -144,16 +144,16 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	// Invalid packet (with id = 0)
 	case id == firstPacketID:
 		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightRed,
-			fmt.Sprintf("received invalid packet id: %d, channel: %s, "+
-				"reset locally", id, tcd.GetKey())))
-		tcd.reset()
-		pac.packetDataProcess(tcd)
+			fmt.Sprintf("received invalid packet id: %d (expected id: %d), channel: %s, "+
+				"reset locally", id, tcd.expectedID, tcd.GetKey())))
+		tcd.reset()                // Reset local
+		pac.packetDataProcess(tcd) // Process packet with id 0
 
 	// Invalid packet (when expectedID = 0)
 	case tcd.expectedID == firstPacketID:
 		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightRed,
-			fmt.Sprintf("received invalid packet id: %d, channel: %s, "+
-				"send reset to remote host", id, tcd.GetKey())))
+			fmt.Sprintf("received invalid packet id: %d (expected id: %d), channel: %s, "+
+				"send reset to remote host", id, tcd.expectedID, tcd.GetKey())))
 		pac.resetCreateNew().writeTo(tcd) // Send reset
 		// Send event "RESET was sent" to user level
 		tcd.trudp.sendEvent(tcd, SEND_RESET, nil)
