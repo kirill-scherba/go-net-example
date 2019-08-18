@@ -17,6 +17,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -33,13 +34,54 @@ type rhostData struct {
 	wg      sync.WaitGroup     // Reconnect wait group
 }
 
-// cmdConnect process command CMD_CONNECT_R - a peer want connect to r-host
-// command data structure: <n byte> <cstr *C.char> ... <port uint32>
+// cmdConnect process command CMD_CONNECT received from r-host
+// command data structure: <peer *C.char> <addr *C.char> <port uint32>
+func (rhost *rhostData) cmdConnect(rec *receiveData) {
+
+	data := rec.rd.Data()
+	if data == nil {
+		return
+	}
+
+	// Parse data
+	var port C.uint32_t
+	buf := bytes.NewBuffer(data)
+	peer, _ := buf.ReadString(0)
+	addr, _ := buf.ReadString(0)
+	binary.Read(buf, binary.LittleEndian, &port)
+	peer = strings.TrimSuffix(peer, "\x00") // remove leading 0
+	addr = strings.TrimSuffix(addr, "\x00") // remove leading 0
+	if strings.IndexByte(addr, ':') >= 0 {  // correct ipv6 address
+		addr = "[" + addr + "]"
+	}
+	fmt.Println("data:", data)
+	fmt.Println(peer, addr, port)
+
+	// Does not process this command if peer already connected
+	if _, ok := rhost.teo.arp.find(peer); ok {
+		fmt.Println(peer, "already connected")
+		return
+	}
+
+	// \TODO: Does not create connection if connection with this address an port [issue #15]
+	// already exists
+
+	// Create new reconnection
+	tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
+
+	// Replay to address received in command data
+	rhost.teo.sendToTcd(tcd, C.CMD_NONE, []byte{0})
+
+	// \TODO: Disconnect this connection if it does not added to peers arp table during timeout [issue #15]
+}
+
+// cmdConnectR process command CMD_CONNECT_R - a peer want connect to r-host
+// command data structure: <n byte> <addr *C.char> ... <port uint32>
 //   n - number of IPs
-//   cstr - IP address 0
+//   addr - IP address 0
 //   ... - next IP address 1..n-1
 //   port - port number
-func (rhost *rhostData) cmdConnect(rec *receiveData) {
+func (rhost *rhostData) cmdConnectR(rec *receiveData) {
 
 	// Replay to address we got from peer
 	rhost.teo.sendToTcd(rec.tcd, C.CMD_NONE, []byte{0})

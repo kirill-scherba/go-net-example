@@ -36,7 +36,7 @@ func (com *command) process(rec *receiveData) (processed bool) {
 		com.disconnect(rec)
 
 	case C.CMD_CONNECT_R:
-		com.teo.rhost.cmdConnect(rec)
+		com.teo.rhost.cmdConnectR(rec)
 
 	case C.CMD_ECHO:
 		com.echo(rec)
@@ -72,12 +72,12 @@ func (com *command) error(rd *C.ksnCorePacketData, descr string) {
 func (com *command) connect(rec *receiveData, cmd int) {
 	if cmd == C.CMD_CONNECT {
 		com.log(rec.rd, "CMD_CONNECT command")
-		com.teo.sendToTcd(rec.tcd, 0, []byte{0})
+		com.teo.rhost.cmdConnect(rec)
 	} else {
 		com.log(rec.rd, "CMD_NONE command")
+		// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
 	}
-	// com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO, []byte{0})
-	// \TODO send 'connected' event to user level
+	// \TODO ??? send 'connected' event to user level
 }
 
 // disconnect process 'disconnect' comman and close trudp channel and delete

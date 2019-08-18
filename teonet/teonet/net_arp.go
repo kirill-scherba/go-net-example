@@ -60,6 +60,12 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	return
 }
 
+// find finds peer in teonet peer arp table
+func (arp *arp) find(peer string) (peerArp *arpData, ok bool) {
+	peerArp, ok = arp.m[peer]
+	return
+}
+
 // delete remove peer from arp table and close trudp channel (by receiveData)
 func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 	peer := rec.rd.From()
