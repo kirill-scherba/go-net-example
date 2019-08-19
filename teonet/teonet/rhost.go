@@ -69,13 +69,16 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 	}
 
 	// Create new reconnection
-	tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
+	//done := make(chan bool)
+	go func() {
+		//defer func() { done <- true }()
+		tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
 
-	// Replay to address received in command data
-	rhost.teo.sendToTcd(tcd, C.CMD_NONE, []byte{0})
+		// Replay to address received in command data
+		rhost.teo.sendToTcd(tcd, C.CMD_NONE, []byte{0})
 
-	// Disconnect this connection if it does not added to peers arp table during timeout [issue #15]
-	go func(tcd *trudp.ChannelData) {
+		// Disconnect this connection if it does not added to peers arp table during timeout [issue #15]
+		//go func(tcd *trudp.ChannelData) {
 		time.Sleep(1500 * time.Millisecond)
 		//fmt.Println("check: ", tcd.GetKey())
 		if _, ok := rhost.teo.arp.find(tcd); !ok {
@@ -84,7 +87,9 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 			tcd.CloseChannel()
 			return
 		}
-	}(tcd)
+		//}(tcd)
+	}()
+	//<-done
 }
 
 // cmdConnectR process command CMD_CONNECT_R - a peer want connect to r-host

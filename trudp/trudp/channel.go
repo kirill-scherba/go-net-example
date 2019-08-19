@@ -94,7 +94,7 @@ func (tcd *ChannelData) getID() (id uint32) {
 }
 
 // SendTestMsg set sendTestMsgF flag to send test message by interval
-func (tcd *ChannelData) SendTestMsg(sendTestMsgF bool) {
+func (tcd *ChannelData) AllowSendTestMsg(sendTestMsgF bool) {
 	tcd.sendTestMsgF = sendTestMsgF
 }
 
@@ -172,15 +172,25 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 		panic(err)
 	}
 	teolog.Log(teolog.CONNECT, MODULE, "connecting to host", rUDPAddr, "at channel", ch)
-	tcd, _, _ = trudp.newChannelData(rUDPAddr, ch, true)
+	done := make(chan bool)
+	go trudp.kernel(func() {
+		tcd, _, _ = trudp.newChannelData(rUDPAddr, ch, true)
+		done <- true
+	})
+	<-done
 	return
 }
 
 // CloseChannel close trudp channel
 func (tcd *ChannelData) CloseChannel() {
-	tcd.destroy(teolog.DEBUGv,
-		fmt.Sprint("destroy channel ", tcd.GetKey(), ": closed by user"),
-	)
+	done := make(chan bool)
+	go tcd.trudp.kernel(func() {
+		tcd.destroy(teolog.DEBUGv,
+			fmt.Sprint("destroy channel ", tcd.GetKey(), ": closed by user"),
+		)
+		done <- true
+	})
+	<-done
 }
 
 // GetCh return trudp channel

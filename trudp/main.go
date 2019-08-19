@@ -76,7 +76,7 @@ func main() {
 					tcd := tru.ConnectChannel(rhost, rport, rchan)
 
 					// Auto sender flag
-					tcd.SendTestMsg(sendTest)
+					tcd.AllowSendTestMsg(sendTest)
 
 					// Sender
 					num := 0

@@ -24,6 +24,7 @@ type process struct {
 	chanReader  chan *readerType // channel to read (used to process packets received from udp)
 	chanWrite   chan *writeType  // channel to write (used to send data from user level)
 	chanWriter  chan *writerType // channel to write (used to write data to udp)
+	chanKernel  chan func()      // channel to execute function on kernel level
 	timerResend <-chan time.Time // resend packet from send queue timer
 
 	stopRunningF bool           // Stop running flag
@@ -61,6 +62,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 	resendTime := defaultRTT * time.Millisecond
 
 	// Init channels and timers
+	proc.chanKernel = make(chan func())                   // run in kernel channel
 	proc.chanReader = make(chan *readerType, chRWUdpSize) // read from udp channel
 	proc.chanWriter = make(chan *writerType, chRWUdpSize) // write to udp channel
 	proc.chanWrite = make(chan *writeType, chWriteSize)   // write from user level
@@ -99,6 +101,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 					if !chanWriteClosedF {
 						chanWriteClosedF = true
 						close(trudp.proc.chanWrite)
+						close(trudp.proc.chanKernel)
 					}
 					break
 				}
@@ -119,6 +122,12 @@ func (proc *process) init(trudp *TRUDP) *process {
 					return
 				}
 				proc.writeTo(writePac)
+
+			case f, ok := <-proc.chanKernel:
+				if !ok {
+					return
+				}
+				f()
 
 			// Process send queue (resend packets from send queue), check Keep alive
 			// and show statistic (check after 30 ms)

@@ -1,6 +1,7 @@
 package trudp
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"time"
@@ -342,6 +343,12 @@ func (trudp *TRUDP) Close() {
 	if trudp.udp.conn != nil {
 		trudp.udp.conn.Close()
 	}
+}
+
+// kernel run function in trudp kernel (main process)
+func (trudp *TRUDP) kernel(f func()) {
+	fmt.Println("send f() to kernel")
+	trudp.proc.chanKernel <- f
 }
 
 // ChanEvent return channel to read trudp events
