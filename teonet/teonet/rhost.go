@@ -57,7 +57,7 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 
 	// Does not process this command if peer already connected
 	if _, ok := rhost.teo.arp.find(peer); ok {
-		teolog.DebugVv(MODULE, "peer already connected")
+		teolog.DebugVv(MODULE, "peer", peer, "already connected, suggests address", addr, "port", port)
 		return
 	}
 
@@ -80,6 +80,7 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		//fmt.Println("check: ", tcd.GetKey())
 		if _, ok := rhost.teo.arp.find(tcd); !ok {
 			teolog.DebugVv(MODULE, "connection", addr, int(port), 0, "with peer does not established during timeout")
+			// \TODO: Do something inside CloseChannel and may be inside CreateChannel to safe goroutins race [issue #19]
 			tcd.CloseChannel()
 			return
 		}
