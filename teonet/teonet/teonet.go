@@ -145,9 +145,13 @@ func (teo *Teonet) Run() {
 // Close stops Teonet running
 func (teo *Teonet) Close() {
 	teo.running = false
-	teo.arp.deleteAll()
 	teo.menu.Quit()
 	teo.td.Close()
+	teo.arp.deleteAll()
+	if teo.kcr != nil {
+		C.ksnCryptDestroy(teo.kcr)
+		teo.kcr = nil
+	}
 }
 
 // Reconnect reconnects Teonet
