@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
@@ -90,11 +91,46 @@ func (teo *Teonet) createMenu() {
 			}()
 		})
 
+		teo.menu.Add('s', "send command", func() {
+			//logLevel := teo.param.LogLevel
+			setLogLevel(teolog.NONE)
+			teo.menu.Stop(true)
+
+			go func() {
+				fmt.Printf("Send command to peer\n")
+				f := func(c rune) bool { return c == '\r' || c == '\n' }
+				in := bufio.NewReader(os.Stdin)
+				var to, cmds, data string
+				var err error
+				fmt.Printf("to: ")
+				if to, err = in.ReadString('\n'); err == nil {
+					to = strings.TrimRightFunc(to, f)
+				}
+				fmt.Printf("cmd: ")
+				if cmds, err = in.ReadString('\n'); err == nil {
+					cmds = strings.TrimRightFunc(cmds, f)
+				}
+				fmt.Printf("data: ")
+				if data, err = in.ReadString('\n'); err == nil {
+					data = strings.TrimRightFunc(data, f)
+				}
+				cmd, _ := strconv.Atoi(cmds)
+
+				// Send to Teonet
+				if err := teo.SendTo(to, cmd, []byte(data)); err != nil {
+					fmt.Printf("Error: %s\n", err.Error())
+				} else {
+					fmt.Printf("sent to: %s, cmd: %d, data: %s\n", to, cmd, data)
+				}
+
+				//setLogLevel(teolog.LogLevel(logLevel))
+				teo.menu.Stop(false)
+			}()
+		})
+
 		teo.menu.Add('r', "reconnect this application", func() {
-			teo.reconnect = true
 			fmt.Printf("\b")
-			teo.menu.Quit()
-			teo.Close()
+			teo.Reconnect()
 		})
 
 		teo.menu.Add('q', "quit this application", func() {

@@ -146,7 +146,14 @@ func (teo *Teonet) Run() {
 func (teo *Teonet) Close() {
 	teo.running = false
 	teo.arp.deleteAll()
+	teo.menu.Quit()
 	teo.td.Close()
+}
+
+// Reconnect reconnects Teonet
+func (teo *Teonet) Reconnect() {
+	teo.reconnect = true
+	teo.Close()
 }
 
 // read reads and parse network packet
@@ -232,6 +239,10 @@ func (teo *Teonet) SendTo(to string, cmd int, data []byte) (err error) {
 	arp, ok := teo.arp.m[to]
 	if !ok {
 		err = errors.New("peer " + to + " not connected to this host")
+		return
+	}
+	if arp.tcd == nil {
+		err = errors.New("send himself not implemented yet")
 		return
 	}
 	return teo.sendToTcd(arp.tcd, cmd, data)

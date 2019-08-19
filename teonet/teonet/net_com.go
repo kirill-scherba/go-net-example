@@ -31,14 +31,17 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	cmd := rec.rd.Cmd()
 	switch cmd {
 
+	case C.CMD_CONNECT_R:
+		com.teo.rhost.cmdConnectR(rec)
+
 	case C.CMD_NONE, C.CMD_CONNECT:
 		com.connect(rec, cmd)
 
 	case C.CMD_DISCONNECTED:
 		com.disconnect(rec)
 
-	case C.CMD_CONNECT_R:
-		com.teo.rhost.cmdConnectR(rec)
+	case C.CMD_RESET:
+		com.reset(rec)
 
 	case C.CMD_ECHO:
 		com.echo(rec)
@@ -83,12 +86,23 @@ func (com *command) connect(rec *receiveData, cmd int) {
 	// \TODO ??? send 'connected' event to user level
 }
 
-// disconnect process 'disconnect' comman and close trudp channel and delete
+// disconnect process 'disconnect' command and close trudp channel and delete
 // peer from arp table
 func (com *command) disconnect(rec *receiveData) {
 	com.log(rec.rd, fmt.Sprint("CMD_DISCONNECTED command ", rec.rd.Data(), string(rec.rd.Data())))
 	com.teo.arp.delete(rec)
 	// \TODO send 'disconnected' event to user level
+}
+
+// reset process 'reset' command data: <t byte>
+//   t = 0 - soft reset
+//   t = 1 - hard reset
+func (com *command) reset(rec *receiveData) {
+	com.log(rec.rd, "CMD_RESET command")
+	b := rec.rd.Data()[0]
+	if b == 1 || b == '1' {
+		com.teo.Reconnect()
+	}
 }
 
 // echo process 'echo' command and answer with 'echo answer' command

@@ -57,7 +57,8 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 
 	// Does not process this command if peer already connected
 	if _, ok := rhost.teo.arp.find(peer); ok {
-		teolog.DebugVv(MODULE, "peer", peer, "already connected, suggests address", addr, "port", port)
+		teolog.DebugVv(MODULE, "peer", peer, "already connected, suggests address",
+			addr, "port", port)
 		return
 	}
 
@@ -68,28 +69,23 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		return
 	}
 
-	// Create new reconnection
-	//done := make(chan bool)
 	go func() {
-		//defer func() { done <- true }()
+		// Create new connection
 		tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
 
 		// Replay to address received in command data
 		rhost.teo.sendToTcd(tcd, C.CMD_NONE, []byte{0})
 
-		// Disconnect this connection if it does not added to peers arp table during timeout [issue #15]
+		// Disconnect this connection if it does not added to peers arp table during timeout
 		//go func(tcd *trudp.ChannelData) {
 		time.Sleep(1500 * time.Millisecond)
-		//fmt.Println("check: ", tcd.GetKey())
 		if _, ok := rhost.teo.arp.find(tcd); !ok {
-			teolog.DebugVv(MODULE, "connection", addr, int(port), 0, "with peer does not established during timeout")
-			// \TODO: Do something inside CloseChannel and may be inside CreateChannel to safe goroutins race [issue #19]
+			teolog.DebugVv(MODULE, "connection", addr, int(port), 0,
+				"with peer does not established during timeout")
 			tcd.CloseChannel()
 			return
 		}
-		//}(tcd)
 	}()
-	//<-done
 }
 
 // cmdConnectR process command CMD_CONNECT_R - a peer want connect to r-host
