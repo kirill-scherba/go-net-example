@@ -4,6 +4,8 @@ package teonet
 //#include "net_core.h"
 import "C"
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -19,6 +21,9 @@ const (
 	CmdDisconnect = C.CMD_DISCONNECTED // Send to peers signal about disconnect
 	CmdHostInfo   = C.CMD_HOST_INFO    // Request host info, allow JSON in request
 )
+
+var JSON = []byte("JSON")
+var BINARY = []byte("BINARY")
 
 type command struct {
 	teo *Teonet
@@ -125,6 +130,16 @@ func (com *command) echoAnswer(rec *receiveData) {
 		C.GoString((*C.char)(unsafe.Pointer(&rec.rd.Data()[0]))))
 }
 
+// hostInfo is th host info json data structure
+type hostInfo struct {
+	Name       string   `json:"name"`
+	Type       []string `json:"type"`
+	AppType    []string `json:"appType"`
+	Version    string   `json:"version"`
+	appVersion string   `json:"app_version"`
+	AppVersion string   `json:"appVersion"`
+}
+
 // hostInfo process 'hostInfo' command and send host info to peer from
 func (com *command) hostInfo(rec *receiveData) (err error) {
 	var data []byte
@@ -138,23 +153,29 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 	}
 	com.log(rec.rd, "CMD_HOST_INFO command")
 
-	// Version
-	ver := strings.Split(com.teo.version(), ".")
-	for i := 0; i < 3; i++ {
-		v, _ := strconv.Atoi(ver[i])
-		data = append(data, byte(v))
+	// This func convert string Version to byte array
+	ver := func(version string) (data []byte) {
+		ver := strings.Split(com.teo.version(), ".")
+		for _, vstr := range ver {
+			v, _ := strconv.Atoi(vstr)
+			data = append(data, byte(v))
+		}
+		return
 	}
 
-	// String array length
-	stringArLen := len(peerArp.appType)
-	data = append(data, byte(stringArLen+1))
-
-	// Name
-	data = append(data, append([]byte(com.teo.param.Name), 0)...)
-
-	// Types
-	for i := 0; i < stringArLen; i++ {
-		data = append(data, append([]byte(peerArp.appType[i]), 0)...)
+	// Create Json or bynary answer depend of input data: JSON - than answer in json
+	if l := len(JSON); rec.rd.DataLen() >= l && bytes.Equal(rec.rd.Data()[:l], JSON) {
+		data, _ = json.Marshal(hostInfo{com.teo.param.Name, peerArp.appType,
+			peerArp.appType, com.teo.version(), peerArp.appVersion, peerArp.appVersion})
+	} else {
+		typeArLen := len(peerArp.appType)
+		name := com.teo.param.Name
+		data = ver(com.teo.version())                   // Version
+		data = append(data, byte(typeArLen+1))          // Types array length
+		data = append(data, append([]byte(name), 0)...) // Name
+		for i := 0; i < typeArLen; i++ {                // Types array
+			data = append(data, append([]byte(peerArp.appType[i]), 0)...)
+		}
 	}
 
 	// Send answer with host infor data
@@ -165,23 +186,27 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 
 // hostInfoAnswer process 'hostInfoAnswer' command and add host info to the arp table
 func (com *command) hostInfoAnswer(rec *receiveData) (err error) {
-	var stringAr []string
 	data := rec.rd.Data()
+	var typeAr []string
 	var version string
-	//teolog.Debugf(MODULE, "got CMD_HOST_INFO_ANSWER, data_lenngth: %d, data: %v\n", rec.rd.DataLen(), data)
 
-	// Version
-	version = strconv.Itoa(int(data[0])) + "." + strconv.Itoa(int(data[1])) + "." + strconv.Itoa(int(data[2]))
-
-	// String array length
-	stringArLen := int(data[3])
-
-	// String array
-	ptr := 4
-	for i := 0; i < stringArLen; i++ {
-		charPtr := unsafe.Pointer(&data[ptr])
-		stringAr = append(stringAr, C.GoString((*C.char)(charPtr)))
-		ptr += len(stringAr[i]) + 1
+	// Parse json or binary format depend of data.
+	// If first char = '{' and last char = '}' than data is in json
+	if len(data) > 2 && data[0] == '{' && data[len(data)-1] == '}' {
+		fmt.Println(string(data))
+		var j hostInfo
+		json.Unmarshal(data, &j)
+		version = j.Version
+		typeAr = append([]string{j.Name}, j.Type...)
+	} else {
+		version = strconv.Itoa(int(data[0])) + "." + strconv.Itoa(int(data[1])) + "." + strconv.Itoa(int(data[2]))
+		typeArLen := int(data[3])
+		ptr := 4
+		for i := 0; i < typeArLen; i++ {
+			charPtr := unsafe.Pointer(&data[ptr])
+			typeAr = append(typeAr, C.GoString((*C.char)(charPtr)))
+			ptr += len(typeAr[i]) + 1
+		}
 	}
 
 	// Save to arp Table
@@ -193,7 +218,7 @@ func (com *command) hostInfoAnswer(rec *receiveData) (err error) {
 	}
 	com.log(rec.rd, "CMD_HOST_INFO_ANSWER command")
 	peerArp.version = version
-	peerArp.appType = stringAr[1:]
+	peerArp.appType = typeAr[1:]
 	com.teo.arp.print()
 
 	return

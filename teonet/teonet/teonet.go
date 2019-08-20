@@ -284,10 +284,21 @@ func (teo *Teonet) SetType(appType []string) (err error) {
 		err = errors.New("host " + teo.param.Name + " does not exist in arp table")
 		return
 	}
-
 	// Set application type
 	peerArp.appType = appType
+	return
+}
 
+// SetVersion set this teonet application version
+func (teo *Teonet) SetVersion(appVersion string) (err error) {
+	// Select this host in arp table
+	peerArp, ok := teo.arp.m[teo.param.Name]
+	if !ok {
+		err = errors.New("host " + teo.param.Name + " does not exist in arp table")
+		return
+	}
+	// Set application version
+	peerArp.appVersion = appVersion
 	return
 }
 

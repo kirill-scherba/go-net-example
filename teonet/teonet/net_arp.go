@@ -13,11 +13,12 @@ import (
 
 // arpData arp map record data structure
 type arpData struct {
-	peer    string             // peer name
-	mode    int                // mode (-1 - this host; 1 - r-host; 0 - all other host)
-	version string             // teonet version
-	appType []string           // application types array
-	tcd     *trudp.ChannelData // trudp channel connection
+	peer       string             // peer name
+	mode       int                // mode (-1 - this host; 1 - r-host; 0 - all other host)
+	version    string             // teonet version
+	appVersion string             // application version
+	appType    []string           // application types array
+	tcd        *trudp.ChannelData // trudp channel connection
 }
 
 // arp teonet module structure
