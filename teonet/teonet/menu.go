@@ -2,11 +2,13 @@ package teonet
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
@@ -17,6 +19,7 @@ import (
 func (teo *Teonet) createMenu() {
 	if !teo.param.ForbidHotkeysF {
 
+		//in := bufio.NewReader(os.Stdin)
 		setLogLevel := func(loglevel int) {
 			fmt.Print("\b")
 			logstr := teolog.LevelString(loglevel)
@@ -26,6 +29,20 @@ func (teo *Teonet) createMenu() {
 			teo.param.LogLevel = logstr
 			teolog.Init(teo.param.LogLevel, true,
 				log.LstdFlags|log.Lmicroseconds|log.Lshortfile, teo.param.LogFilter)
+		}
+		readString := func(in *bufio.Reader, prompt string) (str string) {
+			var err error
+			fmt.Print(prompt)
+			if str, err = in.ReadString('\n'); err == nil {
+				str = strings.TrimRightFunc(str, func(c rune) bool {
+					return c == '\r' || c == '\n'
+				})
+			}
+			return
+		}
+		readInt := func(in *bufio.Reader, prompt string) (i int) {
+			i, _ = strconv.Atoi(readString(in, prompt))
+			return
 		}
 
 		teo.menu = teokeys.CreateMenu("\bHot keys list:", "")
@@ -77,54 +94,42 @@ func (teo *Teonet) createMenu() {
 			teo.menu.Stop(true)
 
 			go func() {
-				fmt.Printf("\benter log filter: ")
 				in := bufio.NewReader(os.Stdin)
-				if filter, err := in.ReadString('\n'); err == nil {
-					teo.param.LogFilter = strings.TrimRightFunc(filter, func(c rune) bool {
-						return c == '\r' || c == '\n'
-					})
-					teolog.SetFilter(teo.param.LogFilter)
-				}
-
+				teo.param.LogFilter = readString(in, "\b"+"enter log filter: ")
+				teolog.SetFilter(teo.param.LogFilter)
 				setLogLevel(teolog.LogLevel(logLevel))
 				teo.menu.Stop(false)
 			}()
 		})
 
 		teo.menu.Add('s', "send command", func() {
-			//logLevel := teo.param.LogLevel
 			setLogLevel(teolog.NONE)
 			teo.menu.Stop(true)
 
 			go func() {
-				fmt.Printf("Send command to peer\n")
-				f := func(c rune) bool { return c == '\r' || c == '\n' }
+				defer teo.menu.Stop(false)
 				in := bufio.NewReader(os.Stdin)
-				var to, cmds, data string
-				var err error
-				fmt.Printf("to: ")
-				if to, err = in.ReadString('\n'); err == nil {
-					to = strings.TrimRightFunc(to, f)
-				}
-				fmt.Printf("cmd: ")
-				if cmds, err = in.ReadString('\n'); err == nil {
-					cmds = strings.TrimRightFunc(cmds, f)
-				}
-				fmt.Printf("data: ")
-				if data, err = in.ReadString('\n'); err == nil {
-					data = strings.TrimRightFunc(data, f)
-				}
-				cmd, _ := strconv.Atoi(cmds)
+				fmt.Printf("Send command to peer\n")
+				to := readString(in, "to: ")
+				cmd := readInt(in, "cmd: ")
+				data := readString(in, "data: ")
+				answerCmd := readInt(in, "cmd(answer): ")
 
-				// Send to Teonet
+				// Send to Teonet peer
 				if err := teo.SendTo(to, cmd, []byte(data)); err != nil {
 					fmt.Printf("Error: %s\n", err.Error())
-				} else {
-					fmt.Printf("sent to: %s, cmd: %d, data: %s\n", to, cmd, data)
+					return
 				}
-
-				//setLogLevel(teolog.LogLevel(logLevel))
-				teo.menu.Stop(false)
+				fmt.Printf("Sent to: %s, cmd: %d, data: %s\n", to, cmd, data)
+				// Wait answer from Teonet peer
+				if answerCmd > 0 {
+					r := <-teo.WaitFrom(to, answerCmd, 5*time.Second)
+					if r.err != nil {
+						fmt.Printf("error: %s\n", r.err.Error())
+						return
+					}
+					// \TODO: process valid result here
+				}
 			}()
 		})
 
@@ -150,4 +155,20 @@ func (teo *Teonet) createMenu() {
 			}
 		})
 	}
+}
+
+// WaitFromData data used in WaitFrom function
+type WaitFromData struct {
+	data []byte
+	err  error
+}
+
+// WaitFrom wait receiving data from peer
+func (teo *Teonet) WaitFrom(to string, cmd int, timeout time.Duration) <-chan WaitFromData {
+	ch := make(chan WaitFromData)
+	go func() {
+		time.Sleep(1 * time.Second)
+		ch <- WaitFromData{nil, errors.New("timeout")}
+	}()
+	return ch
 }
