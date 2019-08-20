@@ -76,7 +76,14 @@ func (com *command) error(rd *C.ksnCorePacketData, descr string) {
 // connect process 'connect' command and answer with 'connect' command
 func (com *command) connect(rec *receiveData, cmd int) {
 	if cmd == C.CMD_CONNECT {
-		com.log(rec.rd, "CMD_CONNECT command")
+		var to string
+		if rec.rd != nil && rec.rd.Data() != nil {
+			peer, addr, port, err := com.teo.rhost.cmdConnectData(rec)
+			if err == nil {
+				to = fmt.Sprintf("%s %s:%d", peer, addr, port)
+			}
+		}
+		com.log(rec.rd, "CMD_CONNECT command: "+to)
 		com.teo.rhost.cmdConnect(rec)
 	} else {
 		com.log(rec.rd, "CMD_NONE command")

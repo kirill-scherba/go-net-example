@@ -15,6 +15,7 @@ import "C"
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -34,26 +35,37 @@ type rhostData struct {
 	wg      sync.WaitGroup     // Reconnect wait group
 }
 
-// cmdConnect process command CMD_CONNECT received from r-host
-// command data structure: <peer *C.char> <addr *C.char> <port uint32>
-func (rhost *rhostData) cmdConnect(rec *receiveData) {
+// cmdConnectData parse cmd connect data
+func (rhost *rhostData) cmdConnectData(rec *receiveData) (peer, addr string, port int, err error) {
 
-	// Data present
-	data := rec.rd.Data()
-	if data == nil {
+	// Check data
+	if rec == nil || rec.rd == nil || rec.rd.Data() == nil {
+		err = errors.New("data not present")
 		return
 	}
 
 	// Parse data
-	var port C.uint32_t
+	data := rec.rd.Data()
+	var cport C.uint32_t
 	buf := bytes.NewBuffer(data)
-	peer, _ := buf.ReadString(0)
-	addr, _ := buf.ReadString(0)
-	binary.Read(buf, binary.LittleEndian, &port)
+	peer, _ = buf.ReadString(0)
+	addr, _ = buf.ReadString(0)
+	binary.Read(buf, binary.LittleEndian, &cport)
 	peer = strings.TrimSuffix(peer, "\x00") // remove leading 0
 	addr = strings.TrimSuffix(addr, "\x00") // remove leading 0
-	//fmt.Println("data:", data)
-	//fmt.Println(peer, addr, port)
+	port = int(cport)
+	return
+}
+
+// cmdConnect process command CMD_CONNECT received from r-host
+// command data structure: <peer *C.char> <addr *C.char> <port uint32>
+func (rhost *rhostData) cmdConnect(rec *receiveData) {
+
+	// Parse cmd connect data
+	peer, addr, port, err := rhost.cmdConnectData(rec)
+	if err != nil {
+		return
+	}
 
 	// Does not process this command if peer already connected
 	if _, ok := rhost.teo.arp.find(peer); ok {
