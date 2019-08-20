@@ -1,9 +1,7 @@
 package teonet
 
 //// CGO definition (don't delay or edit it):
-//#cgo LDFLAGS: -lcrypto
 //#include "net_core.h"
-//#include "crypt.h"
 import "C"
 import (
 	"errors"
@@ -14,7 +12,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
@@ -52,7 +49,7 @@ type Parameters struct {
 type Teonet struct {
 	td        *trudp.TRUDP        // TRUdp connection
 	param     *Parameters         // Teonet parameters
-	kcr       *C.ksnCryptClass    // C crypt module
+	cry       *crypt              // Crypt module
 	com       *command            // Commands module
 	arp       *arp                // Arp module
 	rhost     *rhostData          // R-host module
@@ -73,8 +70,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// Command and Crypto modules init
 	teo.com = &command{teo}
-	cnetwork := append([]byte(param.Network), 0)
-	teo.kcr = C.ksnCryptInit((*C.char)(unsafe.Pointer(&cnetwork[0])))
+	teo.cry = teo.cryptoNew(param.Network)
 
 	// Trudp init
 	teo.td = trudp.Init(param.Port)
@@ -87,7 +83,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// R-host module init and Connect to remote host (r-host)
 	teo.rhost = &rhostData{teo: teo}
-	teo.rhost.run()
+	//teo.rhost.run()
 
 	// Timer ticker
 	teo.ticker = time.NewTicker(250 * time.Millisecond)
@@ -119,6 +115,7 @@ func (teo *Teonet) Run() {
 		}()
 
 		// Start running
+		teo.rhost.run()
 		teo.td.Run()
 		teo.running = false
 		teo.wg.Wait()
@@ -148,10 +145,7 @@ func (teo *Teonet) Close() {
 	teo.menu.Quit()
 	teo.td.Close()
 	teo.arp.deleteAll()
-	if teo.kcr != nil {
-		C.ksnCryptDestroy(teo.kcr)
-		teo.kcr = nil
-	}
+	teo.cry.destroy()
 }
 
 // Reconnect reconnects Teonet
@@ -191,18 +185,8 @@ FOR:
 
 			case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
 				teolog.DebugVvf(MODULE, "got %d bytes packet, channel key: %s\n", len(packet), ev.Tcd.GetKey())
-				// Decrypt
-				var decryptLen C.size_t
-				packetPtr := unsafe.Pointer(&packet[0])
-				C.ksnDecryptPackage(teo.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
-				if decryptLen > 0 {
-					packet = packet[2 : decryptLen+2]
-					teolog.DebugVvf(MODULE, "decripted to %d bytes packet, channel key: %s\n", decryptLen, ev.Tcd.GetKey())
-				} else {
-					teolog.DebugVvf(MODULE, "can't decript %d bytes packet (try to use without decrypt), channel key: %s\n", len(packet), ev.Tcd.GetKey())
-				}
-				// Create Packet and parse it
-				pac := &Packet{packet: packet}
+				packet = teo.cry.decrypt(packet, ev.Tcd.GetKey()) // Decrypt
+				pac := &Packet{packet: packet}                    // Create Packet and parse it
 				if rd, err = pac.Parse(); err == nil {
 					//teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
 					// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
@@ -263,7 +247,7 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err 
 	to, _ := teo.arp.peer(tcd)
 	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to, len(data))
 	// \TODO: encrypt data
-	return tcd.WriteTo(pac.packet)
+	return tcd.WriteTo(teo.cry.encrypt(pac.packet))
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel
@@ -272,7 +256,7 @@ func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd int, data []byte)
 	to, _ := teo.arp.peer(tcd)
 	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d (send direct udp)\n", cmd, to, len(data))
 	// \TODO: encrypt data
-	return tcd.WriteToUnsafe(pac.packet)
+	return tcd.WriteToUnsafe(teo.cry.encrypt(pac.packet))
 }
 
 // GetType return this teonet application type (array of types)

@@ -37,6 +37,7 @@ void *ksnEncryptPackage(ksnCryptClass *kcr, void *package, size_t package_len,
 void *ksnDecryptPackage(ksnCryptClass *kcr, void *package, size_t package_len,
                         size_t *decrypt_len);
 int ksnCheckEncrypted(void *package, size_t package_len);
+int ksnCryptGetBlockSize(ksnCryptClass *kcr);
 
 #ifdef __cplusplus
 }

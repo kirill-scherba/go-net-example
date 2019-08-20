@@ -88,6 +88,13 @@ void handleErrors(void) {
   // abort();
 }
 
+/**
+ * Return encrypt block size
+ */
+int ksnCryptGetBlockSize(ksnCryptClass *kcr) {
+  return kcr->blocksize;
+}
+
 size_t _encrypt(unsigned char *plaintext, size_t plaintext_len,
                 unsigned char *key, unsigned char *iv, void *ciphertext) {
 

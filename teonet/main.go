@@ -57,7 +57,7 @@ func main() {
 		os.Exit(0)
 	}
 	param.Name = flag.Arg(0)
-	fmt.Printf("host name: %s\nnetwork: %s\n", param.Network, param.Name)
+	fmt.Printf("host: %s\nnetwork: %s\n", param.Name, param.Network)
 
 	// Teonet connect and run
 	teo := teonet.Connect(param)
