@@ -161,15 +161,19 @@ func (arp *arp) deleteAll() {
 	for peer, arpData := range arp.m {
 		if arpData.tcd != nil {
 			if arpData.mode == 1 {
-				arp.teo.rhost.reconnect(arpData.tcd)
+				arp.teo.rhost.stop(arpData.tcd)
 			}
 			if arpData.mode != -1 {
 				teolog.DebugVvf(MODULE, "send disconnect to %s\n", arpData.peer)
 				// \TODO: Very strange!!! Teont C applications send disconnect without
-				// data. If we send disconect withou data it dose not processed correctly
+				// data. If we send disconect withou data it dose not processed correctly.
+				// --- It works correctly if packet enctryption enable
 				//arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, arp.teo.Host())
-				arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, []byte{0})
-				//arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, nil)
+				if arp.teo.param.DisallowEncrypt {
+					arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, []byte{0})
+				} else {
+					arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, nil)
+				}
 				arpData.tcd.CloseChannel()
 			}
 		}

@@ -189,6 +189,11 @@ func (rhost *rhostData) reconnect(tcd *trudp.ChannelData) {
 	}
 }
 
+// stop stops r-host reconnection
+func (rhost *rhostData) stop(tcd *trudp.ChannelData) {
+	rhost.reconnect(tcd)
+}
+
 // isrhost check if selected trudp channel is channel of r-host
 func (rhost *rhostData) isrhost(tcd *trudp.ChannelData) (isRhost bool) {
 	if rhost.tcd == tcd {

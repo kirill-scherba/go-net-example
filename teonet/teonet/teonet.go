@@ -31,18 +31,19 @@ var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
 
 // Parameters is Teonet parameters
 type Parameters struct {
-	Name           string // this host client name
-	Port           int    // local port
-	RAddr          string // remote host address
-	RPort, RChan   int    // remote host port and channel(for TRUdp only)
-	Network        string // teonet network name
-	LogLevel       string // show log messages level
-	LogFilter      string // log messages filter
-	ForbidHotkeysF bool   // forbid hotkeys menu
-	ShowTrudpStatF bool   // show trudp statistic
-	ShowPeersStatF bool   // show peers table
-	ShowHelpF      bool   // show usage
-	AllowIPv6      bool   // Allow IPv6 support (not supported in Teonet-C)
+	Name            string // this host client name
+	Port            int    // local port
+	RAddr           string // remote host address
+	RPort, RChan    int    // remote host port and channel(for TRUdp only)
+	Network         string // teonet network name
+	LogLevel        string // show log messages level
+	LogFilter       string // log messages filter
+	ForbidHotkeysF  bool   // forbid hotkeys menu
+	ShowTrudpStatF  bool   // show trudp statistic
+	ShowPeersStatF  bool   // show peers table
+	ShowHelpF       bool   // show usage
+	AllowIPv6       bool   // Allow IPv6 support (not supported in Teonet-C)
+	DisallowEncrypt bool   // Disable teonet packets encryption
 }
 
 // Teonet teonet connection data structure
@@ -70,7 +71,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// Command and Crypto modules init
 	teo.com = &command{teo}
-	teo.cry = teo.cryptoNew(param.Network)
+	teo.cry = teo.cryptNew(param.Network)
 
 	// Trudp init
 	teo.td = trudp.Init(param.Port)
@@ -143,8 +144,8 @@ func (teo *Teonet) Run() {
 func (teo *Teonet) Close() {
 	teo.running = false
 	teo.menu.Quit()
-	teo.td.Close()
 	teo.arp.deleteAll()
+	teo.td.Close()
 	teo.cry.destroy()
 }
 

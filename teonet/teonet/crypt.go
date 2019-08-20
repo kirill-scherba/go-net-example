@@ -13,14 +13,15 @@ import (
 // Teonet crypt module
 
 type crypt struct {
+	teo *Teonet
 	kcr *C.ksnCryptClass
 }
 
 // initialize Init crypt module
-func (teo *Teonet) cryptoNew(key string) *crypt {
+func (teo *Teonet) cryptNew(key string) *crypt {
 	ckey := append([]byte(key), 0)
 	ckeyPtr := (*C.char)(unsafe.Pointer(&ckey[0]))
-	cry := &crypt{kcr: C.ksnCryptInit(ckeyPtr)}
+	cry := &crypt{teo: teo, kcr: C.ksnCryptInit(ckeyPtr)}
 	return cry
 }
 
@@ -34,7 +35,7 @@ func (cry *crypt) destroy() {
 
 // encryptp Encryptp teonet packet
 func (cry *crypt) encrypt(packet []byte) []byte {
-	if cry.kcr == nil {
+	if cry.kcr == nil || cry.teo.param.DisallowEncrypt {
 		return packet
 	}
 	buf := make([]byte, len(packet)+int(C.ksnCryptGetBlockSize(cry.kcr))+C.sizeof_size_t)
