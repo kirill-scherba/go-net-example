@@ -266,7 +266,6 @@ func (trudp *TRUDP) AllowEvents(events uint32) {
 
 // Run waits some data received from UDP port and procces it
 func (trudp *TRUDP) Run() {
-
 	for {
 		buffer := make([]byte, maxBufferSize)
 

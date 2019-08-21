@@ -82,6 +82,8 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 	}
 
 	go func() {
+		rhost.teo.wg.Add(1)
+		defer rhost.teo.wg.Done()
 		// Create new connection
 		tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
 
@@ -91,6 +93,10 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		// Disconnect this connection if it does not added to peers arp table during timeout
 		//go func(tcd *trudp.ChannelData) {
 		time.Sleep(1500 * time.Millisecond)
+		if !rhost.running {
+			teolog.DebugVv(MODULE, "channel discovery task finished...")
+			return
+		}
 		if _, ok := rhost.teo.arp.find(tcd); !ok {
 			teolog.DebugVv(MODULE, "connection", addr, int(port), 0,
 				"with peer does not established during timeout")

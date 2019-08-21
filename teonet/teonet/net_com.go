@@ -34,6 +34,8 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	com.teo.arp.peerNew(rec)
 	processed = true
 	cmd := rec.rd.Cmd()
+
+	// Process kernel commands
 	switch cmd {
 
 	case C.CMD_CONNECT_R:
@@ -63,6 +65,10 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	default:
 		processed = false
 	}
+
+	// Process waitFrom commands
+	com.teo.wcom.check(rec)
+
 	return
 }
 
@@ -111,9 +117,11 @@ func (com *command) disconnect(rec *receiveData) {
 //   t = 1 - hard reset
 func (com *command) reset(rec *receiveData) {
 	com.log(rec.rd, "CMD_RESET command")
-	b := rec.rd.Data()[0]
-	if b == 1 || b == '1' {
-		com.teo.Reconnect()
+	if rec.rd.DataLen() > 0 {
+		b := rec.rd.Data()[0]
+		if b == 1 || b == '1' {
+			com.teo.Reconnect()
+		}
 	}
 }
 
@@ -155,7 +163,7 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 
 	// This func convert string Version to byte array
 	ver := func(version string) (data []byte) {
-		ver := strings.Split(com.teo.version(), ".")
+		ver := strings.Split(com.teo.Version(), ".")
 		for _, vstr := range ver {
 			v, _ := strconv.Atoi(vstr)
 			data = append(data, byte(v))
@@ -166,11 +174,12 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 	// Create Json or bynary answer depend of input data: JSON - than answer in json
 	if l := len(JSON); rec.rd.DataLen() >= l && bytes.Equal(rec.rd.Data()[:l], JSON) {
 		data, _ = json.Marshal(hostInfo{com.teo.param.Name, peerArp.appType,
-			peerArp.appType, com.teo.version(), peerArp.appVersion, peerArp.appVersion})
+			peerArp.appType, com.teo.Version(), peerArp.appVersion, peerArp.appVersion})
+		data = append(data, 0) // add trailing zero (cstring)
 	} else {
 		typeArLen := len(peerArp.appType)
 		name := com.teo.param.Name
-		data = ver(com.teo.version())                   // Version
+		data = ver(com.teo.Version())                   // Version
 		data = append(data, byte(typeArLen+1))          // Types array length
 		data = append(data, append([]byte(name), 0)...) // Name
 		for i := 0; i < typeArLen; i++ {                // Types array
@@ -192,8 +201,7 @@ func (com *command) hostInfoAnswer(rec *receiveData) (err error) {
 
 	// Parse json or binary format depend of data.
 	// If first char = '{' and last char = '}' than data is in json
-	if len(data) > 2 && data[0] == '{' && data[len(data)-1] == '}' {
-		fmt.Println(string(data))
+	if l := len(data); l > 3 && data[0] == '{' && data[l-2] == '}' && data[l-1] == 0 {
 		var j hostInfo
 		json.Unmarshal(data, &j)
 		version = j.Version

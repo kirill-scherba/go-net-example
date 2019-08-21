@@ -48,18 +48,20 @@ type Parameters struct {
 
 // Teonet teonet connection data structure
 type Teonet struct {
-	td        *trudp.TRUDP        // TRUdp connection
-	param     *Parameters         // Teonet parameters
-	cry       *crypt              // Crypt module
-	com       *command            // Commands module
-	arp       *arp                // Arp module
-	rhost     *rhostData          // R-host module
-	menu      *teokeys.HotkeyMenu // Hotkey menu
-	ticker    *time.Ticker        // Idle timer ticker (to use in hokeys)
-	ctrlc     bool                // Ctrl+C is on flag (for use in reconnect)
-	running   bool                // Teonet running flag
-	reconnect bool                // Teonet reconnect flag
-	wg        sync.WaitGroup      // Wait stopped
+	td         *trudp.TRUDP        // TRUdp connection
+	param      *Parameters         // Teonet parameters
+	cry        *crypt              // Crypt module
+	com        *command            // Commands module
+	wcom       *waitCommand        // Command wait module
+	arp        *arp                // Arp module
+	rhost      *rhostData          // R-host module
+	menu       *teokeys.HotkeyMenu // Hotkey menu
+	ticker     *time.Ticker        // Idle timer ticker (to use in hokeys)
+	chanKernel chan func()         // Channel to execute function on kernel level
+	ctrlc      bool                // Ctrl+C is on flag (for use in reconnect)
+	running    bool                // Teonet running flag
+	reconnect  bool                // Teonet reconnect flag
+	wg         sync.WaitGroup      // Wait stopped
 }
 
 // Connect initialize Teonet
@@ -69,8 +71,9 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo = &Teonet{param: param, running: true}
 	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile, param.LogFilter)
 
-	// Command and Crypto modules init
+	// Command, Command wait and Crypto modules init
 	teo.com = &command{teo}
+	teo.wcom = teo.waitFromNew()
 	teo.cry = teo.cryptNew(param.Network)
 
 	// Trudp init
@@ -80,19 +83,26 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// Arp module init
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
-	teo.arp.peerAdd(param.Name, teo.version())
+	teo.arp.peerAdd(param.Name, teo.Version())
 
 	// R-host module init and Connect to remote host (r-host)
 	teo.rhost = &rhostData{teo: teo}
 	//teo.rhost.run()
 
-	// Timer ticker
+	// Timer ticker and channel init
 	teo.ticker = time.NewTicker(250 * time.Millisecond)
+	teo.chanKernel = make(chan func())
 
 	// Hotkeys CreateMenu
 	teo.createMenu()
 
 	return
+}
+
+// Reconnect reconnects Teonet
+func (teo *Teonet) Reconnect() {
+	teo.reconnect = true
+	teo.Close()
 }
 
 // Run start Teonet event loop
@@ -146,13 +156,14 @@ func (teo *Teonet) Close() {
 	teo.menu.Quit()
 	teo.arp.deleteAll()
 	teo.td.Close()
+	// close(teo.chanKernel)
+	// teo.ticker.Stop()
 	teo.cry.destroy()
 }
 
-// Reconnect reconnects Teonet
-func (teo *Teonet) Reconnect() {
-	teo.reconnect = true
-	teo.Close()
+// kernel run function in trudp kernel (main process)
+func (teo *Teonet) kernel(f func()) {
+	teo.chanKernel <- f
 }
 
 // read reads and parse network packet
@@ -211,6 +222,13 @@ FOR:
 				}
 				teolog.Logf(teolog.DEBUGvv, MODULE, "got unknown event: %d, channel key: %s\n", ev.Event, key)
 			}
+
+		// Execute function on Teonet kernel level
+		case f, ok := <-teo.chanKernel:
+			if !ok {
+				return
+			}
+			f()
 
 		// Timer iddle event
 		case <-teo.ticker.C:
@@ -303,7 +321,7 @@ func (teo *Teonet) SetVersion(appVersion string) (err error) {
 }
 
 // version return teonet version
-func (teo *Teonet) version() string {
+func (teo *Teonet) Version() string {
 	return Version
 }
 

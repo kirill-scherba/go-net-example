@@ -2,7 +2,6 @@ package teonet
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -109,26 +108,40 @@ func (teo *Teonet) createMenu() {
 			go func() {
 				defer teo.menu.Stop(false)
 				in := bufio.NewReader(os.Stdin)
-				fmt.Printf("Send command to peer\n")
-				to := readString(in, "to: ")
-				cmd := readInt(in, "cmd: ")
-				data := readString(in, "data: ")
-				answerCmd := readInt(in, "cmd(answer): ")
-
-				// Send to Teonet peer
-				if err := teo.SendTo(to, cmd, []byte(data)); err != nil {
-					fmt.Printf("Error: %s\n", err.Error())
+				fmt.Printf("send command to peer\n")
+				var data []byte
+				var to, str string
+				var cmd, answerCmd int
+				if to = readString(in, "to: "); to == "" {
 					return
 				}
-				fmt.Printf("Sent to: %s, cmd: %d, data: %s\n", to, cmd, data)
+				if cmd = readInt(in, "cmd: "); cmd == 0 {
+					return
+				}
+				if str = readString(in, "data: "); str != "" {
+					data = []byte(str)
+				}
+				answerCmd = readInt(in, "cmd(answer): ")
+
+				// Send to Teonet peer
+				if err := teo.SendTo(to, cmd, data); err != nil {
+					fmt.Printf("error: %s\n", err.Error())
+					return
+				}
+				fmt.Printf("sent to: %s, cmd: %d, data: %s\n", to, cmd, str)
+
 				// Wait answer from Teonet peer
 				if answerCmd > 0 {
-					r := <-teo.WaitFrom(to, answerCmd, 5*time.Second)
-					if r.err != nil {
-						fmt.Printf("error: %s\n", r.err.Error())
+					r := <-teo.WaitFrom(to, answerCmd, 1*time.Second)
+					// Show timeout error
+					if r.Err != nil {
+						fmt.Printf("error: %s\n", r.Err.Error())
 						return
 					}
-					// \TODO: process valid result here
+					// Show valid result
+					fmt.Printf(""+
+						"got data (string): %v\n"+
+						"got data (buffer): %v\n", string(r.Data), r.Data)
 				}
 			}()
 		})
@@ -155,20 +168,4 @@ func (teo *Teonet) createMenu() {
 			}
 		})
 	}
-}
-
-// WaitFromData data used in WaitFrom function
-type WaitFromData struct {
-	data []byte
-	err  error
-}
-
-// WaitFrom wait receiving data from peer
-func (teo *Teonet) WaitFrom(to string, cmd int, timeout time.Duration) <-chan WaitFromData {
-	ch := make(chan WaitFromData)
-	go func() {
-		time.Sleep(1 * time.Second)
-		ch <- WaitFromData{nil, errors.New("timeout")}
-	}()
-	return ch
 }
