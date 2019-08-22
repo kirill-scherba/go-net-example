@@ -17,7 +17,7 @@ type crypt struct {
 	kcr *C.ksnCryptClass
 }
 
-// initialize Init crypt module
+// cryptNew initialize crypt module
 func (teo *Teonet) cryptNew(key string) *crypt {
 	ckey := append([]byte(key), 0)
 	ckeyPtr := (*C.char)(unsafe.Pointer(&ckey[0]))

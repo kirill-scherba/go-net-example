@@ -43,7 +43,9 @@ type Parameters struct {
 	ShowPeersStatF  bool   // show peers table
 	ShowHelpF       bool   // show usage
 	AllowIPv6       bool   // Allow IPv6 support (not supported in Teonet-C)
+	AllowL0         bool   // Allow l0 server
 	DisallowEncrypt bool   // Disable teonet packets encryption
+
 }
 
 // Teonet teonet connection data structure
@@ -56,6 +58,7 @@ type Teonet struct {
 	arp        *arp                // Arp module
 	rhost      *rhostData          // R-host module
 	menu       *teokeys.HotkeyMenu // Hotkey menu
+	l0         *l0                 // L0 server module
 	ticker     *time.Ticker        // Idle timer ticker (to use in hokeys)
 	chanKernel chan func()         // Channel to execute function on kernel level
 	ctrlc      bool                // Ctrl+C is on flag (for use in reconnect)
