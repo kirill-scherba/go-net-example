@@ -1,7 +1,7 @@
 package teonet
 
 //// CGO definition (don't delay or edit it):
-//#include "net_core.h"
+//#include "packet.h"
 import "C"
 import (
 	"errors"
@@ -21,13 +21,13 @@ import (
 // Version Teonet version
 const Version = "3.0.0"
 
+// MODULE Teonet module name for using in logging
+var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
+
 const (
 	localhostIP   = "127.0.0.1"
 	localhostIPv6 = "::1"
 )
-
-// MODULE Teonet module name for using in logging
-var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
 
 // Parameters is Teonet parameters
 type Parameters struct {

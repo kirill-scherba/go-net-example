@@ -3,7 +3,7 @@ package teonet
 // Packed and receive packet module
 
 //#include <stdlib.h> /* free */
-//#include "net_core.h"
+//#include "packet.h"
 import "C"
 import (
 	"errors"

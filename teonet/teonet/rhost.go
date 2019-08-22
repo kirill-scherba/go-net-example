@@ -2,7 +2,7 @@ package teonet
 
 //#include <stdint.h>
 //#include <string.h>
-//#include "net_com.h"
+//#include "command.h"
 /*
 uint32_t getPort(void *data, size_t data_len) {
   return *((uint32_t*)(data + data_len - sizeof(uint32_t)));
@@ -88,7 +88,7 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
 
 		// Replay to address received in command data
-		rhost.teo.sendToTcd(tcd, C.CMD_NONE, []byte{0})
+		rhost.teo.sendToTcd(tcd, CmdNone, []byte{0})
 
 		// Disconnect this connection if it does not added to peers arp table during timeout
 		//go func(tcd *trudp.ChannelData) {
@@ -115,7 +115,7 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 func (rhost *rhostData) cmdConnectR(rec *receiveData) {
 
 	// Replay to address we got from peer
-	rhost.teo.sendToTcd(rec.tcd, C.CMD_NONE, []byte{0})
+	rhost.teo.sendToTcd(rec.tcd, CmdNone, []byte{0})
 
 	ptr := 1              // pointer to first IP
 	from := rec.rd.From() // from
@@ -151,7 +151,7 @@ func (rhost *rhostData) cmdConnectR(rec *receiveData) {
 		// all this host child
 		for peer, arp := range rhost.teo.arp.m {
 			if arp.mode != -1 && peer != from {
-				rhost.teo.SendTo(peer, C.CMD_CONNECT, makeData(from, addr, port))
+				rhost.teo.SendTo(peer, CmdConnect, makeData(from, addr, port))
 			}
 		}
 	}
@@ -160,7 +160,7 @@ func (rhost *rhostData) cmdConnectR(rec *receiveData) {
 	// this host) to all this host child
 	for peer, arp := range rhost.teo.arp.m {
 		if arp.mode != -1 && peer != from {
-			rhost.teo.SendTo(peer, C.CMD_CONNECT,
+			rhost.teo.SendTo(peer, CmdConnect,
 				makeData(from, rec.tcd.GetAddr().IP.String(), rec.tcd.GetAddr().Port))
 			// \TODO: the discovery channel created here (issue #15)
 		}
@@ -169,7 +169,7 @@ func (rhost *rhostData) cmdConnectR(rec *receiveData) {
 	// Send all child IP address and port to connected(who send this command) peer
 	for peer, arp := range rhost.teo.arp.m {
 		if arp.mode != -1 && peer != from {
-			rhost.teo.sendToTcd(rec.tcd, C.CMD_CONNECT,
+			rhost.teo.sendToTcd(rec.tcd, CmdConnect,
 				makeData(peer, arp.tcd.GetAddr().IP.String(), arp.tcd.GetAddr().Port))
 		}
 	}
@@ -196,7 +196,7 @@ func (rhost *rhostData) connect() {
 	fmt.Printf("Connect to r-host, send local IPs\nip: %v\nport: %d\n", ips, port)
 
 	// Send command to r-host
-	rhost.teo.sendToTcd(rhost.tcd, C.CMD_CONNECT_R, data)
+	rhost.teo.sendToTcd(rhost.tcd, CmdConnectR, data)
 }
 
 // reconnect reconnect to r-host if selected in function parameters channel is

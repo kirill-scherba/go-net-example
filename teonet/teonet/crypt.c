@@ -1,5 +1,5 @@
 /**
- * File:   crypt.h
+ * File:   crypt.c
  * Author: Kirill Scherba <kirill@scherba.ru>
  *
  * Created on July 14, 2015, 4:04 PM
@@ -91,9 +91,7 @@ void handleErrors(void) {
 /**
  * Return encrypt block size
  */
-int ksnCryptGetBlockSize(ksnCryptClass *kcr) {
-  return kcr->blocksize;
-}
+int ksnCryptGetBlockSize(ksnCryptClass *kcr) { return kcr->blocksize; }
 
 size_t _encrypt(unsigned char *plaintext, size_t plaintext_len,
                 unsigned char *key, unsigned char *iv, void *ciphertext) {
