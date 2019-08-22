@@ -38,12 +38,13 @@ type Parameters struct {
 	Network         string // teonet network name
 	LogLevel        string // show log messages level
 	LogFilter       string // log messages filter
+	L0tcpPort       int    // L0 Server TCP port number (default 9000)
 	ForbidHotkeysF  bool   // forbid hotkeys menu
 	ShowTrudpStatF  bool   // show trudp statistic
 	ShowPeersStatF  bool   // show peers table
 	ShowHelpF       bool   // show usage
-	AllowIPv6       bool   // Allow IPv6 support (not supported in Teonet-C)
-	AllowL0         bool   // Allow l0 server
+	IPv6Allow       bool   // Allow IPv6 support (not supported in Teonet-C)
+	L0allow         bool   // Allow l0 server
 	DisallowEncrypt bool   // Disable teonet packets encryption
 
 }
@@ -80,7 +81,7 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.cry = teo.cryptNew(param.Network)
 
 	// Trudp init
-	teo.td = trudp.Init(param.Port)
+	teo.td = trudp.Init(&param.Port)
 	teo.td.AllowEvents(1) // \TODO: set events connected by '||'' to allow it
 	teo.td.ShowStatistic(param.ShowTrudpStatF)
 
@@ -98,6 +99,9 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// Hotkeys CreateMenu
 	teo.createMenu()
+
+	// L0 server module init
+	teo.l0 = teo.l0New()
 
 	return
 }
@@ -119,7 +123,7 @@ func (teo *Teonet) Run() {
 			for teo.running {
 				rd, err := teo.read()
 				if err != nil || rd == nil {
-					teolog.Error(MODULE, err)
+					teolog.Error(MODULE, rd, err)
 					continue
 				}
 				teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
@@ -156,6 +160,7 @@ func (teo *Teonet) Run() {
 // Close stops Teonet running
 func (teo *Teonet) Close() {
 	teo.running = false
+	teo.l0.destroy()
 	teo.menu.Quit()
 	teo.arp.deleteAll()
 	teo.td.Close()

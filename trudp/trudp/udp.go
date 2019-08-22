@@ -28,10 +28,10 @@ func (udp *udp) resolveAddr(network, address string) (*net.UDPAddr, error) {
 }
 
 // listen Connect to UDP with selected port (the port incremented if busy)
-func (udp *udp) listen(port int) *net.UDPConn {
+func (udp *udp) listen(port *int) *net.UDPConn {
 
 	// Combine service from host name and port
-	service := hostName + ":" + strconv.Itoa(port)
+	service := hostName + ":" + strconv.Itoa(*port)
 
 	// Resolve the UDP address so that we can make use of ListenUDP
 	// with an actual IP and port instead of a name (in case a
@@ -45,8 +45,8 @@ func (udp *udp) listen(port int) *net.UDPConn {
 	fn := func() {
 		udp.conn, err = net.ListenUDP(network, udpAddr)
 		if err != nil {
-			port++
-			fmt.Println("the", port-1, "is busy, try next port:", port)
+			*port++
+			fmt.Println("the", *port-1, "is busy, try next port:", *port)
 			udp.conn = udp.listen(port)
 		}
 	}
@@ -58,11 +58,11 @@ func (udp *udp) listen(port int) *net.UDPConn {
 			panic(err)
 		}
 
-		//  Bind UDP socket to local port so we can receive pings
-		udp.addr = syscall.SockaddrInet4{Port: port, Addr: [4]byte{}}
+		// Bind UDP socket to local port so we can receive pings
+		udp.addr = syscall.SockaddrInet4{Port: *port, Addr: [4]byte{}}
 		if err := syscall.Bind(udp.fd, &udp.addr); err != nil {
-			port++
-			fmt.Println("the", port-1, "is busy, try next port:", port)
+			*port++
+			fmt.Println("the", *port-1, "is busy, try next port:", port)
 			udp.conn = udp.listen(port)
 		}
 	}
@@ -72,6 +72,12 @@ func (udp *udp) listen(port int) *net.UDPConn {
 		fs()
 	} else {
 		fn()
+	}
+
+	// If input faunction paameter port was 0 than get it from connection for
+	// future use
+	if *port == 0 {
+		*port = udp.conn.LocalAddr().(*net.UDPAddr).Port
 	}
 
 	return udp.conn

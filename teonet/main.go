@@ -36,7 +36,7 @@ func main() {
 	// Teonet flags
 	flag.IntVar(&param.Port, "p", 0, "local host port")
 	flag.StringVar(&param.Network, "n", "local", "teonet network name")
-	flag.StringVar(&param.RAddr, "a", "localhost", "remote host address (to connect to remote host)")
+	flag.StringVar(&param.RAddr, "a", "localhost", "remote host address to connect to remote host")
 	flag.IntVar(&param.RChan, "c", 0, "remote host channel (to connect to remote host TRUDP channel)")
 	flag.IntVar(&param.RPort, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&param.LogLevel, "log-level", "DEBUG", "show log messages level")
@@ -45,8 +45,9 @@ func main() {
 	flag.BoolVar(&param.ForbidHotkeysF, "forbid-hotkeys", false, "forbid hotkeys")
 	flag.BoolVar(&param.ShowPeersStatF, "show-peers", false, "show peers table")
 	flag.BoolVar(&param.ShowHelpF, "h", false, "show this help message")
-	flag.BoolVar(&param.AllowIPv6, "ipv6", true, "show this help message")
-	flag.BoolVar(&param.AllowL0, "l0-allow", false, "allow l0 server")
+	flag.BoolVar(&param.IPv6Allow, "ipv6", true, "allow ipv6 connection")
+	flag.BoolVar(&param.L0allow, "l0-allow", false, "allow l0 server")
+	flag.IntVar(&param.L0tcpPort, "l0-tcp-port", 9010, "l0 server tcp port number")
 	flag.BoolVar(&param.DisallowEncrypt, "disable-encrypt", false, "disable teonet packets encryption")
 	flag.Parse()
 	// Teonet Arguments

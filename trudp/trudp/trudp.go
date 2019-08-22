@@ -203,7 +203,7 @@ const (
 )
 
 // Init start trudp connection
-func Init(port int) (trudp *TRUDP) {
+func Init(port *int) (trudp *TRUDP) {
 
 	trudp = &TRUDP{
 		udp:              &udp{},

@@ -20,8 +20,9 @@ func TestTRUDP(t *testing.T) {
 		numMessages := 10000 // Number of messages to send between trudp connections
 
 		// Initialize trudp connections
-		tru1 := Init(0)
-		tru2 := Init(0)
+		var port1, port2 int
+		tru1 := Init(&port1)
+		tru2 := Init(&port2)
 		wg.Add(2)
 
 		// Set trudp log level

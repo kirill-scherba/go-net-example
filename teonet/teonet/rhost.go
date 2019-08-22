@@ -243,7 +243,7 @@ func (rhost *rhostData) getIPs() (ips []string, err error) {
 			// Check ipv6 address add [] if ipv6 allowed and
 			// skip this address if ipv6 not allowed
 			if strings.IndexByte(a, ':') >= 0 {
-				if !rhost.teo.param.AllowIPv6 {
+				if !rhost.teo.param.IPv6Allow {
 					continue
 				}
 				a = "[" + a + "]"
