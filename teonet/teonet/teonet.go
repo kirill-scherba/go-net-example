@@ -328,7 +328,7 @@ func (teo *Teonet) SetVersion(appVersion string) (err error) {
 	return
 }
 
-// version return teonet version
+// Version return teonet version
 func (teo *Teonet) Version() string {
 	return Version
 }

@@ -146,12 +146,12 @@ func (com *command) echoAnswer(rec *receiveData) {
 
 // hostInfo is th host info json data structure
 type hostInfo struct {
-	Name       string   `json:"name"`
-	Type       []string `json:"type"`
-	AppType    []string `json:"appType"`
-	Version    string   `json:"version"`
-	appVersion string   `json:"app_version"`
-	AppVersion string   `json:"appVersion"`
+	Name        string   `json:"name"`
+	Type        []string `json:"type"`
+	AppType     []string `json:"appType"`
+	Version     string   `json:"version"`
+	AppVersion1 string   `json:"app_version"`
+	AppVersion2 string   `json:"appVersion"`
 }
 
 // hostInfo process 'hostInfo' command and send host info to peer from

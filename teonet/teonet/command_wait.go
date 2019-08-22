@@ -39,7 +39,7 @@ func (wcom *waitCommand) add(from string, cmd int, ch ChanWaitFromData) (wfr *wa
 		wcom.m[key] = []*waitFromRequest{wfr}
 		return
 	}
-	wcomRequestAr = append(wcomRequestAr, wfr)
+	wcom.m[key] = append(wcomRequestAr, wfr)
 	return
 }
 

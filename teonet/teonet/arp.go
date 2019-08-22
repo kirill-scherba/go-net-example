@@ -106,9 +106,9 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 
 	// \TODO: Find by address and port
 	case 3:
-		var addr string = i[0].(string)
-		var port int = i[1].(int)
-		var ch int = i[2].(int)
+		var addr = i[0].(string)
+		var port = i[1].(int)
+		var ch = i[2].(int)
 		//fmt.Println("addr", addr, "port", port, "ch", ch)
 		for _, peerArp = range arp.m {
 			if peerArp.tcd != nil &&
