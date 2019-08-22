@@ -45,12 +45,15 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 
 	peer := rec.rd.From()
 
-	peerArp, ok := arp.m[peer]
+	//peerArp, ok := arp.m[peer]
+	var ok bool
 	if peerArp, ok = arp.find(peer); ok {
 		if rec.tcd != peerArp.tcd {
-			teolog.DebugVf(MODULE, "the peer %s is already connected at channel %s, "+
-				"now it try connect at channel %s\n",
-				peer, peerArp.tcd.GetKey(), rec.tcd.GetKey())
+			if peerArp.tcd != nil {
+				teolog.DebugVf(MODULE, "the peer %s is already connected at channel %s, "+
+					"now it try connect at channel %s\n",
+					peer, peerArp.tcd.GetKey(), rec.tcd.GetKey())
+			}
 			rec.tcd.CloseChannel()
 		}
 		return
