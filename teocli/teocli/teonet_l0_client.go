@@ -220,7 +220,8 @@ func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
 			return
 		}
 	} else {
-		teo.td = trudp.Init(0)
+		localport := 0
+		teo.td = trudp.Init(&localport)
 		teo.tcd = teo.td.ConnectChannel(addr, port, 0)
 		go teo.td.Run()
 	}
