@@ -116,12 +116,12 @@ func (teocli *TeoLNull) packetCreateEcho(peer string, msg string) (buffer []byte
 	return
 }
 
-// packetCheck check received packet, combine packets and return valid packet
+// PacketCheck check received packet, combine packets and return valid packet
 // return Valid packet or nil and status
 // status  0 valid packet received
 // status -1 packet not received yet (got part of packet)
 // status  1 wrong packet received (drop it)
-func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int) {
+func (teocli *TeoLNull) PacketCheck(packet []byte) (retpacket []byte, retval int) {
 
 	// Skip empty packet
 	if packet == nil || len(packet) == 0 {
@@ -170,7 +170,14 @@ func (teocli *TeoLNull) packetCheck(packet []byte) (retpacket []byte, retval int
 	return
 }
 
-// packetGetData return packet data
+// // PacketGetCmd return packets command
+// func (teocli *TeoLNull) PacketGetCommand(packet []byte) (cmd int) {
+// 	packetPtr := unsafe.Pointer(&packet[0])
+// 	cmd = int(C.packetGetCommand(packetPtr))
+// 	return
+// }
+
+// PacketGetData return packets data
 func (teocli *TeoLNull) packetGetData(packet []byte) (data []byte) {
 	packetPtr := unsafe.Pointer(&packet[0])
 	dataC := C.packetGetData(packetPtr)
@@ -211,9 +218,14 @@ func (teocli *TeoLNull) sendEchoAnswer(packet []byte) (length int, err error) {
 	return
 }
 
+func Init(tcp bool) (teo *TeoLNull, err error) {
+	teo = &TeoLNull{tcp: tcp, readBuffer: make([]byte, 0)}
+	return
+}
+
 // Connect connect to L0 server
 func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
-	teo = &TeoLNull{tcp: tcp, readBuffer: make([]byte, 0)}
+	teo, err = Init(tcp)
 	if tcp {
 		teo.conn, err = net.Dial("tcp", addr+":"+strconv.Itoa(port))
 		if err != nil {
@@ -268,10 +280,10 @@ func (teocli *TeoLNull) SendLogin(name string) (int, error) {
 // Read wait for receiving data from trudp and return teocli packet
 func (teocli *TeoLNull) Read() (pac *Packet, err error) {
 	packetCheck := func(packet []byte) (pac *Packet) {
-		packet, _ = teocli.packetCheck(packet)
+		packet, _ = teocli.PacketCheck(packet)
 		if packet != nil {
 			teocli.sendEchoAnswer(packet)
-			pac = teocli.packetNew(packet)
+			pac = teocli.PacketNew(packet)
 		}
 		return
 	}
@@ -332,7 +344,7 @@ type Packet struct {
 }
 
 // packetNew Creates new packet from packet slice
-func (teocli *TeoLNull) packetNew(packet []byte) *Packet {
+func (teocli *TeoLNull) PacketNew(packet []byte) *Packet {
 	return &Packet{packet: packet, teocli: teocli}
 }
 

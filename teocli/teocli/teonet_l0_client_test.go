@@ -99,7 +99,7 @@ func TestPacketCheck(t *testing.T) {
 	// check single valid packet
 	t.Run("validPacket", func(t *testing.T) {
 		if packet, _ := teo.packetCreate(cmd, peer, []byte(msg)); packet != nil {
-			pac, status := teo.packetCheck(packet)
+			pac, status := teo.PacketCheck(packet)
 			if status != 0 {
 				t.Errorf("return wrong status %d for valid packet", status)
 			}
@@ -115,7 +115,7 @@ func TestPacketCheck(t *testing.T) {
 
 			// Part 1
 			packet1 := packet[:10]
-			pac, status := teo.packetCheck(packet1)
+			pac, status := teo.PacketCheck(packet1)
 			if status != -1 {
 				t.Errorf("return wrong status %d for valid packet", status)
 			}
@@ -125,7 +125,7 @@ func TestPacketCheck(t *testing.T) {
 
 			// Part 2
 			packet2 := packet[10:20]
-			pac, status = teo.packetCheck(packet2)
+			pac, status = teo.PacketCheck(packet2)
 			if status != -1 {
 				t.Errorf("return wrong status %d for valid packet", status)
 			}
@@ -135,7 +135,7 @@ func TestPacketCheck(t *testing.T) {
 
 			// Part 3
 			packet3 := packet[20:]
-			pac, status = teo.packetCheck(packet3)
+			pac, status = teo.PacketCheck(packet3)
 			if status != 0 {
 				t.Errorf("return wrong status %d for valid packet", status)
 			}
@@ -149,7 +149,7 @@ func TestPacketCheck(t *testing.T) {
 	t.Run("splittedInvalidPacket", func(t *testing.T) {
 		if packet, _ := teo.packetCreate(cmd, peer, []byte(msg)); packet != nil {
 			packet1 := packet[:20]
-			pac, status := teo.packetCheck(packet1)
+			pac, status := teo.PacketCheck(packet1)
 			if status != -1 {
 				t.Errorf("return wrong status %d for valid packet", status)
 			}
@@ -158,7 +158,7 @@ func TestPacketCheck(t *testing.T) {
 			}
 
 			packet2 := packet[10:]
-			pac, status = teo.packetCheck(packet2)
+			pac, status = teo.PacketCheck(packet2)
 			if status != 1 {
 				t.Errorf("return wrong status %d for invalid packet", status)
 			}
@@ -174,7 +174,7 @@ func TestPacketCheck(t *testing.T) {
 			packet1 := []byte("z")
 			waitStatus := -1
 			for i := 0; i < 9; i++ {
-				pac, status := teo.packetCheck(packet1)
+				pac, status := teo.PacketCheck(packet1)
 				if i == 8 {
 					waitStatus = 1
 				}
