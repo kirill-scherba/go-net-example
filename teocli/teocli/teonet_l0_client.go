@@ -66,8 +66,8 @@ type TeoLNull struct {
 	tcd *trudp.ChannelData // TRUDP channel
 }
 
-// packetCreate create teonet l0 client packet
-func (teocli *TeoLNull) packetCreate(command uint8, peer string, data []byte) (buffer []byte, err error) {
+// PacketCreate create teonet l0 client packet
+func (teocli *TeoLNull) PacketCreate(command uint8, peer string, data []byte) (buffer []byte, err error) {
 	var dataLen int
 	var dataPtr unsafe.Pointer
 	if data != nil {
@@ -91,7 +91,7 @@ func (teocli *TeoLNull) packetCreate(command uint8, peer string, data []byte) (b
 
 // packetCreateString creates packet with string data
 func (teocli *TeoLNull) packetCreateString(command uint8, peer string, data string) (buffer []byte, err error) {
-	return teocli.packetCreate(command, peer, append([]byte(data), 0))
+	return teocli.PacketCreate(command, peer, append([]byte(data), 0))
 }
 
 // packetCreateLogin creates login packet
@@ -252,7 +252,7 @@ func (teocli *TeoLNull) Disconnect() {
 
 // Send send data to L0 server
 func (teocli *TeoLNull) Send(command uint8, peer string, data []byte) (int, error) {
-	packet, err := teocli.packetCreate(command, peer, data)
+	packet, err := teocli.PacketCreate(command, peer, data)
 	if err != nil {
 		return 0, err
 	}

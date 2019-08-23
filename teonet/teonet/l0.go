@@ -1,9 +1,12 @@
 package teonet
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 
 	"github.com/kirill-scherba/net-example-go/teocli/teocli"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
@@ -20,6 +23,7 @@ type l0 struct {
 	ch    chan *packet       // Packet processing channel
 	ma    map[string]*client // Clients address map
 	mn    map[string]*client // Clients name map
+	mux   sync.Mutex         // Maps mutex
 }
 
 // packet is Packet processing channels data structure
@@ -67,8 +71,10 @@ func (l0 *l0) destroy() {
 // add adds new client
 func (l0 *l0) add(client *client) {
 	teolog.Debugf(MODULE, "new client %s (%s) connected\n", client.name, client.addr)
+	l0.mux.Lock()
 	l0.ma[client.addr] = client
 	l0.mn[client.name] = client
+	l0.mux.Unlock()
 }
 
 // close closes(disconnect) connected client
@@ -77,12 +83,16 @@ func (l0 *l0) close(client *client) {
 	if client.tcp {
 		client.conn.Close()
 	}
+	l0.mux.Lock()
 	delete(l0.ma, client.addr)
 	delete(l0.mn, client.name)
+	l0.mux.Unlock()
 }
 
 // closeAddr closes(disconnect) connected client by address
 func (l0 *l0) closeAddr(addr string) bool {
+	l0.mux.Lock()
+	defer l0.mux.Unlock()
 	if client, ok := l0.ma[addr]; ok {
 		l0.close(client)
 		return true
@@ -128,7 +138,7 @@ func (l0 *l0) tspServer(port *int) {
 		for {
 			conn, err := l0.conn.Accept()
 			if err != nil {
-				fmt.Println("Error accepting: ", err.Error())
+				teolog.Debug(MODULE, "stop accepting: ", err.Error())
 				//os.Exit(1)
 				break
 			}
@@ -178,28 +188,31 @@ func (l0 *l0) process() {
 	l0.teo.wg.Add(1)
 	go func() {
 		for pac := range l0.ch {
-			teolog.Debugf(MODULE, "valid packet received from %s, length: %d, data: %v\n",
+			teolog.Debugf(MODULE,
+				"valid packet received from client %s, length: %d, data: %v\n",
 				pac.client.addr, len(pac.packet), pac.packet)
 
 			p := pac.client.cli.PacketNew(pac.packet)
 
 			// Find address in clients map and add if absent
-			if client, ok := l0.ma[pac.client.addr]; !ok {
+			l0.mux.Lock()
+			client, ok := l0.ma[pac.client.addr]
+			l0.mux.Unlock()
+			if !ok {
 				if p.Command() == 0 && p.Name() == "" {
 					pac.client.name = string(p.Data())
 					l0.add(pac.client)
 				} else {
-					teolog.Debugf(MODULE, "incorrect login packet received from %s, disconnect...\n",
+					teolog.Debugf(MODULE,
+						"incorrect login packet received from client %s, disconnect...\n",
 						pac.client.addr)
 					pac.client.conn.Close()
 				}
 				continue
 			} else {
-
 				// Send packet to peer
 				l0.sendToPeer(client.name, p.Command(), p.Name(), p.Data())
 			}
-
 		}
 		l0.closeAll()
 		teolog.Debugf(MODULE, "l0 packet process stopped\n")
@@ -212,7 +225,60 @@ func (l0 *l0) process() {
 // uint16_t data_length; ///< Packet data length
 // char from[]; ///< From client name (include leading zero) + packet data
 
+// sendToPeer from L0 server, send clients packet received from client to peer
 func (l0 *l0) sendToPeer(from string, cmd int, peer string, data []byte) {
-	teolog.Debugf(MODULE, "send %d data packet to peer %s, from client: %s",
+	teolog.Debugf(MODULE, "send %d bytes data packet to peer %s, from client: %s",
 		len(data), peer, from)
+
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, byte(0))                 // Command
+	binary.Write(buf, le, byte(len(from)+1))       // From client name length (include leading zero)
+	binary.Write(buf, le, uint16(len(data)))       // Packet data length
+	binary.Write(buf, le, append([]byte(from), 0)) // From client name (include leading zero)
+	binary.Write(buf, le, []byte(data))            // Packet data
+	l0.teo.SendTo(peer, CmdL0, buf.Bytes())        // Send to peer
+}
+
+// buf := new(bytes.Buffer)
+// binary.Write(buf, binary.LittleEndian, []byte(from))
+// binary.Write(buf, binary.LittleEndian, byte(0))
+// binary.Write(buf, binary.LittleEndian, []byte(addr))
+// binary.Write(buf, binary.LittleEndian, byte(0))
+// binary.Write(buf, binary.LittleEndian, uint32(port))
+// return buf.Bytes()
+
+// cmdL0 parse cmd got from L0 server with packet from L0 client
+func (l0 *l0) cmdL0(rec *receiveData) {
+	l0.teo.com.log(rec.rd, "CMD_L0 command")
+}
+
+// cmdL0To parse cmd got from peer to L0 client
+func (l0 *l0) cmdL0To(rec *receiveData) {
+
+	l0.teo.com.log(rec.rd, "CMD_L0_TO command")
+	if !l0.allow {
+		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
+		return
+	}
+
+	// Parse command data
+
+	cmd := 128
+	name := "noname"
+	from := rec.rd.From()
+	data := []byte{}
+
+	// Get client data from name map
+	l0.mux.Lock()
+	client, ok := l0.mn[name]
+	l0.mux.Unlock()
+	if !ok {
+		// some error
+	}
+
+	//packet :=
+	client.cli.PacketCreate(uint8(cmd), from, data)
+	teolog.Debugf(MODULE, "got %d bytes data packet from peer %s, to client: %s\n",
+		len(data), from, name)
 }

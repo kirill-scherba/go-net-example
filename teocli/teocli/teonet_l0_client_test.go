@@ -16,7 +16,7 @@ var teo = &TeoLNull{readBuffer: make([]byte, 0)}
 func TestPacketCreate(t *testing.T) {
 
 	t.Run("packetCreate", func(t *testing.T) {
-		packet, err := teo.packetCreate(cmd, peer, []byte(msg))
+		packet, err := teo.PacketCreate(cmd, peer, []byte(msg))
 		if err != nil {
 			t.Errorf("can't create packet, error: %s", err)
 		}
@@ -98,7 +98,7 @@ func TestPacketCheck(t *testing.T) {
 
 	// check single valid packet
 	t.Run("validPacket", func(t *testing.T) {
-		if packet, _ := teo.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+		if packet, _ := teo.PacketCreate(cmd, peer, []byte(msg)); packet != nil {
 			pac, status := teo.PacketCheck(packet)
 			if status != 0 {
 				t.Errorf("return wrong status %d for valid packet", status)
@@ -111,7 +111,7 @@ func TestPacketCheck(t *testing.T) {
 
 	// check and combine two splitted valid packets
 	t.Run("splittedValidPacket", func(t *testing.T) {
-		if packet, _ := teo.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+		if packet, _ := teo.PacketCreate(cmd, peer, []byte(msg)); packet != nil {
 
 			// Part 1
 			packet1 := packet[:10]
@@ -147,7 +147,7 @@ func TestPacketCheck(t *testing.T) {
 
 	// check and combine two splitted invalid packets
 	t.Run("splittedInvalidPacket", func(t *testing.T) {
-		if packet, _ := teo.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+		if packet, _ := teo.PacketCreate(cmd, peer, []byte(msg)); packet != nil {
 			packet1 := packet[:20]
 			pac, status := teo.PacketCheck(packet1)
 			if status != -1 {
@@ -170,7 +170,7 @@ func TestPacketCheck(t *testing.T) {
 
 	// check and combine splitted 9 invalid packets with length = 1
 	t.Run("splittedInvalidPacketSmallFirst", func(t *testing.T) {
-		if packet, _ := teo.packetCreate(cmd, peer, []byte(msg)); packet != nil {
+		if packet, _ := teo.PacketCreate(cmd, peer, []byte(msg)); packet != nil {
 			packet1 := []byte("z")
 			waitStatus := -1
 			for i := 0; i < 9; i++ {

@@ -173,7 +173,8 @@ func (rhost *rhostData) cmdConnectR(rec *receiveData) {
 				makeData(peer, arp.tcd.GetAddr().IP.String(), arp.tcd.GetAddr().Port))
 		}
 	}
-	teolog.Debug(MODULE, "CMD_CONNECT_R command processed, from:", rec.rd.From())
+	//teolog.Debug(MODULE, "CMD_CONNECT_R command processed, from:", rec.rd.From())
+	rhost.teo.com.log(rec.rd, "CMD_CONNECT_R command processed")
 }
 
 // connect send CMD_CONNECT_R command to r-host (connect to remote host)

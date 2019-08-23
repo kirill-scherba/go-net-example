@@ -17,11 +17,14 @@ import (
 
 // Teonet commands
 const (
-	CmdNone       = C.CMD_NONE         // Cmd none used as first peers command
-	CmdConnectR   = C.CMD_CONNECT_R    // A Peer want connect to r-host
-	CmdConnect    = C.CMD_CONNECT      // Inform peer about connected peer
-	CmdDisconnect = C.CMD_DISCONNECTED // Send to peers signal about disconnect
-	CmdHostInfo   = C.CMD_HOST_INFO    // Request host info, allow JSON in request
+	CmdNone           = C.CMD_NONE         // #00 Cmd none used as first peers command
+	CmdConnectR       = C.CMD_CONNECT_R    // #04 A Peer want connect to r-host
+	CmdConnect        = C.CMD_CONNECT      // #05 Inform peer about connected peer
+	CmdDisconnect     = C.CMD_DISCONNECTED // #06 Send to peers signal about disconnect
+	CmdL0             = C.CMD_L0           // #70 Command from L0 Client
+	CmdL0To           = C.CMD_L0_TO        // #71 Command to L0 Client
+	CmdHostInfo       = C.CMD_HOST_INFO    // #90 Request host info, allow JSON in request
+	CmdHostInfoAnswer = C.CMD_HOST_INFO    // #91 Request host info, allow JSON in request
 )
 
 // JSON data prefix used in teonet requests
@@ -61,6 +64,12 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_ECHO_ANSWER:
 		com.echoAnswer(rec)
+
+	case C.CMD_L0:
+		com.teo.l0.cmdL0(rec)
+
+	case C.CMD_L0_TO:
+		com.teo.l0.cmdL0To(rec)
 
 	case C.CMD_HOST_INFO:
 		com.hostInfo(rec)
