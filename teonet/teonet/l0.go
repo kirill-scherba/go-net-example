@@ -180,9 +180,11 @@ func (l0 *l0) process() {
 		for pac := range l0.ch {
 			teolog.Debugf(MODULE, "valid packet received from %s, length: %d, data: %v\n",
 				pac.client.addr, len(pac.packet), pac.packet)
-			// Find address in clients map
-			if _, ok := l0.ma[pac.client.addr]; !ok {
-				p := pac.client.cli.PacketNew(pac.packet)
+
+			p := pac.client.cli.PacketNew(pac.packet)
+
+			// Find address in clients map and add if absent
+			if client, ok := l0.ma[pac.client.addr]; !ok {
 				if p.Command() == 0 && p.Name() == "" {
 					pac.client.name = string(p.Data())
 					l0.add(pac.client)
@@ -191,10 +193,26 @@ func (l0 *l0) process() {
 						pac.client.addr)
 					pac.client.conn.Close()
 				}
+				continue
+			} else {
+
+				// Send packet to peer
+				l0.sendToPeer(client.name, p.Command(), p.Name(), p.Data())
 			}
+
 		}
 		l0.closeAll()
 		teolog.Debugf(MODULE, "l0 packet process stopped\n")
 		l0.teo.wg.Done()
 	}()
+}
+
+// uint8_t cmd; ///< Command
+// uint8_t from_length; ///< From client name length (include leading zero)
+// uint16_t data_length; ///< Packet data length
+// char from[]; ///< From client name (include leading zero) + packet data
+
+func (l0 *l0) sendToPeer(from string, cmd int, peer string, data []byte) {
+	teolog.Debugf(MODULE, "send %d data packet to peer %s, from client: %s",
+		len(data), peer, from)
 }
