@@ -1,6 +1,7 @@
 package teonet
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"strconv"
@@ -87,9 +88,10 @@ func (l0 *l0) tspServer(port *int) {
 func (l0 *l0) handleConnection(conn net.Conn) {
 	teolog.Connectf(MODULE, "l0 server tcp client %v connected...", conn.RemoteAddr())
 	conn.Write([]byte("HTTP/1.1 200 OK\nContent-Type: text/html\n\n<html><body>Hello!</body></html>\n"))
+	bufReader := bufio.NewReader(conn)
 	buf := make([]byte, 2048)
 	for {
-		n, err := conn.Read(buf)
+		n, err := bufReader.Read(buf)
 		if err != nil {
 			break
 		}
