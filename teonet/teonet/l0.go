@@ -92,8 +92,9 @@ func (l0 *l0) close(client *client) {
 // closeAddr closes(disconnect) connected client by address
 func (l0 *l0) closeAddr(addr string) bool {
 	l0.mux.Lock()
-	defer l0.mux.Unlock()
-	if client, ok := l0.ma[addr]; ok {
+	client, ok := l0.ma[addr]
+	l0.mux.Unlock()
+	if ok {
 		l0.close(client)
 		return true
 	}
@@ -152,7 +153,7 @@ func (l0 *l0) tspServer(port *int) {
 // Handle TCP connection
 func (l0 *l0) handleConnection(conn net.Conn) {
 	teolog.Connectf(MODULE, "l0 server tcp client %v connected...", conn.RemoteAddr())
-	conn.Write([]byte("HTTP/1.1 200 OK\nContent-Type: text/html\n\n<html><body>Hello!</body></html>\n"))
+	//conn.Write([]byte("HTTP/1.1 200 OK\nContent-Type: text/html\n\n<html><body>Hello!</body></html>\n"))
 	cli, _ := teocli.Init(true)
 	b := make([]byte, 2048)
 	for {
@@ -164,6 +165,7 @@ func (l0 *l0) handleConnection(conn net.Conn) {
 			n, conn.RemoteAddr().String())
 	check:
 		p, status := cli.PacketCheck(b[:n])
+		teolog.Debugf(MODULE, "status: %d, len: %d\n", status, len(p))
 		switch status {
 		case 0:
 			l0.ch <- &packet{
@@ -236,12 +238,12 @@ func (l0 *l0) process() {
 
 // sendToPeer from L0 server, send clients packet received from client to peer
 func (l0 *l0) sendToPeer(from string, cmd int, peer string, data []byte) {
-	teolog.Debugf(MODULE, "send cmd %d, %d bytes data packet to peer %s, from client: %s",
+	teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet to peer %s, from client: %s",
 		cmd, len(data), peer, from)
 
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
-	binary.Write(buf, le, byte(0))                 // Command
+	binary.Write(buf, le, byte(cmd))               // Command
 	binary.Write(buf, le, byte(len(from)+1))       // From client name length (include leading zero)
 	binary.Write(buf, le, uint16(len(data)))       // Packet data length
 	binary.Write(buf, le, append([]byte(from), 0)) // From client name (include leading zero)
@@ -272,22 +274,36 @@ func (l0 *l0) cmdL0To(rec *receiveData) {
 	}
 
 	// Parse command data
-
-	cmd := 128
-	name := "noname"
+	buf := bytes.NewReader(rec.rd.Data())
+	le := binary.LittleEndian
+	var cmd, fromLen byte
+	var dataLen uint16
+	binary.Read(buf, le, &cmd)
+	binary.Read(buf, le, &fromLen)
+	binary.Read(buf, le, &dataLen)
+	name := make([]byte, fromLen)
+	binary.Read(buf, le, name)
+	data := make([]byte, dataLen)
+	binary.Read(buf, le, data)
 	from := rec.rd.From()
-	data := []byte{}
 
 	// Get client data from name map
 	l0.mux.Lock()
-	client, ok := l0.mn[name]
+	client, ok := l0.mn[string(name[:len(name)-1])]
 	l0.mux.Unlock()
 	if !ok {
 		// some error
+		teolog.Debugf(MODULE, "can't find client %s in clients map\n", name)
+		return
 	}
 
-	//packet :=
-	client.cli.PacketCreate(uint8(cmd), from, data)
-	teolog.Debugf(MODULE, "got %d bytes data packet from peer %s, to client: %s\n",
-		len(data), from, name)
+	teolog.Debugf(MODULE, "got cmd: %d, %d bytes data packet from peer %s, to client: %s\n",
+		cmd, dataLen, from, name)
+
+	packet, err := client.cli.PacketCreate(uint8(cmd), from, data)
+	if err != nil {
+		teolog.Error(MODULE, err.Error())
+		return
+	}
+	client.conn.Write(packet)
 }
