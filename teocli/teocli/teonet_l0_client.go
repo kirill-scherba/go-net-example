@@ -116,7 +116,8 @@ func (teocli *TeoLNull) packetCreateEcho(peer string, msg string) (buffer []byte
 	return
 }
 
-// PacketCheck check received packet, combine packets and return valid packet
+// PacketCheck check received packet, combine packets and return valid packet.
+// After "valid packet received" run this function again to get next valid packed.
 // return Valid packet or nil and status
 // status  0 valid packet received
 // status -1 packet not received yet (got part of packet)
@@ -130,16 +131,22 @@ func (teocli *TeoLNull) PacketCheck(packet []byte) (retpacket []byte, retval int
 	}
 
 	// Check packet length and checksums and parse return value (0, 1, -1, -2, -3)
-	retval = int(C.packetCheck(unsafe.Pointer(&packet[0]), C.size_t(len(packet))))
+	var packetPtr unsafe.Pointer
+	if packet != nil && len(packet) > 0 {
+		packetPtr = unsafe.Pointer(&packet[0])
+	}
+	retval = int(C.packetCheck(packetPtr, C.size_t(len(packet))))
 	//fmt.Println("C.packetCheck(before):", retval, "buffer len:", len(teocli.readBuffer))
 	switch {
 
 	// valid packet
 	case retval == 0 && len(teocli.readBuffer) == 0:
 		//if len(teocli.readBuffer) > 0 {
-		teocli.readBuffer = teocli.readBuffer[:0]
+		//teocli.readBuffer = teocli.readBuffer[:0]
 		//}
-		retpacket = packet
+		packetLength := C.packetGetLength(packetPtr)
+		retpacket = packet[0:packetLength]
+		teocli.readBuffer = packet[packetLength:]
 
 	// First part of splitted packet
 	case (retval == -1 || retval == -2) && len(teocli.readBuffer) == 0:
@@ -169,6 +176,11 @@ func (teocli *TeoLNull) PacketCheck(packet []byte) (retpacket []byte, retval int
 	}
 	//fmt.Println("packetCheck(end):", retval, "buffer len:", len(teocli.readBuffer))
 	return
+}
+
+// ResetReadBuf reset read buffer
+func (teocli *TeoLNull) ResetReadBuf() {
+	teocli.readBuffer = nil
 }
 
 // // PacketGetCmd return packets command
@@ -278,7 +290,7 @@ func (teocli *TeoLNull) SendLogin(name string) (int, error) {
 	return teocli.send(packet)
 }
 
-// Read wait for receiving data from trudp and return teocli packet
+// Read wait for receiving data from tcp or trudp and return teocli packet
 func (teocli *TeoLNull) Read() (pac *Packet, err error) {
 	packetCheck := func(packet []byte) (pac *Packet) {
 		packet, _ = teocli.PacketCheck(packet)
@@ -290,6 +302,11 @@ func (teocli *TeoLNull) Read() (pac *Packet, err error) {
 	}
 FOR:
 	for {
+		// Get next valid packet from teocli read buffer
+		if pac = packetCheck(nil); pac != nil {
+			break FOR
+		}
+		// Get received data from tcp or udp
 		if teocli.tcp {
 			packet := make([]byte, 2048)
 			length, _ := teocli.conn.Read(packet)
