@@ -21,6 +21,7 @@ const (
 	CmdConnectR       = C.CMD_CONNECT_R    // #04 A Peer want connect to r-host
 	CmdConnect        = C.CMD_CONNECT      // #05 Inform peer about connected peer
 	CmdDisconnect     = C.CMD_DISCONNECTED // #06 Send to peers signal about disconnect
+	CmdSplit          = C.CMD_SPLIT        // #68 Group of packets (Splited packets)
 	CmdL0             = C.CMD_L0           // #70 Command from L0 Client
 	CmdL0To           = C.CMD_L0_TO        // #71 Command to L0 Client
 	CmdHostInfo       = C.CMD_HOST_INFO    // #90 Request host info, allow JSON in request
@@ -55,6 +56,10 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_DISCONNECTED:
 		com.disconnect(rec)
+
+	case C.CMD_SPLIT:
+		com.teo.split.cmdSplit(rec)
+		com.log(rec.rd, "CMD_SPLIT command")
 
 	case C.CMD_RESET:
 		com.reset(rec)

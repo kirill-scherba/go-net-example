@@ -58,8 +58,9 @@ type Teonet struct {
 	wcom       *waitCommand        // Command wait module
 	arp        *arp                // Arp module
 	rhost      *rhostData          // R-host module
-	menu       *teokeys.HotkeyMenu // Hotkey menu
+	split      *splitPacket        // Solitter module
 	l0         *l0                 // L0 server module
+	menu       *teokeys.HotkeyMenu // Hotkey menu
 	ticker     *time.Ticker        // Idle timer ticker (to use in hokeys)
 	chanKernel chan func()         // Channel to execute function on kernel level
 	ctrlc      bool                // Ctrl+C is on flag (for use in reconnect)
@@ -74,6 +75,10 @@ func Connect(param *Parameters) (teo *Teonet) {
 	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
 	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile, param.LogFilter)
+
+	// Timer ticker and kernel channel init
+	teo.ticker = time.NewTicker(250 * time.Millisecond)
+	teo.chanKernel = make(chan func())
 
 	// Command, Command wait and Crypto modules init
 	teo.com = &command{teo}
@@ -91,17 +96,15 @@ func Connect(param *Parameters) (teo *Teonet) {
 
 	// R-host module init and Connect to remote host (r-host)
 	teo.rhost = &rhostData{teo: teo}
-	//teo.rhost.run()
 
-	// Timer ticker and channel init
-	teo.ticker = time.NewTicker(250 * time.Millisecond)
-	teo.chanKernel = make(chan func())
-
-	// Hotkeys CreateMenu
-	teo.createMenu()
+	// Splitter modules
+	teo.split = teo.splitNew()
 
 	// L0 server module init
 	teo.l0 = teo.l0New()
+
+	// Hotkeys CreateMenu
+	teo.createMenu()
 
 	return
 }
