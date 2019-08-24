@@ -162,6 +162,7 @@ func (l0 *l0) handleConnection(conn net.Conn) {
 		}
 		teolog.Debugf(MODULE, "got %d bytes data from tcp clien: %v\n",
 			n, conn.RemoteAddr().String())
+	check:
 		p, status := cli.PacketCheck(b[:n])
 		switch status {
 		case 0:
@@ -169,8 +170,12 @@ func (l0 *l0) handleConnection(conn net.Conn) {
 				packet: p,
 				client: &client{cli: cli, tcp: true, addr: conn.RemoteAddr().String(), conn: conn},
 			}
+			n = 0
+			goto check
 		case -1:
-			teolog.Debugf(MODULE, "packet not received yet (got part of packet)\n")
+			if n > 0 {
+				teolog.Debugf(MODULE, "packet not received yet (got part of packet)\n")
+			}
 		case 1:
 			teolog.Debugf(MODULE, "wrong packet received (drop it): %d, data: %v\n", len(p), p)
 		}
@@ -211,7 +216,11 @@ func (l0 *l0) process() {
 				continue
 			} else {
 				// Send packet to peer
-				l0.sendToPeer(client.name, p.Command(), p.Name(), p.Data())
+				d := p.Data()
+				if len(d) > 256 {
+					d = d[:256]
+				}
+				l0.sendToPeer(client.name, p.Command(), p.Name(), d)
 			}
 		}
 		l0.closeAll()
@@ -227,8 +236,8 @@ func (l0 *l0) process() {
 
 // sendToPeer from L0 server, send clients packet received from client to peer
 func (l0 *l0) sendToPeer(from string, cmd int, peer string, data []byte) {
-	teolog.Debugf(MODULE, "send %d bytes data packet to peer %s, from client: %s",
-		len(data), peer, from)
+	teolog.Debugf(MODULE, "send cmd %d, %d bytes data packet to peer %s, from client: %s",
+		cmd, len(data), peer, from)
 
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian

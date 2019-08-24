@@ -63,6 +63,9 @@ char *arp_data_print(ksnet_arp_data_ar *arp_data_ar) {
  * @return 0 - valid packet;
  */
 int packetCheck(void *packetPtr, size_t packetLen) {
+  if (!packetPtr || !packetLen) {
+    return -2;
+  }
   teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
   size_t header_length = teoLNullHeaderSize();
   if (packetLen <= header_length) {

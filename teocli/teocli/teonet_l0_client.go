@@ -124,7 +124,8 @@ func (teocli *TeoLNull) packetCreateEcho(peer string, msg string) (buffer []byte
 func (teocli *TeoLNull) PacketCheck(packet []byte) (retpacket []byte, retval int) {
 
 	// Skip empty packet
-	if packet == nil || len(packet) == 0 {
+	if len(teocli.readBuffer) == 0 && (packet == nil || len(packet) == 0) {
+		retval = -1
 		return
 	}
 
