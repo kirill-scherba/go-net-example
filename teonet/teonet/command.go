@@ -59,7 +59,6 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_SPLIT:
 		com.teo.split.cmdSplit(rec)
-		com.log(rec.rd, "CMD_SPLIT command")
 
 	case C.CMD_RESET:
 		com.reset(rec)
