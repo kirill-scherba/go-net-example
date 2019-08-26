@@ -98,7 +98,6 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		rhost.teo.wg.Add(1)
 		defer rhost.teo.wg.Done()
 		// Create new connection
-		fmt.Printf("ConnectChannel: %s %d\n", addr, int(port))
 		tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
 
 		// Replay to address received in command data

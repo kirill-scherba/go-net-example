@@ -164,7 +164,6 @@ func (l0 *l0) handleConnection(conn net.Conn) {
 			n, conn.RemoteAddr().String())
 	check:
 		p, status := cli.PacketCheck(b[:n])
-		teolog.Debugf(MODULE, "status: %d, len: %d\n", status, len(p))
 		switch status {
 		case 0:
 			l0.ch <- &packet{
@@ -195,8 +194,8 @@ func (l0 *l0) process() {
 	go func() {
 		for pac := range l0.ch {
 			teolog.Debugf(MODULE,
-				"valid packet received from client %s, length: %d, data: %v\n",
-				pac.client.addr, len(pac.packet), pac.packet)
+				"valid packet received from client %s, length: %d\n",
+				pac.client.addr, len(pac.packet))
 
 			p := pac.client.cli.PacketNew(pac.packet)
 

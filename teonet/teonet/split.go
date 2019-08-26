@@ -37,7 +37,6 @@ func (split *splitPacket) split(cmd int, data []byte, f func(data []byte)) (num 
 	// callback Add command to first packet execute callback function and
 	// increment number of subpacket couter
 	callback := func(num *int, data []byte, lastSubpacket bool) {
-		fmt.Println(len(data))
 		subpacketNum = uint16(*num)
 		if lastSubpacket {
 			subpacketNum = subpacketNum | lastPacketFlag
