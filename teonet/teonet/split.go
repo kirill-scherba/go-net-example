@@ -12,8 +12,9 @@ import (
 
 // splitPacket split module data structure
 type splitPacket struct {
-	teo *Teonet
-	m   map[string]*receiveData
+	packetNum uint16
+	teo       *Teonet
+	m         map[string]*receiveData
 }
 
 const (
@@ -30,9 +31,16 @@ func (teo *Teonet) splitNew() *splitPacket {
 // split spits data to subpackets and return number subpacket. For each
 // subpacket the 'f func(data []byte)' callback function calls. If data len
 // less than maxPacketLen num = 0 and callback function does not calls
-func (split *splitPacket) split(cmd int, data []byte, f func(data []byte)) (num int, err error) {
+func (split *splitPacket) split(cmd int, data []byte, f func(cmd int, data []byte)) (num int, err error) {
 
-	var packetNum, subpacketNum uint16
+	// Send unsplit packet
+	if len(data) < maxDataLen {
+		f(cmd, data)
+		return
+	}
+
+	split.packetNum++
+	var subpacketNum uint16
 
 	// callback Add command to first packet execute callback function and
 	// increment number of subpacket couter
@@ -43,30 +51,27 @@ func (split *splitPacket) split(cmd int, data []byte, f func(data []byte)) (num 
 		}
 		buf := new(bytes.Buffer)
 		le := binary.LittleEndian
-		binary.Write(buf, le, packetNum)
+		binary.Write(buf, le, split.packetNum)
 		binary.Write(buf, le, subpacketNum)
 		binary.Write(buf, le, data)
 		if subpacketNum == 0 {
 			binary.Write(buf, le, byte(cmd))
 		}
-		f(buf.Bytes())
+		f(CmdSplit, buf.Bytes())
 		*num++
 	}
 
 	// Split data to subpackets and execute callback function
-	for {
-		// last splitted packet or no split packet
-		if len(data) < maxDataLen {
-			if num == 0 {
-				return
-			}
-			callback(&num, data, true)
-			return
+	for len(data) > 0 {
+		l := len(data)
+		last := l <= maxDataLen
+		if !last {
+			l = maxDataLen
 		}
-		// first or next packet (not a last packet)
-		callback(&num, data[:maxDataLen], false)
-		data = data[maxDataLen:]
+		callback(&num, data[:l], last)
+		data = data[l:]
 	}
+	return
 }
 
 // combine got received packet and return combined teonet packet or nil if not

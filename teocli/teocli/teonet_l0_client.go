@@ -207,10 +207,10 @@ func (teocli *TeoLNull) send(packet []byte) (length int, err error) {
 		length = len(packet)
 		for {
 			if len(packet) <= 512 {
-				err = teocli.tcd.WriteTo(packet)
+				err = teocli.tcd.Write(packet)
 				break
 			} else {
-				err = teocli.tcd.WriteTo(packet[:512])
+				err = teocli.tcd.Write(packet[:512])
 				packet = packet[512:]
 			}
 		}

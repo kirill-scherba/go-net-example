@@ -5,6 +5,8 @@ package teonet
 //#include "crypt.h"
 import "C"
 import (
+	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
@@ -48,10 +50,11 @@ func (cry *crypt) encrypt(packet []byte) []byte {
 }
 
 // packet Decrypt teonet packet
-func (cry *crypt) decrypt(packet []byte, key string) []byte {
+func (cry *crypt) decrypt(packet []byte, key string) ([]byte, error) {
 	if cry.kcr == nil {
-		return packet
+		return packet, errors.New("crypt module does not initialized")
 	}
+	var err error
 	var decryptLen C.size_t
 	packetPtr := unsafe.Pointer(&packet[0])
 	C.ksnDecryptPackage(cry.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
@@ -59,7 +62,9 @@ func (cry *crypt) decrypt(packet []byte, key string) []byte {
 		packet = packet[2 : decryptLen+2]
 		teolog.DebugVvf(MODULE, "decripted to %d bytes packet, channel key: %s\n", decryptLen, key)
 	} else {
-		teolog.DebugVvf(MODULE, "can't decript %d bytes packet (try to use without decrypt), channel key: %s\n", len(packet), key)
+		err = fmt.Errorf("can't decript %d bytes packet (try to use without decrypt), channel key: %s\n", len(packet), key)
+		teolog.DebugVvf(MODULE, err.Error())
+
 	}
-	return packet
+	return packet, err
 }

@@ -66,8 +66,9 @@ func main() {
 
 				// Send large data packet with cmd 129
 				case i%19 == 1:
-					fmt.Printf("send large data packet with cmd 129 (%d,%d)\n", i, i%19)
 					data := append([]byte(strings.Repeat("Q", 2000)), 0)
+					fmt.Printf("send large data packet with cmd 129, data_len: %d (%d,%d)\n",
+						len(data), i, i%19)
 					teo.Send(129, peer, data)
 
 				// Send echo

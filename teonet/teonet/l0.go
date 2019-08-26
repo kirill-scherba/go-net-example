@@ -10,6 +10,7 @@ import (
 
 	"github.com/kirill-scherba/net-example-go/teocli/teocli"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
+	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
 // Teonet L0 server module
@@ -32,13 +33,21 @@ type packet struct {
 	client *client
 }
 
+// \TDODO: use this interface to make one parameter from 'conn net.Conn' and
+// '*trudp.ChannelData'
+type conn interface {
+	Write()
+	Close()
+}
+
 // client is clients data structure
 type client struct {
-	name string
-	tcp  bool
-	addr string
-	conn net.Conn
-	cli  *teocli.TeoLNull
+	name string // name
+	addr string // address (ip:port:ch)
+	//tcp  bool               // connection type: tcp - if true, trudp - if false
+	conn net.Conn           // tcp connection
+	tcd  *trudp.ChannelData // trudp connection
+	cli  *teocli.TeoLNull   // teocli connection to use readBuffer
 }
 
 // l0New initialize l0 module
@@ -80,7 +89,7 @@ func (l0 *l0) add(client *client) {
 // close closes(disconnect) connected client
 func (l0 *l0) close(client *client) {
 	teolog.Debugf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
-	if client.tcp {
+	if client.conn != nil {
 		client.conn.Close()
 	}
 	l0.mux.Lock()
@@ -91,9 +100,7 @@ func (l0 *l0) close(client *client) {
 
 // closeAddr closes(disconnect) connected client by address
 func (l0 *l0) closeAddr(addr string) bool {
-	l0.mux.Lock()
-	client, ok := l0.ma[addr]
-	l0.mux.Unlock()
+	client, ok := l0.find(addr)
 	if ok {
 		l0.close(client)
 		return true
@@ -150,6 +157,71 @@ func (l0 *l0) tspServer(port *int) {
 	}(*port)
 }
 
+// find finds client in clients map by address
+func (l0 *l0) find(addr string) (client *client, ok bool) {
+	l0.mux.Lock()
+	client, ok = l0.ma[addr]
+	l0.mux.Unlock()
+	return
+}
+
+// toprocess send packet to packet processing
+func (l0 *l0) toprocess(p []byte, cli *teocli.TeoLNull, addr string, i ...interface{}) {
+	if len(i) > 0 {
+		pac := &packet{packet: p, client: &client{cli: cli, addr: addr}}
+		switch conn := i[0].(type) {
+		case net.Conn:
+			//pac.client.tcp = true
+			pac.client.conn = conn
+		case *trudp.ChannelData:
+			//pac.client.tcp = false
+			pac.client.tcd = conn
+			//fmt.Printf("%v\n", pac.client.conn == nil)
+		}
+		l0.ch <- pac
+		return
+	}
+}
+
+// check checks that received trudp packet is l0 packet and process it so.
+// Return satatus 1 if not processed(if it is not teocli packet), or 0 if
+// processed and send, or -1 if part of packet received and we wait next
+// subpacket
+func (l0 *l0) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int) {
+	// Find this trudp key (connection) in cliens table and get cli, or
+	// create new if not fount
+	var cli *teocli.TeoLNull
+	key := tcd.GetKey()
+	client, ok := l0.find(key)
+	if !ok {
+		cli, _ = teocli.Init(false) // create new client
+	} else {
+		cli = client.cli
+	}
+	return l0.packetCheck(cli, key, tcd, packet)
+}
+
+// packetCheck check that received tcp packet is l0 packet and process it so.
+// Return satatus 1 if not processed(if it is not teocli packet), or 0 if
+// processed and send, or -1 if part of packet received and we wait next subpacket
+func (l0 *l0) packetCheck(cli *teocli.TeoLNull, addr string, conn interface{}, data []byte) (p []byte, status int) {
+check:
+	p, status = cli.PacketCheck(data)
+	switch status {
+	case 0:
+		l0.toprocess(p, cli, addr, conn)
+		data = nil
+		goto check // check next packet in read buffer
+	case -1:
+		if data != nil {
+			teolog.Debugf(MODULE, "packet not received yet (got part of packet)\n")
+		}
+	case 1:
+		teolog.Debugf(MODULE, "wrong packet received (drop it): %d, data: %v\n", len(p), p)
+	}
+	return
+}
+
 // Handle TCP connection
 func (l0 *l0) handleConnection(conn net.Conn) {
 	teolog.Connectf(MODULE, "l0 server tcp client %v connected...", conn.RemoteAddr())
@@ -162,23 +234,7 @@ func (l0 *l0) handleConnection(conn net.Conn) {
 		}
 		teolog.Debugf(MODULE, "got %d bytes data from tcp clien: %v\n",
 			n, conn.RemoteAddr().String())
-	check:
-		p, status := cli.PacketCheck(b[:n])
-		switch status {
-		case 0:
-			l0.ch <- &packet{
-				packet: p,
-				client: &client{cli: cli, tcp: true, addr: conn.RemoteAddr().String(), conn: conn},
-			}
-			n = 0
-			goto check // check next packet in read buffer
-		case -1:
-			if n > 0 {
-				teolog.Debugf(MODULE, "packet not received yet (got part of packet)\n")
-			}
-		case 1:
-			teolog.Debugf(MODULE, "wrong packet received (drop it): %d, data: %v\n", len(p), p)
-		}
+		l0.packetCheck(cli, conn.RemoteAddr().String(), conn, b[:n])
 	}
 	teolog.Connectf(MODULE, "l0 server tcp client %v disconnected...", conn.RemoteAddr())
 	if !l0.closeAddr(conn.RemoteAddr().String()) {
@@ -201,9 +257,7 @@ func (l0 *l0) process() {
 
 			// Find address in clients map and add if it absent, or send packet to
 			// peer if client already exsists
-			l0.mux.Lock()
-			client, ok := l0.ma[pac.client.addr]
-			l0.mux.Unlock()
+			client, ok := l0.find(pac.client.addr)
 			if !ok {
 				if p.Command() == 0 && p.Name() == "" {
 					pac.client.name = string(p.Data())
@@ -251,7 +305,6 @@ func (l0 *l0) cmdL0(rec *receiveData) {
 
 // cmdL0To parse cmd got from peer to L0 client
 func (l0 *l0) cmdL0To(rec *receiveData) {
-
 	l0.teo.com.log(rec.rd, "CMD_L0_TO command")
 	if !l0.allow {
 		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
@@ -289,5 +342,13 @@ func (l0 *l0) cmdL0To(rec *receiveData) {
 		teolog.Error(MODULE, err.Error())
 		return
 	}
-	client.conn.Write(packet)
+	if client.conn != nil {
+		teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to tcp L0 client: %s\n",
+			cmd, dataLen, client.name)
+		client.conn.Write(packet)
+	} else {
+		teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to trudp L0 client: %s\n", cmd,
+			dataLen, client.name)
+		client.tcd.Write(packet)
+	}
 }

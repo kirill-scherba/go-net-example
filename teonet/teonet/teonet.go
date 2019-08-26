@@ -209,8 +209,16 @@ FOR:
 			case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
 				teolog.DebugVvf(MODULE, "got %d bytes packet, channel key: %s\n",
 					len(packet), ev.Tcd.GetKey())
-				packet = teo.cry.decrypt(packet, ev.Tcd.GetKey()) // Decrypt
-				pac := &Packet{packet: packet}                    // Create Packet and parse it
+				packet, err = teo.cry.decrypt(packet, ev.Tcd.GetKey())
+				if err != nil && teo.l0.allow {
+					// if packet does not decrypted than it may be l0 client trudp packet.
+					// Check l0 packet and process it if this packet is valid teocli(l0)
+					// packet
+					if _, status := teo.l0.check(ev.Tcd, packet); status != 1 {
+						continue FOR
+					}
+				}
+				pac := &Packet{packet: packet} // Create Packet and parse it
 				if rd, err = pac.Parse(); err == nil {
 					//teolog.DebugVvf(MODULE, "got valid packet cmd: %d, name: %s, data_len: %d\n", pac.Cmd(), pac.From(), pac.DataLen())
 					// \TODO don't return error on Parse err != nil, because error is interpreted as disconnect
@@ -286,14 +294,10 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err 
 		return teo.cry.encrypt(pac.packet)
 	}
 
-	var num int // number of splitted packets or 0 if one packet
-
-	// send splitted packet or whall packet
-	if num, err = teo.split.split(cmd, data, func(data []byte) {
-		err = tcd.WriteTo(makePac(tcd, CmdSplit, data)) // send splitted packet
-	}); num == 0 {
-		err = tcd.WriteTo(makePac(tcd, cmd, data)) // Send wall packet
-	}
+	// send splitted packet or send whole packet
+	_, err = teo.split.split(cmd, data, func(cmd int, data []byte) {
+		err = tcd.Write(makePac(tcd, cmd, data))
+	})
 	return
 }
 

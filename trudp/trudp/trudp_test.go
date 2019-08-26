@@ -59,7 +59,7 @@ func TestTRUDP(t *testing.T) {
 						tcd := tru.ConnectChannel("localhost", rPort, 0)
 						teolog.Log(teolog.CONNECT, MODULE, "start send to:", tcd.GetKey())
 						for i := 0; i < numMessages; i++ {
-							tcd.WriteTo([]byte(makeHello(i)))
+							tcd.Write([]byte(makeHello(i)))
 						}
 					}()
 

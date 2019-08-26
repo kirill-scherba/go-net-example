@@ -104,7 +104,7 @@ func (tcd *ChannelData) TripTime() float32 {
 }
 
 // WriteTo send data to remote host
-func (tcd *ChannelData) WriteTo(data []byte) (err error) {
+func (tcd *ChannelData) Write(data []byte) (err error) {
 	if tcd.stoppedF {
 		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
 		return
