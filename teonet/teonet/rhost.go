@@ -113,7 +113,7 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		if _, ok := rhost.teo.arp.find(tcd); !ok {
 			teolog.DebugVv(MODULE, "connection", addr, int(port), 0,
 				"with peer does not established during timeout")
-			tcd.CloseChannel()
+			tcd.Close()
 			return
 		}
 	}()

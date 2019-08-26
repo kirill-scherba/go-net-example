@@ -33,21 +33,19 @@ type packet struct {
 	client *client
 }
 
-// \TDODO: use this interface to make one parameter from 'conn net.Conn' and
-// '*trudp.ChannelData'
+// conn is an interface to make one parameter for tcp 'conn net.Conn' and
+// trudp '*trudp.ChannelData' connection
 type conn interface {
-	Write()
-	Close()
+	Write([]byte) (int, error)
+	Close() error
 }
 
 // client is clients data structure
 type client struct {
-	name string // name
-	addr string // address (ip:port:ch)
-	//tcp  bool               // connection type: tcp - if true, trudp - if false
-	conn net.Conn           // tcp connection
-	tcd  *trudp.ChannelData // trudp connection
-	cli  *teocli.TeoLNull   // teocli connection to use readBuffer
+	name string           // name
+	addr string           // address (ip:port:ch)
+	conn conn             // Connection tcp (net.Conn) or trudp (*trudp.ChannelData)
+	cli  *teocli.TeoLNull // teocli connection to use readBuffer
 }
 
 // l0New initialize l0 module
@@ -59,7 +57,7 @@ func (teo *Teonet) l0New() *l0 {
 		l0.mn = make(map[string]*client)
 		l0.process()
 		//if l0.port > 0 {
-		l0.tspServer(&l0.port)
+		l0.tcpServer(&l0.port)
 		teo.param.L0tcpPort = l0.port
 		//}
 	}
@@ -115,8 +113,8 @@ func (l0 *l0) closeAll() {
 	}
 }
 
-// tspServer TCP L0 server
-func (l0 *l0) tspServer(port *int) {
+// tcpServer TCP L0 server
+func (l0 *l0) tcpServer(port *int) {
 
 	const (
 		network  = "tcp"
@@ -166,21 +164,9 @@ func (l0 *l0) find(addr string) (client *client, ok bool) {
 }
 
 // toprocess send packet to packet processing
-func (l0 *l0) toprocess(p []byte, cli *teocli.TeoLNull, addr string, i ...interface{}) {
-	if len(i) > 0 {
-		pac := &packet{packet: p, client: &client{cli: cli, addr: addr}}
-		switch conn := i[0].(type) {
-		case net.Conn:
-			//pac.client.tcp = true
-			pac.client.conn = conn
-		case *trudp.ChannelData:
-			//pac.client.tcp = false
-			pac.client.tcd = conn
-			//fmt.Printf("%v\n", pac.client.conn == nil)
-		}
-		l0.ch <- pac
-		return
-	}
+func (l0 *l0) toprocess(p []byte, cli *teocli.TeoLNull, addr string, conn conn) {
+	l0.ch <- &packet{packet: p, client: &client{cli: cli, addr: addr, conn: conn}}
+	return
 }
 
 // check checks that received trudp packet is l0 packet and process it so.
@@ -204,7 +190,7 @@ func (l0 *l0) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int
 // packetCheck check that received tcp packet is l0 packet and process it so.
 // Return satatus 1 if not processed(if it is not teocli packet), or 0 if
 // processed and send, or -1 if part of packet received and we wait next subpacket
-func (l0 *l0) packetCheck(cli *teocli.TeoLNull, addr string, conn interface{}, data []byte) (p []byte, status int) {
+func (l0 *l0) packetCheck(cli *teocli.TeoLNull, addr string, conn conn /* interface{} */, data []byte) (p []byte, status int) {
 check:
 	p, status = cli.PacketCheck(data)
 	switch status {
@@ -266,9 +252,13 @@ func (l0 *l0) process() {
 					teolog.Debugf(MODULE,
 						"incorrect login packet received from client %s, disconnect...\n",
 						pac.client.addr)
-					// pac.client.conn.Write([]byte("HTTP/1.1 200 OK\n" +
-					// 	"Content-Type: text/html\n\n" +
-					// 	"<html><body>Hello!</body></html>\n"))
+					// Send http answer to tcp request
+					switch pac.client.conn.(type) {
+					case net.Conn:
+						pac.client.conn.Write([]byte("HTTP/1.1 200 OK\n" +
+							"Content-Type: text/html\n\n" +
+							"<html><body>Hello!</body></html>\n"))
+					}
 					pac.client.conn.Close()
 				}
 				continue
@@ -342,13 +332,15 @@ func (l0 *l0) cmdL0To(rec *receiveData) {
 		teolog.Error(MODULE, err.Error())
 		return
 	}
-	if client.conn != nil {
-		teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to tcp L0 client: %s\n",
-			cmd, dataLen, client.name)
-		client.conn.Write(packet)
-	} else {
-		teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to trudp L0 client: %s\n", cmd,
-			dataLen, client.name)
-		client.tcd.Write(packet)
+	// detect type of conn: tcp or trudp before l0
+	var network string
+	switch client.conn.(type) {
+	case net.Conn:
+		network = "tcp"
+	case *trudp.ChannelData:
+		network = "trudp"
 	}
+	teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
+		cmd, dataLen, network, client.name)
+	client.conn.Write(packet)
 }

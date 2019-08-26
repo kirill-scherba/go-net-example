@@ -54,7 +54,7 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 					"now it try connect at channel %s\n",
 					peer, peerArp.tcd.GetKey(), rec.tcd.GetKey())
 			}
-			rec.tcd.CloseChannel()
+			rec.tcd.Close()
 		}
 		return
 	}
@@ -130,7 +130,7 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 		return
 	}
 	if peerArp.tcd != nil {
-		peerArp.tcd.CloseChannel()
+		peerArp.tcd.Close()
 	}
 	delete(arp.m, peer)
 	arp.print()
@@ -151,7 +151,7 @@ func (arp *arp) peer(tcd *trudp.ChannelData) (string, error) {
 func (arp *arp) deleteKey(key string) (peerArp *arpData) {
 	for peer, peerArp := range arp.m {
 		if peerArp.tcd != nil && peerArp.tcd.GetKey() == key {
-			peerArp.tcd.CloseChannel()
+			peerArp.tcd.Close()
 			delete(arp.m, peer)
 			arp.print()
 			break
@@ -178,7 +178,7 @@ func (arp *arp) deleteAll() {
 				} else {
 					arp.teo.sendToTcdUnsafe(arpData.tcd, CmdDisconnect, nil)
 				}
-				arpData.tcd.CloseChannel()
+				arpData.tcd.Close()
 			}
 		}
 		delete(arp.m, peer)

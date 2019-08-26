@@ -104,7 +104,7 @@ func (tcd *ChannelData) TripTime() float32 {
 }
 
 // WriteTo send data to remote host
-func (tcd *ChannelData) Write(data []byte) (err error) {
+func (tcd *ChannelData) Write(data []byte) (n int, err error) {
 	if tcd.stoppedF {
 		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
 		return
@@ -112,6 +112,7 @@ func (tcd *ChannelData) Write(data []byte) (err error) {
 	chanAnswer := make(chan bool)
 	tcd.trudp.proc.chanWrite <- &writeType{tcd, data, chanAnswer}
 	<-chanAnswer
+	n = len(data)
 	return
 }
 
@@ -181,8 +182,8 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 	return
 }
 
-// CloseChannel close trudp channel
-func (tcd *ChannelData) CloseChannel() {
+// Close close trudp channel
+func (tcd *ChannelData) Close() (err error) {
 	done := make(chan bool)
 	go tcd.trudp.kernel(func() {
 		tcd.destroy(teolog.DEBUGv,
@@ -191,6 +192,7 @@ func (tcd *ChannelData) CloseChannel() {
 		done <- true
 	})
 	<-done
+	return
 }
 
 // GetCh return trudp channel

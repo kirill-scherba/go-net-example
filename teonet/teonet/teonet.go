@@ -296,7 +296,7 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err 
 
 	// send splitted packet or send whole packet
 	_, err = teo.split.split(cmd, data, func(cmd int, data []byte) {
-		err = tcd.Write(makePac(tcd, cmd, data))
+		_, err = tcd.Write(makePac(tcd, cmd, data))
 	})
 	return
 }
