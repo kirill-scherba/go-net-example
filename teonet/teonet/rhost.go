@@ -46,14 +46,27 @@ func (rhost *rhostData) cmdConnectData(rec *receiveData) (peer, addr string, por
 
 	// Parse data
 	data := rec.rd.Data()
-	var cport C.uint32_t
+	var portu uint32
+
+	// \TODO: fix it!!! From time to time teonet-go application send this data
+	// with 255, 255 at the end. This code replace it to 0, 0. Neet to understand
+	// what going on and fix it!
+	l := len(data)
+	if data[l-1] == 255 {
+		data[l-1] = 0
+	}
+	if data[l-2] == 255 {
+		data[l-2] = 0
+	}
+
 	buf := bytes.NewBuffer(data)
 	peer, _ = buf.ReadString(0)
 	addr, _ = buf.ReadString(0)
-	binary.Read(buf, binary.LittleEndian, &cport)
+	binary.Read(buf, binary.LittleEndian, &portu)
 	peer = strings.TrimSuffix(peer, "\x00") // remove leading 0
 	addr = strings.TrimSuffix(addr, "\x00") // remove leading 0
-	port = int(cport)
+	port = int(portu)
+	//fmt.Printf("%v\npeer: %s, addr: %s, port: %d\n", data, peer, addr, port)
 	return
 }
 
@@ -85,6 +98,7 @@ func (rhost *rhostData) cmdConnect(rec *receiveData) {
 		rhost.teo.wg.Add(1)
 		defer rhost.teo.wg.Done()
 		// Create new connection
+		fmt.Printf("ConnectChannel: %s %d\n", addr, int(port))
 		tcd := rhost.teo.td.ConnectChannel(addr, int(port), 0)
 
 		// Replay to address received in command data
@@ -192,7 +206,7 @@ func (rhost *rhostData) connect() {
 		binary.Write(buf, binary.LittleEndian, []byte(addr))
 		binary.Write(buf, binary.LittleEndian, byte(0))
 	}
-	binary.Write(buf, binary.LittleEndian, C.uint32_t(port))
+	binary.Write(buf, binary.LittleEndian, uint32(port))
 	data := buf.Bytes()
 	fmt.Printf("Connect to r-host, send local IPs\nip: %v\nport: %d\n", ips, port)
 

@@ -153,7 +153,6 @@ func (l0 *l0) tspServer(port *int) {
 // Handle TCP connection
 func (l0 *l0) handleConnection(conn net.Conn) {
 	teolog.Connectf(MODULE, "l0 server tcp client %v connected...", conn.RemoteAddr())
-	//conn.Write([]byte("HTTP/1.1 200 OK\nContent-Type: text/html\n\n<html><body>Hello!</body></html>\n"))
 	cli, _ := teocli.Init(true)
 	b := make([]byte, 2048)
 	for {
@@ -173,7 +172,7 @@ func (l0 *l0) handleConnection(conn net.Conn) {
 				client: &client{cli: cli, tcp: true, addr: conn.RemoteAddr().String(), conn: conn},
 			}
 			n = 0
-			goto check
+			goto check // check next packet in read buffer
 		case -1:
 			if n > 0 {
 				teolog.Debugf(MODULE, "packet not received yet (got part of packet)\n")
@@ -201,7 +200,8 @@ func (l0 *l0) process() {
 
 			p := pac.client.cli.PacketNew(pac.packet)
 
-			// Find address in clients map and add if absent
+			// Find address in clients map and add if it absent, or send packet to
+			// peer if client already exsists
 			l0.mux.Lock()
 			client, ok := l0.ma[pac.client.addr]
 			l0.mux.Unlock()
@@ -213,16 +213,14 @@ func (l0 *l0) process() {
 					teolog.Debugf(MODULE,
 						"incorrect login packet received from client %s, disconnect...\n",
 						pac.client.addr)
+					// pac.client.conn.Write([]byte("HTTP/1.1 200 OK\n" +
+					// 	"Content-Type: text/html\n\n" +
+					// 	"<html><body>Hello!</body></html>\n"))
 					pac.client.conn.Close()
 				}
 				continue
 			} else {
-				// Send packet to peer
-				d := p.Data()
-				if len(d) > 256 {
-					d = d[:256]
-				}
-				l0.sendToPeer(client.name, p.Command(), p.Name(), d)
+				l0.sendToPeer(client.name, p.Command(), p.Name(), p.Data())
 			}
 		}
 		l0.closeAll()
@@ -231,14 +229,10 @@ func (l0 *l0) process() {
 	}()
 }
 
-// uint8_t cmd; ///< Command
-// uint8_t from_length; ///< From client name length (include leading zero)
-// uint16_t data_length; ///< Packet data length
-// char from[]; ///< From client name (include leading zero) + packet data
-
 // sendToPeer from L0 server, send clients packet received from client to peer
 func (l0 *l0) sendToPeer(from string, cmd int, peer string, data []byte) {
-	teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet to peer %s, from client: %s",
+	teolog.Debugf(MODULE,
+		"send cmd: %d, %d bytes data packet to peer %s, from client: %s",
 		cmd, len(data), peer, from)
 
 	buf := new(bytes.Buffer)
@@ -250,14 +244,6 @@ func (l0 *l0) sendToPeer(from string, cmd int, peer string, data []byte) {
 	binary.Write(buf, le, []byte(data))            // Packet data
 	l0.teo.SendTo(peer, CmdL0, buf.Bytes())        // Send to peer
 }
-
-// buf := new(bytes.Buffer)
-// binary.Write(buf, binary.LittleEndian, []byte(from))
-// binary.Write(buf, binary.LittleEndian, byte(0))
-// binary.Write(buf, binary.LittleEndian, []byte(addr))
-// binary.Write(buf, binary.LittleEndian, byte(0))
-// binary.Write(buf, binary.LittleEndian, uint32(port))
-// return buf.Bytes()
 
 // cmdL0 parse cmd got from L0 server with packet from L0 client
 func (l0 *l0) cmdL0(rec *receiveData) {
@@ -292,7 +278,6 @@ func (l0 *l0) cmdL0To(rec *receiveData) {
 	client, ok := l0.mn[string(name[:len(name)-1])]
 	l0.mux.Unlock()
 	if !ok {
-		// some error
 		teolog.Debugf(MODULE, "can't find client %s in clients map\n", name)
 		return
 	}

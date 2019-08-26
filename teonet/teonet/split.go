@@ -22,9 +22,52 @@ const (
 	lastPacketFlag = 0x8000
 )
 
-// splitNew create splitPacket receiver
+// splitNew create splitPacket receivert
 func (teo *Teonet) splitNew() *splitPacket {
 	return &splitPacket{teo: teo, m: make(map[string]*receiveData)}
+}
+
+// split spits data to subpackets and return number subpacket. For each
+// subpacket the 'f func(data []byte)' callback function calls. If data len
+// less than maxPacketLen num = 0 and callback function does not calls
+func (split *splitPacket) split(cmd int, data []byte, f func(data []byte)) (num int, err error) {
+
+	var packetNum, subpacketNum uint16
+
+	// callback Add command to first packet execute callback function and
+	// increment number of subpacket couter
+	callback := func(num *int, data []byte, lastSubpacket bool) {
+		fmt.Println(len(data))
+		subpacketNum = uint16(*num)
+		if lastSubpacket {
+			subpacketNum = subpacketNum | lastPacketFlag
+		}
+		buf := new(bytes.Buffer)
+		le := binary.LittleEndian
+		binary.Write(buf, le, packetNum)
+		binary.Write(buf, le, subpacketNum)
+		binary.Write(buf, le, data)
+		if subpacketNum == 0 {
+			binary.Write(buf, le, byte(cmd))
+		}
+		f(buf.Bytes())
+		*num++
+	}
+
+	// Split data to subpackets and execute callback function
+	for {
+		// last splitted packet or no split packet
+		if len(data) < maxDataLen {
+			if num == 0 {
+				return
+			}
+			callback(&num, data, true)
+			return
+		}
+		// first or next packet (not a last packet)
+		callback(&num, data[:maxDataLen], false)
+		data = data[maxDataLen:]
+	}
 }
 
 // combine got received packet and return combined teonet packet or nil if not

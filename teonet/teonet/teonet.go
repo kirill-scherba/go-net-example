@@ -207,7 +207,8 @@ FOR:
 				//break FOR
 
 			case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
-				teolog.DebugVvf(MODULE, "got %d bytes packet, channel key: %s\n", len(packet), ev.Tcd.GetKey())
+				teolog.DebugVvf(MODULE, "got %d bytes packet, channel key: %s\n",
+					len(packet), ev.Tcd.GetKey())
 				packet = teo.cry.decrypt(packet, ev.Tcd.GetKey()) // Decrypt
 				pac := &Packet{packet: packet}                    // Create Packet and parse it
 				if rd, err = pac.Parse(); err == nil {
@@ -217,7 +218,9 @@ FOR:
 						break FOR
 					}
 				} else {
-					teolog.DebugVvf(MODULE, teokeys.Color(teokeys.ANSIRed, "got invalid (not teonet) packet")+", channel key: %s\n", ev.Tcd.GetKey())
+					teolog.DebugVvf(MODULE, teokeys.Color(teokeys.ANSIRed,
+						"got invalid (not teonet) packet")+", channel key: %s\n",
+						ev.Tcd.GetKey())
 					rd = nil
 				}
 
@@ -231,7 +234,8 @@ FOR:
 				if ev.Tcd != nil {
 					key = ev.Tcd.GetKey()
 				}
-				teolog.Logf(teolog.DEBUGvv, MODULE, "got unknown event: %d, channel key: %s\n", ev.Event, key)
+				teolog.Logf(teolog.DEBUGvv, MODULE,
+					"got unknown event: %d, channel key: %s\n", ev.Event, key)
 			}
 
 		// Execute function on Teonet kernel level
@@ -273,19 +277,36 @@ func (teo *Teonet) SendAnswer(rec *receiveData, cmd int, data []byte) (err error
 
 // sendToTcd send command to Teonet peer by known trudp channel
 func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err error) {
-	pac := teo.packetCreateNew(cmd, teo.param.Name, data)
-	to, _ := teo.arp.peer(tcd)
-	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to, len(data))
-	// \TODO: encrypt data
-	return tcd.WriteTo(teo.cry.encrypt(pac.packet))
+
+	// makePac creates new teonet packet and show 'send' log message
+	makePac := func(tcd *trudp.ChannelData, cmd int, data []byte) []byte {
+		pac := teo.packetCreateNew(cmd, teo.param.Name, data)
+		to, _ := teo.arp.peer(tcd)
+		teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to, len(data))
+		return teo.cry.encrypt(pac.packet)
+	}
+
+	var num int // number of splitted packets or 0 if one packet
+
+	// send splitted packet or whall packet
+	if num, err = teo.split.split(cmd, data, func(data []byte) {
+		err = tcd.WriteTo(makePac(tcd, CmdSplit, data)) // send splitted packet
+	}); num == 0 {
+		err = tcd.WriteTo(makePac(tcd, cmd, data)) // Send wall packet
+	}
+	return
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel
 func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd int, data []byte) (int, error) {
 	pac := teo.packetCreateNew(cmd, teo.param.Name, data)
 	to, _ := teo.arp.peer(tcd)
-	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d (send direct udp)\n", cmd, to, len(data))
-	// \TODO: encrypt data
+	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d (send direct udp)\n",
+		cmd, to, len(data))
+	// \TODO: split data!! We can't split Unsafe packet bekause we can't delivery
+	// much unfsafe packets and than combine it. So sugest return err "too large
+	// data packet" if the length more than 1024 - 1280 (more than mtu, more than
+	// udp packet)... or lets him try send any size packets :-)
 	return tcd.WriteToUnsafe(teo.cry.encrypt(pac.packet))
 }
 
