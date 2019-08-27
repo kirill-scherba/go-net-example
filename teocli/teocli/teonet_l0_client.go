@@ -3,7 +3,7 @@ package teocli
 //// CGO definition (don't delay or edit it):
 //#include "teonet_l0_client.h"
 /*
-int packetGetCommand(void *packetPtr) {
+uint8_t packetGetCommand(void *packetPtr) {
 	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
   return packet->cmd;
 }
@@ -367,8 +367,8 @@ func (teocli *TeoLNull) PacketNew(packet []byte) *Packet {
 }
 
 // Command return packets peer name
-func (pac *Packet) Command() int {
-	return int(C.packetGetCommand(unsafe.Pointer(&pac.packet[0])))
+func (pac *Packet) Command() byte {
+	return byte(C.packetGetCommand(unsafe.Pointer(&pac.packet[0])))
 }
 
 // Name return packets peer name

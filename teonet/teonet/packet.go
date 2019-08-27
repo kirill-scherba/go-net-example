@@ -13,12 +13,12 @@ import (
 )
 
 // packetCreateNew create teonet packet
-func (teo *Teonet) packetCreateNew(cmd int, from string, data []byte) (packet *Packet) {
+func (teo *Teonet) packetCreateNew(from string, cmd byte, data []byte) (packet *Packet) {
 	fromC := C.CString(from)
 	var dataC unsafe.Pointer
 	var packetLen C.size_t
 	var dataLen C.size_t
-	if data != nil {
+	if data != nil && len(data) > 0 {
 		dataC = unsafe.Pointer(&data[0])
 		dataLen = C.size_t(len(data))
 	}
@@ -44,8 +44,8 @@ func (pac *Packet) Len() int {
 }
 
 // Cmd return packets cmd number
-func (pac *Packet) Cmd() int {
-	return int(pac.packet[pac.FromLen()+1])
+func (pac *Packet) Cmd() byte {
+	return pac.packet[pac.FromLen()+1]
 }
 
 // From return packets from
@@ -73,6 +73,7 @@ func (pac *Packet) DataLen() int {
 	return len(pac.packet) - pac.FromLen() - C.PACKET_HEADER_ADD_SIZE
 }
 
+// receiveData recived data structure
 type receiveData struct {
 	rd  *C.ksnCorePacketData
 	tcd *trudp.ChannelData
@@ -105,8 +106,8 @@ func (rd *C.ksnCorePacketData) PacketLen() int {
 }
 
 // Cmd return rd's cmd number
-func (rd *C.ksnCorePacketData) Cmd() int {
-	return int(rd.cmd)
+func (rd *C.ksnCorePacketData) Cmd() byte {
+	return byte(rd.cmd)
 }
 
 // From return rd's from
@@ -131,4 +132,17 @@ func (rd *C.ksnCorePacketData) Data() (data []byte) {
 // Data return rd's data length
 func (rd *C.ksnCorePacketData) DataLen() int {
 	return int(rd.data_len)
+}
+
+func (rd *C.ksnCorePacketData) IsL0() bool {
+	return rd.l0_f != 0
+}
+
+// setL0 sets l0 flag and l0 server address to received data
+func (rd *C.ksnCorePacketData) setL0(addr string, port int) {
+	addrB := append([]byte(addr), 0)
+	addrC := (*C.char)(unsafe.Pointer(&addrB[0]))
+	rd.addr = addrC
+	rd.port = C.int(port)
+	rd.l0_f = 1
 }

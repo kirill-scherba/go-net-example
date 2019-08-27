@@ -17,7 +17,7 @@ type waitCommand struct {
 // waitFromRequest 'wait command from' request
 type waitFromRequest struct {
 	from string           // waiting from
-	cmd  int              // waiting comand
+	cmd  byte             // waiting comand
 	ch   ChanWaitFromData // return channel
 }
 
@@ -31,7 +31,7 @@ type WaitFromData struct {
 type ChanWaitFromData chan *WaitFromData
 
 // add adds 'wait command from' request
-func (wcom *waitCommand) add(from string, cmd int, ch ChanWaitFromData) (wfr *waitFromRequest) {
+func (wcom *waitCommand) add(from string, cmd byte, ch ChanWaitFromData) (wfr *waitFromRequest) {
 	key := wcom.makeKey(from, cmd)
 	wcomRequestAr, ok := wcom.m[key]
 	wfr = &waitFromRequest{from, cmd, ch}
@@ -89,8 +89,8 @@ func (wcom *waitCommand) check(rec *receiveData) (processed int) {
 }
 
 // makeKey make wait command map key
-func (wcom *waitCommand) makeKey(from string, cmd int) string {
-	return from + ":" + strconv.Itoa(cmd)
+func (wcom *waitCommand) makeKey(from string, cmd byte) string {
+	return from + ":" + strconv.Itoa(int(cmd))
 }
 
 // waitFromNew initialize new Wait command module
@@ -103,7 +103,7 @@ func (teo *Teonet) waitFromNew() (wcom *waitCommand) {
 // WaitFrom wait receiving data from peer. Secont parameter of this function is
 // timeout. It may be omitted or contain time of timeout of time.Duration type.
 // If timeout parameter is omitted than default timeout value 2 sec sets.
-func (teo *Teonet) WaitFrom(from string, cmd int, i ...interface{}) <-chan *WaitFromData {
+func (teo *Teonet) WaitFrom(from string, cmd byte, i ...interface{}) <-chan *WaitFromData {
 	// Parameters definition
 	timeout := 2 * time.Second
 	if len(i) > 0 {

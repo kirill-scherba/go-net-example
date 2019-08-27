@@ -140,7 +140,7 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 // peer return peer name (find by tcd)
 func (arp *arp) peer(tcd *trudp.ChannelData) (string, error) {
 	for peer, peerArp := range arp.m {
-		if peerArp.tcd != nil && peerArp.tcd == tcd {
+		if peerArp.tcd == tcd {
 			return peer, nil
 		}
 	}

@@ -264,46 +264,88 @@ FOR:
 	return
 }
 
+// sendToHimself send command to this host
+func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (err error) {
+
+	teolog.Debugf(MODULE, "send command to this host: %s, cmd: %d, data_len: %d\n",
+		to, cmd, len(data))
+
+	rd, err := teo.packetCreateNew(teo.param.Name, byte(cmd), data).Parse()
+	if err != nil {
+		err = errors.New("can't parse packet to himself")
+		return
+	}
+
+	teo.com.process(&receiveData{rd, nil})
+	return
+}
+
 // SendTo send command to Teonet peer
-func (teo *Teonet) SendTo(to string, cmd int, data []byte) (err error) {
+func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (err error) {
 	arp, ok := teo.arp.m[to]
 	if !ok {
 		err = errors.New("peer " + to + " not connected to this host")
 		return
 	}
 	if arp.tcd == nil {
-		err = errors.New("send himself not implemented yet")
-		return
+		//err = errors.New("send himself not implemented yet")
+		return teo.sendToHimself(to, cmd, data)
 	}
 	return teo.sendToTcd(arp.tcd, cmd, data)
 }
 
+// SenToL0 send command to Teonet L0 client
+func (teo *Teonet) SendToL0(l0Peer string, client string, cmd byte, data []byte) (err error) {
+	teo.l0.sendToL0(l0Peer, client, cmd, data)
+	return nil
+}
+
 // SendAnswer send command to Teonet peer by receiveData
-func (teo *Teonet) SendAnswer(rec *receiveData, cmd int, data []byte) (err error) {
-	return teo.sendToTcd(rec.tcd, cmd, data)
+func (teo *Teonet) SendAnswer(rec *receiveData, cmd byte, data []byte) (err error) {
+	if !rec.rd.IsL0() {
+		return teo.sendToTcd(rec.tcd, cmd, data)
+	} else {
+		addr, port := C.GoString(rec.rd.addr), int(rec.rd.port)
+		//fmt.Printf("SEND TO CLIENT %s from l0 '%s:%d'\n", rec.rd.From(), addr, port)
+		if addr == "" && port == teo.param.Port && teo.l0.allow {
+			teo.l0.sendTo(teo.param.Name, rec.rd.From(), cmd, data)
+			return
+		}
+		arp, ok := teo.arp.find(addr, port, 0)
+		if ok {
+			peer := arp.peer
+			//fmt.Printf("SEND TO CLIENT %s from peer: %s\n", rec.rd.From(), peer)
+			return teo.SendToL0(peer, rec.rd.From(), cmd, data)
+		}
+		return nil
+	}
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel
-func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd int, data []byte) (err error) {
+func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd byte, data []byte) (err error) {
 
 	// makePac creates new teonet packet and show 'send' log message
-	makePac := func(tcd *trudp.ChannelData, cmd int, data []byte) []byte {
-		pac := teo.packetCreateNew(cmd, teo.param.Name, data)
+	makePac := func(tcd *trudp.ChannelData, cmd byte, data []byte) []byte {
+		pac := teo.packetCreateNew(teo.param.Name, cmd, data)
 		to, _ := teo.arp.peer(tcd)
 		teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to, len(data))
 		return teo.cry.encrypt(pac.packet)
 	}
 
 	// send splitted packet or send whole packet
-	_, err = teo.split.split(cmd, data, func(cmd int, data []byte) {
-		_, err = tcd.Write(makePac(tcd, cmd, data))
-	})
+	if tcd != nil {
+		_, err = teo.split.split(cmd, data, func(cmd byte, data []byte) {
+			_, err = tcd.Write(makePac(tcd, cmd, data))
+		})
+	} else {
+		teo.sendToHimself(teo.param.Name, cmd, data)
+	}
 	return
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel
-func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd int, data []byte) (int, error) {
-	pac := teo.packetCreateNew(cmd, teo.param.Name, data)
+func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd byte, data []byte) (int, error) {
+	pac := teo.packetCreateNew(teo.param.Name, cmd, data)
 	to, _ := teo.arp.peer(tcd)
 	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d (send direct udp)\n",
 		cmd, to, len(data))

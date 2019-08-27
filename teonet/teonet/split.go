@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 	"unsafe"
 )
 
@@ -23,7 +24,7 @@ const (
 	lastPacketFlag = 0x8000
 )
 
-// splitNew create splitPacket receivert
+// splitNew create splitPacket receiver
 func (teo *Teonet) splitNew() *splitPacket {
 	return &splitPacket{teo: teo, m: make(map[string]*receiveData)}
 }
@@ -31,7 +32,7 @@ func (teo *Teonet) splitNew() *splitPacket {
 // split spits data to subpackets and return number subpacket. For each
 // subpacket the 'f func(data []byte)' callback function calls. If data len
 // less than maxPacketLen num = 0 and callback function does not calls
-func (split *splitPacket) split(cmd int, data []byte, f func(cmd int, data []byte)) (num int, err error) {
+func (split *splitPacket) split(cmd byte, data []byte, f func(cmd byte, data []byte)) (num int, err error) {
 
 	// Send unsplit packet
 	if len(data) < maxDataLen {
@@ -76,7 +77,7 @@ func (split *splitPacket) split(cmd int, data []byte, f func(cmd int, data []byt
 
 // combine got received packet and return combined teonet packet or nil if not
 // combined yet or error
-func (split *splitPacket) combine(rec *receiveData) (packet []byte, cmd int, err error) {
+func (split *splitPacket) combine(rec *receiveData) (packet []byte, cmd byte, err error) {
 
 	// Parse command
 	buf := bytes.NewReader(rec.rd.Data())
@@ -123,7 +124,7 @@ func (split *splitPacket) combine(rec *receiveData) (packet []byte, cmd int, err
 		data := rec.rd.Data()[ptr:]
 		if i == 0 {
 			l := len(data) - 1
-			cmd = int(data[l])
+			cmd = data[l]
 			data = data[:l]
 		}
 		packet = append(packet, data...)
@@ -131,6 +132,16 @@ func (split *splitPacket) combine(rec *receiveData) (packet []byte, cmd int, err
 	}
 
 	return
+}
+
+// removeClient remove disconnected user from packets map
+// \TODO: use this function when client disconneted
+func (split *splitPacket) removeClient(client string) {
+	for key, _ := range split.m {
+		if strings.HasPrefix(key, client+":") {
+			delete(split.m, key)
+		}
+	}
 }
 
 // cmdSplit CMD_SPLIT command processing
@@ -145,7 +156,7 @@ func (split *splitPacket) cmdSplit(rec *receiveData) (processed bool, err error)
 		processed = true
 		return
 	}
-	rd, err := split.teo.packetCreateNew(cmd, rec.rd.From(), data).Parse()
+	rd, err := split.teo.packetCreateNew(rec.rd.From(), cmd, data).Parse()
 	if err != nil {
 		err = errors.New("can't parse combined packet")
 		return

@@ -41,7 +41,12 @@ type command struct {
 
 // process processed internal Teonet commands
 func (com *command) process(rec *receiveData) (processed bool) {
-	com.teo.arp.peerNew(rec)
+
+	// For commands receiving from peer create new peer in art table
+	if !rec.rd.IsL0() {
+		com.teo.arp.peerNew(rec)
+	}
+
 	processed = true
 	cmd := rec.rd.Cmd()
 
@@ -104,7 +109,7 @@ func (com *command) error(rd *C.ksnCorePacketData, descr string) {
 }
 
 // connect process 'connect' command and answer with 'connect' command
-func (com *command) connect(rec *receiveData, cmd int) {
+func (com *command) connect(rec *receiveData, cmd byte) {
 	if cmd == C.CMD_CONNECT {
 		var to string
 		if rec.rd != nil && rec.rd.Data() != nil {
@@ -148,7 +153,7 @@ func (com *command) reset(rec *receiveData) {
 func (com *command) echo(rec *receiveData) {
 	com.log(rec.rd, "CMD_ECHO command, data: "+
 		C.GoString((*C.char)(unsafe.Pointer(&rec.rd.Data()[0]))))
-	com.teo.sendToTcd(rec.tcd, C.CMD_ECHO_ANSWER, rec.rd.Data())
+	com.teo.SendAnswer(rec, C.CMD_ECHO_ANSWER, rec.rd.Data())
 }
 
 // echo process 'echoAnswer' command

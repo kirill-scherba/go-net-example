@@ -10,7 +10,7 @@ func TestPacket(t *testing.T) {
 
 	t.Run("packetCreate", func(t *testing.T) {
 		for i := 0; i < 2; i++ {
-			cmd := 129 + i
+			cmd := byte(129 + i)
 			var from string
 			var data []byte
 			if i > 0 {
@@ -18,7 +18,7 @@ func TestPacket(t *testing.T) {
 				data = []byte("Hello!")
 			}
 			// Check packet create
-			pac := (&Teonet{}).packetCreateNew(cmd, from, data)
+			pac := (&Teonet{}).packetCreateNew(from, byte(cmd), data)
 			if pac.Len() != pac.FromLen()+pac.DataLen()+2 {
 				t.Errorf("wrong packet length: %d", pac.Len())
 			}
@@ -45,7 +45,7 @@ func TestPacket(t *testing.T) {
 			if int(rd.raw_data_len) != pac.Len() {
 				t.Errorf("wrong Packet length in rd: %d", rd.raw_data_len)
 			}
-			if int(rd.cmd) != pac.Cmd() {
+			if byte(rd.cmd) != pac.Cmd() {
 				t.Errorf("wrong Cmd in rd: %d", rd.data_len)
 			}
 			if rd.From() != pac.From() {

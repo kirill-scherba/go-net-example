@@ -140,7 +140,7 @@ func (teo *Teonet) createMenu() {
 				answerCmd = readInt(in, "cmd(answer): ")
 
 				// Send to Teonet peer
-				if err := teo.SendTo(to, cmd, data); err != nil {
+				if err := teo.SendTo(to, byte(cmd), data); err != nil {
 					fmt.Printf("error: %s\n", err.Error())
 					return
 				}
@@ -148,7 +148,7 @@ func (teo *Teonet) createMenu() {
 
 				// Wait answer from Teonet peer
 				if answerCmd > 0 {
-					r := <-teo.WaitFrom(to, answerCmd, 1*time.Second)
+					r := <-teo.WaitFrom(to, byte(answerCmd), 1*time.Second)
 					// Show timeout error
 					if r.Err != nil {
 						fmt.Printf("error: %s\n", r.Err.Error())

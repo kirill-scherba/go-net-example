@@ -3,6 +3,7 @@ package teonet
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -245,8 +246,13 @@ func (l0 *l0) process() {
 			// peer if client already exsists
 			client, ok := l0.find(pac.client.addr)
 			if !ok {
-				if p.Command() == 0 && p.Name() == "" {
-					pac.client.name = string(p.Data())
+				// First message from client should contain login command. Loging
+				// command parameters: cmd = 0 and name = "" and data = 'client name'.
+				// When we got valid data in l0 login we add clien to cliens map and all
+				// next commands form this clients resend to peers with this name (name
+				// from login command data)
+				if d := p.Data(); p.Command() == 0 && p.Name() == "" {
+					pac.client.name = string(d[:len(d)-1])
 					l0.add(pac.client)
 				} else {
 					teolog.Debugf(MODULE,
@@ -262,9 +268,9 @@ func (l0 *l0) process() {
 					pac.client.conn.Close()
 				}
 				continue
-			} else {
-				l0.sendToPeer(client.name, p.Command(), p.Name(), p.Data())
 			}
+			// Send command to peer for exising client
+			l0.sendToPeer(p.Name(), client.name, p.Command(), p.Data())
 		}
 		l0.closeAll()
 		teolog.Debugf(MODULE, "l0 packet process stopped\n")
@@ -272,66 +278,118 @@ func (l0 *l0) process() {
 	}()
 }
 
-// sendToPeer from L0 server, send clients packet received from client to peer
-func (l0 *l0) sendToPeer(from string, cmd int, peer string, data []byte) {
-	teolog.Debugf(MODULE,
-		"send cmd: %d, %d bytes data packet to peer %s, from client: %s",
-		cmd, len(data), peer, from)
-
+// packetCreate creates packet data for sendToPeer and sendToL0
+func (l0 *l0) packetCreate(client string, cmd byte, data []byte) []byte {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
-	binary.Write(buf, le, byte(cmd))               // Command
-	binary.Write(buf, le, byte(len(from)+1))       // From client name length (include leading zero)
-	binary.Write(buf, le, uint16(len(data)))       // Packet data length
-	binary.Write(buf, le, append([]byte(from), 0)) // From client name (include leading zero)
-	binary.Write(buf, le, []byte(data))            // Packet data
-	l0.teo.SendTo(peer, CmdL0, buf.Bytes())        // Send to peer
+	binary.Write(buf, le, cmd)                       // Command
+	binary.Write(buf, le, byte(len(client)+1))       // Client name length (include trailing zero)
+	binary.Write(buf, le, uint16(len(data)))         // Packet data length
+	binary.Write(buf, le, append([]byte(client), 0)) // Client name (include trailing zero)
+	binary.Write(buf, le, []byte(data))              // Packet data
+	return buf.Bytes()
+}
+
+// packetParse parse command data
+func (l0 *l0) packetParse(d []byte) (name string, cmd byte, data []byte) {
+	buf := bytes.NewReader(d)
+	le := binary.LittleEndian
+	var fromLen byte
+	var dataLen uint16
+	binary.Read(buf, le, &cmd)     // Command
+	binary.Read(buf, le, &fromLen) // From client name length (include trailing zero)
+	binary.Read(buf, le, &dataLen) // Packet data length
+	name = func() string {
+		nameBuf := make([]byte, fromLen)
+		binary.Read(buf, le, nameBuf)
+		return string(nameBuf[:len(nameBuf)-1])
+	}()
+	data = func() []byte {
+		d := make([]byte, dataLen)
+		binary.Read(buf, le, d)
+		return d
+	}()
+	return
+}
+
+// sendToPeer from L0 server, send packet received from client to peer
+func (l0 *l0) sendToPeer(peer string, client string, cmd byte, data []byte) {
+	teolog.Debugf(MODULE,
+		"send cmd: %d, %d bytes data packet to peer %s, from client: %s",
+		cmd, len(data), client, client,
+	)
+	l0.teo.SendTo(peer, CmdL0, l0.packetCreate(client, cmd, data)) // Send to peer
+}
+
+// sendToL0 to L0 server, send packet from peer to client
+func (l0 *l0) sendToL0(peer string, client string, cmd byte, data []byte) {
+	teolog.Debugf(MODULE,
+		"send cmd: %d, %d bytes data packet to l0 %s, from client: %s",
+		cmd, len(data), peer, client,
+	)
+	l0.teo.SendTo(peer, CmdL0To, l0.packetCreate(client, cmd, data)) // Send to L0
 }
 
 // cmdL0 parse cmd got from L0 server with packet from L0 client
-func (l0 *l0) cmdL0(rec *receiveData) {
+func (l0 *l0) cmdL0(rec *receiveData) (processed bool, err error) {
 	l0.teo.com.log(rec.rd, "CMD_L0 command")
+
+	// Create packet
+	rd, err := l0.teo.packetCreateNew(l0.packetParse(rec.rd.Data())).Parse()
+	if err != nil {
+		err = errors.New("can't parse packet from l0")
+		fmt.Println(err.Error())
+		return
+	}
+
+	// Sel L0 flag and addresses
+	rd.setL0(func() (addr string, port int) {
+		if port = l0.teo.param.Port; rec.tcd != nil {
+			addr, port = rec.tcd.GetAddr().IP.String(), rec.tcd.GetAddr().Port
+		}
+		return
+	}())
+
+	// Process command
+	processed = l0.teo.com.process(&receiveData{rd, rec.tcd})
+	return
 }
 
 // cmdL0To parse cmd got from peer to L0 client
 func (l0 *l0) cmdL0To(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_TO command")
+
 	if !l0.allow {
 		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
 		return
 	}
 
 	// Parse command data
-	buf := bytes.NewReader(rec.rd.Data())
-	le := binary.LittleEndian
-	var cmd, fromLen byte
-	var dataLen uint16
-	binary.Read(buf, le, &cmd)
-	binary.Read(buf, le, &fromLen)
-	binary.Read(buf, le, &dataLen)
-	name := make([]byte, fromLen)
-	binary.Read(buf, le, name)
-	data := make([]byte, dataLen)
-	binary.Read(buf, le, data)
-	from := rec.rd.From()
+	name, cmd, data := l0.packetParse(rec.rd.Data())
+	l0.sendTo(rec.rd.From(), name, cmd, data)
+}
+
+// sendTo send command to client
+func (l0 *l0) sendTo(from string, name string, cmd byte, data []byte) {
 
 	// Get client data from name map
 	l0.mux.Lock()
-	client, ok := l0.mn[string(name[:len(name)-1])]
+	client, ok := l0.mn[name]
 	l0.mux.Unlock()
 	if !ok {
-		teolog.Debugf(MODULE, "can't find client %s in clients map\n", name)
+		teolog.Debugf(MODULE, "can't find client '%s' in clients map\n", name)
 		return
 	}
 
 	teolog.Debugf(MODULE, "got cmd: %d, %d bytes data packet from peer %s, to client: %s\n",
-		cmd, dataLen, from, name)
+		cmd, len(data), from, name)
 
 	packet, err := client.cli.PacketCreate(uint8(cmd), from, data)
 	if err != nil {
 		teolog.Error(MODULE, err.Error())
 		return
 	}
+
 	// detect type of conn: tcp or trudp before l0
 	var network string
 	switch client.conn.(type) {
@@ -341,6 +399,7 @@ func (l0 *l0) cmdL0To(rec *receiveData) {
 		network = "trudp"
 	}
 	teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
-		cmd, dataLen, network, client.name)
+		cmd, len(data), network, client.name)
+
 	client.conn.Write(packet)
 }
