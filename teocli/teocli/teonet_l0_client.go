@@ -70,7 +70,7 @@ type TeoLNull struct {
 func (teocli *TeoLNull) PacketCreate(command uint8, peer string, data []byte) (buffer []byte, err error) {
 	var dataLen int
 	var dataPtr unsafe.Pointer
-	if data != nil {
+	if data != nil && len(data) > 0 {
 		dataPtr = unsafe.Pointer(&data[0])
 		dataLen = len(data)
 	}
