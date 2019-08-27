@@ -81,6 +81,22 @@ func (teo *Teonet) createMenu() {
 			fmt.Println("\nshow trudp", mode)
 		})
 
+		if teo.l0.allow {
+			teo.menu.Add('C', "show clients", func() {
+				var mode string
+				if teo.param.ShowTrudpStatF {
+					teo.param.ShowTrudpStatF = false
+					mode = "off" + "\033[r" + "\0338"
+				} else {
+					teo.param.ShowTrudpStatF = true
+					teo.param.ShowPeersStatF = false
+					mode = "on"
+				}
+				teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+				fmt.Println("\nshow clients", mode)
+			})
+		}
+
 		teo.menu.Add('n', "show 'none' log messages", func() { setLogLevel(teolog.NONE) })
 		teo.menu.Add('c', "show 'connect' log messages", func() { setLogLevel(teolog.CONNECT) })
 		teo.menu.Add('d', "show 'debug' log messages", func() { setLogLevel(teolog.DEBUG) })
