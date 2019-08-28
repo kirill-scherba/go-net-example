@@ -1,6 +1,7 @@
 package teonet
 
 //// CGO definition (don't delay or edit it):
+//// sudo apt-get install -y libssl-dev
 //#cgo LDFLAGS: -lcrypto
 //#include "crypt.h"
 import "C"
