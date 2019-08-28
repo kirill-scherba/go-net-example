@@ -29,15 +29,16 @@ import (
 
 // l0 is Module data structure
 type l0 struct {
-	teo   *Teonet            // Pointer to Teonet
-	stat  *l0Stat            // Statistic
-	allow bool               // Allow L0 Server
-	port  int                // TCP port (if 0 - not allowed TCP)
-	conn  net.Listener       // TCP listener connection
-	ch    chan *packet       // Packet processing channel
-	ma    map[string]*client // Clients address map
-	mn    map[string]*client // Clients name map
-	mux   sync.Mutex         // Maps mutex
+	teo    *Teonet            // Pointer to Teonet
+	stat   *l0Stat            // Statistic
+	allow  bool               // Allow L0 Server
+	port   int                // TCP port (if 0 - not allowed TCP)
+	conn   net.Listener       // TCP listener connection
+	ch     chan *packet       // Packet processing channel
+	ma     map[string]*client // Clients address map
+	mn     map[string]*client // Clients name map
+	mux    sync.Mutex         // Maps mutex
+	closed bool               // Closet flag
 }
 
 // packet is Packet processing channels data structure
@@ -85,7 +86,10 @@ func (l0 *l0) destroy() {
 		if l0.conn != nil {
 			l0.conn.Close()
 		}
-		close(l0.ch)
+		if !l0.closed {
+			close(l0.ch)
+			l0.closed = true
+		}
 	}
 }
 
