@@ -345,7 +345,7 @@ func (trudp *TRUDP) Close() {
 
 // kernel run function in trudp kernel (main process)
 func (trudp *TRUDP) kernel(f func()) {
-	//fmt.Println("send f() to kernel")
+	// \TODO may be use 'if trudp.Running()' here
 	trudp.proc.chanKernel <- f
 }
 

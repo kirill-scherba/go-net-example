@@ -86,6 +86,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 			trudp.closeChannels()
 			trudp.sendEvent(nil, DESTROY, []byte(trudp.udp.localAddr()))
 			close(trudp.chanEvent)
+			close(trudp.proc.chanKernel)
 
 			proc.wg.Done()
 		}()
@@ -101,7 +102,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 					if !chanWriteClosedF {
 						chanWriteClosedF = true
 						close(trudp.proc.chanWrite)
-						close(trudp.proc.chanKernel)
+						//close(trudp.proc.chanKernel)
 					}
 					break
 				}
@@ -119,6 +120,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 			// Process write packet (received from user level, need write to udp)
 			case writePac, ok := <-proc.chanWrite:
 				if !ok {
+					//close(trudp.proc.chanKernel)
 					return
 				}
 				proc.writeTo(writePac)

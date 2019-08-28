@@ -57,7 +57,7 @@ func (hk *HotkeyMenu) Usage() {
 		fmt.Print(line)
 	}
 	for _, item := range hk.menu {
-		fmt.Printf(Color(ANSIGreen, string(item.hkey[0])) + " - " + item.usage + "\n")
+		fmt.Printf(Color(ANSIGreen, " "+string(item.hkey[0])) + " - " + item.usage + "\n")
 	}
 	fmt.Print(line)
 }

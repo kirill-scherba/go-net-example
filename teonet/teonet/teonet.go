@@ -163,6 +163,7 @@ func (teo *Teonet) Run() {
 
 // Close stops Teonet running
 func (teo *Teonet) Close() {
+	fmt.Println("teo.running:", teo.running)
 	teo.running = false
 	teo.l0.destroy()
 	teo.menu.Quit()
@@ -170,6 +171,9 @@ func (teo *Teonet) Close() {
 	teo.td.Close()
 	// close(teo.chanKernel)
 	// teo.ticker.Stop()
+	close(teo.chanKernel)
+	teo.ticker.Stop()
+
 	teo.cry.destroy()
 }
 

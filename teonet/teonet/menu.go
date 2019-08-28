@@ -54,49 +54,47 @@ func (teo *Teonet) createMenu() {
 
 		teo.menu.Add('p', "show peers", func() {
 			var mode string
-			if teo.param.ShowPeersStatF {
-				teo.param.ShowPeersStatF = false
+			teo.param.ShowPeersStatF = !teo.param.ShowPeersStatF
+			if !teo.param.ShowPeersStatF {
 				mode = "off" + "\033[r" + "\0338"
 			} else {
-				teo.param.ShowPeersStatF = true
+				teo.param.ShowClientsStatF = false
 				teo.param.ShowTrudpStatF = false
+				teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
 				teo.arp.print()
 				mode = "on"
 			}
-			teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
 			fmt.Println("\nshow peers", mode)
 		})
 
 		teo.menu.Add('u', "show trudp statistics", func() {
 			var mode string
-			if teo.param.ShowTrudpStatF {
-				teo.param.ShowTrudpStatF = false
+			teo.param.ShowTrudpStatF = !teo.param.ShowTrudpStatF
+			teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+			if !teo.param.ShowTrudpStatF {
 				mode = "off" + "\033[r" + "\0338"
 			} else {
-				teo.param.ShowTrudpStatF = true
 				teo.param.ShowPeersStatF = false
+				teo.param.ShowClientsStatF = false
 				mode = "on"
 			}
-			teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
 			fmt.Println("\nshow trudp", mode)
 		})
 
 		if teo.l0.allow {
-			teo.menu.Add('C', "show clients", func() {
+			teo.menu.Add('l', "show clients", func() {
 				var mode string
-				if teo.param.ShowClientsStatF {
+				teo.param.ShowClientsStatF = !teo.param.ShowClientsStatF
+				if !teo.param.ShowClientsStatF {
 					mode = "off" + "\033[r" + "\0338"
 				} else {
-					teo.param.ShowTrudpStatF = true
-
-					teo.param.ShowTrudpStatF = false
 					teo.param.ShowPeersStatF = false
+					teo.param.ShowTrudpStatF = false
+					teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
 					teo.l0.stat.process()
 					mode = "on"
 				}
-				teo.param.ShowClientsStatF = !teo.param.ShowClientsStatF
 				fmt.Println("\nshow clients", mode)
-
 			})
 		}
 

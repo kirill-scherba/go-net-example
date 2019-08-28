@@ -27,6 +27,9 @@ type l0Stat struct {
 // createNew sreates new statistic data struct and method receiver
 func (l0 *l0) l0StatNew() (stat *l0Stat) {
 	stat = &l0Stat{l0: l0, isUpdated: true}
+	if l0.teo.param.ShowClientsStatF {
+		stat.process()
+	}
 	return
 }
 
