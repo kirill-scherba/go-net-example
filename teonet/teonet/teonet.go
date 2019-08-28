@@ -203,7 +203,7 @@ FOR:
 				// Delete peer from arp table
 				teo.arp.deleteKey(string(packet))
 				// Close l0 client
-				if client, ok := teo.l0.find(string(packet)); ok {
+				if client, ok := teo.l0.findAddr(string(packet)); ok {
 					teo.l0.close(client)
 				}
 

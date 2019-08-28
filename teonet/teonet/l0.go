@@ -92,11 +92,12 @@ func (l0 *l0) destroy() {
 // add adds new client
 func (l0 *l0) add(client *client) {
 	teolog.Debugf(MODULE, "new client %s (%s) connected\n", client.name, client.addr)
+	l0.closeName(client.name)
 	l0.mux.Lock()
 	l0.ma[client.addr] = client
 	l0.mn[client.name] = client
 	l0.mux.Unlock()
-	l0.stat.updated = true
+	l0.stat.updated()
 }
 
 // close closes(disconnect) connected client
@@ -109,17 +110,25 @@ func (l0 *l0) close(client *client) {
 	delete(l0.ma, client.addr)
 	delete(l0.mn, client.name)
 	l0.mux.Unlock()
-	l0.stat.updated = true
+	l0.stat.updated()
 }
 
 // closeAddr closes(disconnect) connected client by address
-func (l0 *l0) closeAddr(addr string) bool {
-	client, ok := l0.find(addr)
-	if ok {
+func (l0 *l0) closeAddr(addr string) (done bool) {
+	if client, ok := l0.findAddr(addr); ok {
 		l0.close(client)
-		return true
+		done = true
 	}
-	return false
+	return
+}
+
+// closeName closes(disconnect) connected client by name
+func (l0 *l0) closeName(name string) (done bool) {
+	if client, ok := l0.findName(name); ok {
+		l0.close(client)
+		done = true
+	}
+	return
 }
 
 // closeAll close(disconnect) all connected clients
@@ -171,11 +180,30 @@ func (l0 *l0) tcpServer(port *int) {
 	}(*port)
 }
 
-// find finds client in clients map by address
-func (l0 *l0) find(addr string) (client *client, ok bool) {
+// findAddr finds client in clients map by address
+func (l0 *l0) findAddr(addr string) (client *client, ok bool) {
 	l0.mux.Lock()
 	client, ok = l0.ma[addr]
 	l0.mux.Unlock()
+	return
+}
+
+// findName finds client in clients map by name
+func (l0 *l0) findName(name string) (client *client, ok bool) {
+	l0.mux.Lock()
+	client, ok = l0.mn[name]
+	l0.mux.Unlock()
+	return
+}
+
+// exists return true if client exists in clients map
+func (l0 *l0) exists(client *client) (ok bool) {
+	for _, cli := range l0.mn {
+		if cli == client {
+			ok = true
+			return
+		}
+	}
 	return
 }
 
@@ -194,7 +222,7 @@ func (l0 *l0) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int
 	// create new if not fount
 	var cli *teocli.TeoLNull
 	key := tcd.GetKey()
-	client, ok := l0.find(key)
+	client, ok := l0.findAddr(key)
 	if !ok {
 		cli, _ = teocli.Init(false) // create new client
 	} else {
@@ -259,7 +287,7 @@ func (l0 *l0) process() {
 
 			// Find address in clients map and add if it absent, or send packet to
 			// peer if client already exsists
-			client, ok := l0.find(pac.client.addr)
+			client, ok := l0.findAddr(pac.client.addr)
 			if !ok {
 				// First message from client should contain login command. Loging
 				// command parameters: cmd = 0 and name = "" and data = 'client name'.

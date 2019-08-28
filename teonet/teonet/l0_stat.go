@@ -20,25 +20,32 @@ import (
 
 // stat teonet l0 server staistic
 type l0Stat struct {
-	l0      *l0
-	updated bool
+	l0        *l0
+	isUpdated bool
 }
 
 // createNew sreates new statistic data struct and method receiver
 func (l0 *l0) l0StatNew() (stat *l0Stat) {
-	stat = &l0Stat{l0: l0, updated: true}
+	stat = &l0Stat{l0: l0, isUpdated: true}
 	return
+}
+
+// update set update l0Stat value to true
+func (stat *l0Stat) updated() {
+	stat.isUpdated = true
 }
 
 // process print statistic continuously
 func (stat *l0Stat) process() {
 	go func() {
+		var str string
+		stat.updated()
 		stat.l0.teo.wg.Add(1)
-		stat.updated = true
 		for stat.l0.teo.running && stat.l0.teo.param.ShowClientsStatF {
-			if stat.updated {
-				stat.print()
+			if stat.isUpdated {
+				str = stat.sprint()
 			}
+			fmt.Print(str)
 			time.Sleep(250 * time.Millisecond)
 		}
 		stat.l0.teo.wg.Done()
@@ -60,7 +67,7 @@ func (stat *l0Stat) sprint() (str string) {
 
 	var line = "\033[2K" + strings.Repeat("-", 50) + "\n"
 	var length, lenadd = 0, 8
-	stat.updated = false
+	stat.isUpdated = false
 
 	// Sort clients table:
 	// read clients map keys to slice and sort it
@@ -88,13 +95,12 @@ func (stat *l0Stat) sprint() (str string) {
 		if !ok {
 			continue
 		}
-		//for name, _ := range stat.l0.mn {
 		length++
 		str += fmt.Sprintf("\033[2K"+ // Clear line
 			"%3d %s%-22.*s%s  %s\n",
 			length,            // Number of line
 			teokeys.ANSIGreen, //
-			22,                // length of lient name
+			22,                // Length of lient name
 			name,              // Client name
 			teokeys.ANSINone,  //
 			cli.addr,          // Client address
