@@ -25,6 +25,7 @@ type process struct {
 	chanWrite   chan *writeType  // channel to write (used to send data from user level)
 	chanWriter  chan *writerType // channel to write (used to write data to udp)
 	chanKernel  chan func()      // channel to execute function on kernel level
+	chanKernelF bool             // channels closed flag
 	timerResend <-chan time.Time // resend packet from send queue timer
 
 	stopRunningF bool           // Stop running flag
@@ -86,7 +87,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 			trudp.closeChannels()
 			trudp.sendEvent(nil, DESTROY, []byte(trudp.udp.localAddr()))
 			close(trudp.chanEvent)
-			close(trudp.proc.chanKernel)
+			proc.chanKernelF = true
+			close(proc.chanKernel)
 
 			proc.wg.Done()
 		}()
@@ -102,7 +104,6 @@ func (proc *process) init(trudp *TRUDP) *process {
 					if !chanWriteClosedF {
 						chanWriteClosedF = true
 						close(trudp.proc.chanWrite)
-						//close(trudp.proc.chanKernel)
 					}
 					break
 				}
@@ -120,7 +121,6 @@ func (proc *process) init(trudp *TRUDP) *process {
 			// Process write packet (received from user level, need write to udp)
 			case writePac, ok := <-proc.chanWrite:
 				if !ok {
-					//close(trudp.proc.chanKernel)
 					return
 				}
 				proc.writeTo(writePac)

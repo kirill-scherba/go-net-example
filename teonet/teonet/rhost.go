@@ -29,10 +29,11 @@ import (
 
 // rhostData r-host data
 type rhostData struct {
-	teo     *Teonet            // Teonet connection
-	tcd     *trudp.ChannelData // TRUDP channel data
-	running bool               // R-Host module running (connected or try to connect)
-	wg      sync.WaitGroup     // Reconnect wait group
+	teo       *Teonet            // Teonet connection
+	tcd       *trudp.ChannelData // TRUDP channel data
+	running   bool               // R-Host module running (connected or try to connect)
+	connected bool               // Connected or connecting to r-host flag
+	wg        sync.WaitGroup     // Reconnect wait group
 }
 
 // cmdConnectData parse cmd connect data
@@ -211,12 +212,22 @@ func (rhost *rhostData) connect() {
 
 	// Send command to r-host
 	rhost.teo.sendToTcd(rhost.tcd, CmdConnectR, data)
+	rhost.connected = true
 }
 
 // reconnect reconnect to r-host if selected in function parameters channel is
 // r-host trudp channel
 func (rhost *rhostData) reconnect(tcd *trudp.ChannelData) {
-	if rhost.isrhost(tcd) && rhost.running {
+	if rhost.isrhost(tcd) && rhost.running && rhost.connected {
+		rhost.connected = false
+		rhost.wg.Done()
+	}
+}
+
+// destroy stops r-host reconnection if connected
+func (rhost *rhostData) destroy() {
+	if rhost.connected {
+		rhost.connected = false
 		rhost.wg.Done()
 	}
 }
@@ -275,10 +286,7 @@ func (rhost *rhostData) run() {
 		go func() {
 			reconnect := 0
 			rhost.teo.wg.Add(1)
-			for rhost.teo.running {
-				if reconnect > 0 {
-					time.Sleep(2 * time.Second)
-				}
+			for {
 				addr := rhost.teo.param.RAddr
 				port := rhost.teo.param.RPort
 				teolog.Connectf(MODULE, "connecting to r-host %s:%d:%d\n", addr, port, 0)
@@ -286,7 +294,11 @@ func (rhost *rhostData) run() {
 				rhost.connect()
 				rhost.wg.Add(1)
 				rhost.wg.Wait()
+				if !rhost.teo.running {
+					break
+				}
 				reconnect++
+				time.Sleep(2 * time.Second)
 			}
 			rhost.teo.wg.Done()
 			rhost.running = false

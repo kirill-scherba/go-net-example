@@ -149,8 +149,10 @@ func (teo *Teonet) Run() {
 			ctrlc := teo.ctrlc
 			//teolog.Connect(MODULE, "reconnect...")
 			fmt.Println("reconnect...")
+			param := teo.param
+			teo = nil
 			time.Sleep(1 * time.Second)
-			teo = Connect(teo.param)
+			teo = Connect(param)
 			teo.SetType(appType)
 			if ctrlc {
 				teo.CtrlC()
@@ -164,13 +166,17 @@ func (teo *Teonet) Run() {
 // Close stops Teonet running
 func (teo *Teonet) Close() {
 	fmt.Println("teo.running:", teo.running)
+	if !teo.running {
+		return
+	}
 	teo.running = false
-	teo.l0.destroy()
+
 	teo.menu.Quit()
+	teo.l0.destroy()
 	teo.arp.deleteAll()
+	teo.rhost.destroy()
 	teo.td.Close()
-	// close(teo.chanKernel)
-	// teo.ticker.Stop()
+
 	close(teo.chanKernel)
 	teo.ticker.Stop()
 

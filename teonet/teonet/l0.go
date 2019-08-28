@@ -82,9 +82,11 @@ func (teo *Teonet) l0New() *l0 {
 // destroy destroys l0 module
 func (l0 *l0) destroy() {
 	if l0.allow {
+		l0.closeAll()
 		teolog.Connect(MODULE, "l0 server stop listen udp port:", l0.teo.param.Port)
 		if l0.conn != nil {
 			l0.conn.Close()
+			l0.conn = nil
 		}
 		if !l0.closed {
 			close(l0.ch)
@@ -109,6 +111,7 @@ func (l0 *l0) close(client *client) {
 	teolog.Debugf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
 	if client.conn != nil {
 		client.conn.Close()
+		client.conn = nil
 	}
 	l0.mux.Lock()
 	delete(l0.ma, client.addr)

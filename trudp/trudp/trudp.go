@@ -9,8 +9,10 @@ import (
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 )
 
+// Version is srudp version
 const Version = "3.0.0"
 
+// MODULE trudp packet name in logs
 var MODULE = teokeys.Color(teokeys.ANSICyan, "(trudp)")
 
 const (
@@ -80,7 +82,7 @@ type packetsStat struct {
 	repeatRT      realTimeSpeed // Repiat real time speed
 }
 
-// eventData used as structure in sendEvent function
+// EventData used as structure in sendEvent function
 type EventData struct {
 	Tcd   *ChannelData
 	Event int
@@ -288,12 +290,6 @@ func (trudp *TRUDP) Run() {
 		case trudp.packet.check(buffer[:nRead]):
 			packet := &packetType{trudp: trudp, data: buffer[:nRead]}
 			trudp.proc.chanReader <- &readerType{addr, packet}
-			// ch := trudp.packet.getChannel(buffer[:nRead])
-			// id := trudp.packet.getID(buffer[:nRead])
-			// tp := trudp.packet.getType(buffer[:nRead])
-			// data := trudp.packet.getData(buffer[:nRead])
-			// teolog.Log(teolog.DEBUGvv, MODULE, "got trudp packet from:", addr, "data:", data, string(data),
-			// 	", channel:", ch, "packet id:", id, "type:", tp)
 
 		// Process connect message
 		case nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg:
@@ -346,7 +342,9 @@ func (trudp *TRUDP) Close() {
 // kernel run function in trudp kernel (main process)
 func (trudp *TRUDP) kernel(f func()) {
 	// \TODO may be use 'if trudp.Running()' here
-	trudp.proc.chanKernel <- f
+	if !trudp.proc.chanKernelF {
+		trudp.proc.chanKernel <- f
+	}
 }
 
 // ChanEvent return channel to read trudp events
