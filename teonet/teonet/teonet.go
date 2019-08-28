@@ -31,21 +31,22 @@ const (
 
 // Parameters is Teonet parameters
 type Parameters struct {
-	Name            string // this host client name
-	Port            int    // local port
-	RAddr           string // remote host address
-	RPort, RChan    int    // remote host port and channel(for TRUdp only)
-	Network         string // teonet network name
-	LogLevel        string // show log messages level
-	LogFilter       string // log messages filter
-	L0tcpPort       int    // L0 Server TCP port number (default 9000)
-	ForbidHotkeysF  bool   // forbid hotkeys menu
-	ShowTrudpStatF  bool   // show trudp statistic
-	ShowPeersStatF  bool   // show peers table
-	ShowHelpF       bool   // show usage
-	IPv6Allow       bool   // Allow IPv6 support (not supported in Teonet-C)
-	L0allow         bool   // Allow l0 server
-	DisallowEncrypt bool   // Disable teonet packets encryption
+	Name             string // this host client name
+	Port             int    // local port
+	RAddr            string // remote host address
+	RPort, RChan     int    // remote host port and channel(for TRUdp only)
+	Network          string // teonet network name
+	LogLevel         string // show log messages level
+	LogFilter        string // log messages filter
+	L0tcpPort        int    // L0 Server TCP port number (default 9000)
+	ForbidHotkeysF   bool   // forbid hotkeys menu
+	ShowTrudpStatF   bool   // show trudp statistic
+	ShowPeersStatF   bool   // show peers table
+	ShowClientsStatF bool   // show clients table
+	ShowHelpF        bool   // show usage
+	IPv6Allow        bool   // Allow IPv6 support (not supported in Teonet-C)
+	L0allow          bool   // Allow l0 server
+	DisallowEncrypt  bool   // Disable teonet packets encryption
 
 }
 
@@ -197,8 +198,14 @@ FOR:
 
 			case trudp.DISCONNECTED:
 				teolog.Connect(MODULE, "got DISCONNECTED event, channel key: "+string(packet))
+				// Reconnect to r-host
 				teo.rhost.reconnect(ev.Tcd)
+				// Delete peer from arp table
 				teo.arp.deleteKey(string(packet))
+				// Close l0 client
+				if client, ok := teo.l0.find(string(packet)); ok {
+					teo.l0.close(client)
+				}
 
 			case trudp.RESET_LOCAL:
 				err = errors.New("got RESET_LOCAL event, channel key: " + ev.Tcd.GetKey())

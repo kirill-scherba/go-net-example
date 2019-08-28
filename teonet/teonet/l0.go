@@ -1,3 +1,14 @@
+// Copyright 2019 teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet L0 server module:
+//
+// L0 server is intended to connect teonet clients to the teonet network. Teonet
+// clients should use uses teocli packet which connect it to teonet L0 server.
+// The L0 server allow tcp or trudp connection which incuded to teocli packet.
+// This module contain data and methods to realise L0 server functions.
+
 package teonet
 
 import (
@@ -19,6 +30,7 @@ import (
 // l0 is Module data structure
 type l0 struct {
 	teo   *Teonet            // Pointer to Teonet
+	stat  *l0Stat            // Statistic
 	allow bool               // Allow L0 Server
 	port  int                // TCP port (if 0 - not allowed TCP)
 	conn  net.Listener       // TCP listener connection
@@ -52,6 +64,7 @@ type client struct {
 // l0New initialize l0 module
 func (teo *Teonet) l0New() *l0 {
 	l0 := &l0{teo: teo, allow: teo.param.L0allow, port: teo.param.L0tcpPort}
+	l0.stat = l0.l0StatNew()
 	if l0.allow {
 		teolog.Connect(MODULE, "l0 server start listen udp port:", l0.teo.param.Port)
 		l0.ma = make(map[string]*client)
@@ -83,6 +96,7 @@ func (l0 *l0) add(client *client) {
 	l0.ma[client.addr] = client
 	l0.mn[client.name] = client
 	l0.mux.Unlock()
+	l0.stat.updated = true
 }
 
 // close closes(disconnect) connected client
@@ -95,6 +109,7 @@ func (l0 *l0) close(client *client) {
 	delete(l0.ma, client.addr)
 	delete(l0.mn, client.name)
 	l0.mux.Unlock()
+	l0.stat.updated = true
 }
 
 // closeAddr closes(disconnect) connected client by address

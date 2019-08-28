@@ -123,21 +123,20 @@ func (tcs *channelStat) repeat(r bool) {
 // statHeader return statistic header string
 func (tcs *channelStat) statHeader(runningTime, executionTime time.Duration) string {
 	addr := tcs.trudp.udp.localAddr()
-	return fmt.Sprintf(
-		/*_ANSI_CLS+*/
+	return fmt.Sprintf(""+
 		"\0337"+ // Save cursor
-			"\033[0;0H"+ // Set cursor to the top
-			"\033[?7l"+ // Does not wrap
-			"\033[2K"+ // Clear line
-			"TR-UDP statistics, addr: %s, running time: %20v, show statistic time: %v\n"+
-			"\033[2K"+
-			"List of channels:\n"+
-			line+
-			"\033[2K"+
-			"  # Key                          Send   Pac/sec   Total(mb) Ping(ms) / Wait(ms) |"+
-			"   Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |"+
-			" SQ l/max   WQ   RQ    UrQ    UwQ     EQ/WQ \n"+
-			line,
+		"\033[0;0H"+ // Set cursor to the top
+		"\033[?7l"+ // Does not wrap
+		"\033[2K"+ // Clear line
+		"TR-UDP statistics, addr: %s, running time: %20v, show statistic time: %v\n"+
+		"\033[2K"+
+		"List of channels:\n"+
+		line+
+		"\033[2K"+
+		"  # Key                          Send   Pac/sec   Total(mb) Ping(ms) / Wait(ms) |"+
+		"   Recv   Pac/sec   Total(mb)     ACK |     Repeat         Drop |"+
+		" SQ l/max   WQ   RQ    UrQ    UwQ     EQ/WQ \n"+
+		line,
 		addr,
 		runningTime,
 		executionTime)
@@ -176,11 +175,10 @@ func (tcs *channelStat) statFooter(length int) (str string) {
 			len(tcs.trudp.proc.chanWrite),  // write from user channel size
 		)
 	}
-	str = line + str + fmt.Sprintf(
-		"\n"+
-			"\033[2K\n"+ // Clear line
-			"\033[%d;r"+ // Setscroll mode
-			"\0338", // Restore cursor
+	str = line + str + fmt.Sprintf("\n"+
+		"\033[2K\n"+ // Clear line
+		"\033[%d;r"+ // Setscroll mode
+		"\0338", // Restore cursor
 		length+lenadd,
 	)
 	return
