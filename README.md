@@ -30,4 +30,4 @@ Make sure $GOROOT and $GOPATH are set, and install:
 To run main teonet developer application:
 
     cd teonet
-    run go .
+    go run .
