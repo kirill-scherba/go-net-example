@@ -87,6 +87,7 @@ func (com *command) process(rec *receiveData) (processed bool) {
 		com.hostInfoAnswer(rec)
 
 	default:
+		com.log(rec.rd, "UNKNOWN command")
 		processed = false
 	}
 
