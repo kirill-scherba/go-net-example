@@ -17,15 +17,17 @@ import (
 
 // Teonet commands
 const (
-	CmdNone           = C.CMD_NONE         // #00 Cmd none used as first peers command
-	CmdConnectR       = C.CMD_CONNECT_R    // #04 A Peer want connect to r-host
-	CmdConnect        = C.CMD_CONNECT      // #05 Inform peer about connected peer
-	CmdDisconnect     = C.CMD_DISCONNECTED // #06 Send to peers signal about disconnect
-	CmdSplit          = C.CMD_SPLIT        // #68 Group of packets (Splited packets)
-	CmdL0             = C.CMD_L0           // #70 Command from L0 Client
-	CmdL0To           = C.CMD_L0_TO        // #71 Command to L0 Client
-	CmdHostInfo       = C.CMD_HOST_INFO    // #90 Request host info, allow JSON in request
-	CmdHostInfoAnswer = C.CMD_HOST_INFO    // #91 Request host info, allow JSON in request
+	CmdNone           = C.CMD_NONE             // #00 Cmd none used as first peers command
+	CmdConnectR       = C.CMD_CONNECT_R        // #04 A Peer want connect to r-host
+	CmdConnect        = C.CMD_CONNECT          // #05 Inform peer about connected peer
+	CmdDisconnect     = C.CMD_DISCONNECTED     // #06 Send to peers signal about disconnect
+	CmdSplit          = C.CMD_SPLIT            // #68 Group of packets (Splited packets)
+	CmdL0             = C.CMD_L0               // #70 Command from L0 Client
+	CmdL0To           = C.CMD_L0_TO            // #71 Command to L0 Client
+	CmdPeers          = C.CMD_PEERS            // #72 Get peers, allow JSON in request
+	CmdPeersAnswer    = C.CMD_PEERS_ANSWER     // #73 Get peers answer
+	CmdHostInfo       = C.CMD_HOST_INFO        // #90 Request host info, allow JSON in request
+	CmdHostInfoAnswer = C.CMD_HOST_INFO_ANSWER // #91 Request host info, allow JSON in request
 )
 
 // JSON data prefix used in teonet requests
@@ -80,6 +82,9 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	case C.CMD_L0_TO:
 		com.teo.l0.cmdL0To(rec)
 
+	case C.CMD_PEERS:
+		com.peers(rec)
+
 	case C.CMD_HOST_INFO:
 		com.hostInfo(rec)
 
@@ -94,6 +99,14 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	// Process waitFrom commands
 	com.teo.wcom.check(rec)
 
+	return
+}
+
+// isJSONRequest return true if request command ask JSON in answer
+func (com *command) isJSONRequest(data []byte) (isJSON bool) {
+	if l := len(JSON); len(data) >= l && bytes.Equal(data[:l], JSON) {
+		isJSON = true
+	}
 	return
 }
 
@@ -163,7 +176,7 @@ func (com *command) echoAnswer(rec *receiveData) {
 		C.GoString((*C.char)(unsafe.Pointer(&rec.rd.Data()[0]))))
 }
 
-// hostInfo is th host info json data structure
+// hostInfo is the host info json data structure
 type hostInfo struct {
 	Name        string   `json:"name"`
 	Type        []string `json:"type"`
@@ -197,7 +210,7 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 	}
 
 	// Create Json or bynary answer depend of input data: JSON - than answer in json
-	if l := len(JSON); rec.rd.DataLen() >= l && bytes.Equal(rec.rd.Data()[:l], JSON) {
+	if com.isJSONRequest(rec.rd.Data()) {
 		data, _ = json.Marshal(hostInfo{com.teo.param.Name, peerArp.appType,
 			peerArp.appType, com.teo.Version(), peerArp.appVersion, peerArp.appVersion})
 		data = append(data, 0) // add trailing zero (cstring)
@@ -213,7 +226,8 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 	}
 
 	// Send answer with host infor data
-	com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO_ANSWER, data)
+	//com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO_ANSWER, data)
+	com.teo.SendAnswer(rec, C.CMD_HOST_INFO_ANSWER, data)
 
 	return
 }
@@ -254,5 +268,22 @@ func (com *command) hostInfoAnswer(rec *receiveData) (err error) {
 	peerArp.appType = typeAr[1:]
 	com.teo.arp.print()
 
+	return
+}
+
+// peers process 'peers' command
+func (com *command) peers(rec *receiveData) (err error) {
+	com.log(rec.rd, "CMD_PEERS command")
+
+	var data []byte
+
+	// Get type of request: 0 - binary; 1 - JSON
+	if com.isJSONRequest(rec.rd.Data()) {
+		data = []byte("{}")
+	}
+
+	// \TODO: create peers answer on binary and json format. Create functions in
+	// arp module to generate peers structure
+	com.teo.SendAnswer(rec, C.CMD_PEERS_ANSWER, data)
 	return
 }

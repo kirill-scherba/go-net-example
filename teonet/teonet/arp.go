@@ -80,6 +80,7 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 // function uses diferent tarameters:
 //  - find by peer name: <peer string>
 //  - find by tcd: <tcd *trudp.ChannelData>
+//  - find by addr, port (channel = 0): <addr string, port int>
 //  - find by addr, port and channel: <addr string, port int, channel int>
 func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 	//fmt.Println("arp.find len(i):", len(i))
@@ -89,13 +90,11 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 
 		// Find by peer name
 		case string:
-			//fmt.Println("arp.find i[0].type: string =", p)
 			peerArp, ok = arp.m[p]
 			return
 
 		// Find by tcd
 		case *trudp.ChannelData:
-			//fmt.Println("arp.find i[0].type: *trudp.ChannelData")
 			for _, peerArp = range arp.m {
 				if peerArp.tcd != nil && peerArp.tcd == p {
 					ok = true
@@ -104,12 +103,14 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 			}
 		}
 
-	// \TODO: Find by address and port
-	case 3:
+	// Find by address and port and channel (may be ommited)
+	case 2, 3:
 		var addr = i[0].(string)
 		var port = i[1].(int)
-		var ch = i[2].(int)
-		//fmt.Println("addr", addr, "port", port, "ch", ch)
+		var ch = 0
+		if len(i) == 3 {
+			ch = i[2].(int)
+		}
 		for _, peerArp = range arp.m {
 			if peerArp.tcd != nil &&
 				peerArp.tcd.GetAddr().IP.String() == addr &&

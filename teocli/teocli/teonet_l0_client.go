@@ -400,6 +400,9 @@ func (pac *Packet) PeersLength() int {
 
 // Peers return string representation of peerAnswer packet
 func (pac *Packet) Peers() string {
+	if len(pac.Data()) == 0 {
+		return ""
+	}
 	dataPtr := unsafe.Pointer(&pac.Data()[0])
 	arpDataAr := (*C.ksnet_arp_data_ar)(dataPtr)
 	buf := C.arp_data_print(arpDataAr)
