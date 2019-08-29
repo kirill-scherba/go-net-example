@@ -366,7 +366,7 @@ func (l0 *l0) packetParse(d []byte) (name string, cmd byte, data []byte) {
 func (l0 *l0) sendToPeer(peer string, client string, cmd byte, data []byte) {
 	teolog.Debugf(MODULE,
 		"send cmd: %d, %d bytes data packet to peer %s, from client: %s",
-		cmd, len(data), client, client,
+		cmd, len(data), peer, client,
 	)
 	l0.teo.SendTo(peer, CmdL0, l0.packetCreate(client, cmd, data)) // Send to peer
 }

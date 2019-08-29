@@ -311,7 +311,7 @@ func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (err error) {
 	return teo.sendToTcd(arp.tcd, cmd, data)
 }
 
-// SenToL0 send command to Teonet L0 client
+// SendToL0 send command to Teonet L0 client
 func (teo *Teonet) SendToL0(l0Peer string, client string, cmd byte, data []byte) (err error) {
 	teo.l0.sendToL0(l0Peer, client, cmd, data)
 	return nil
@@ -321,21 +321,20 @@ func (teo *Teonet) SendToL0(l0Peer string, client string, cmd byte, data []byte)
 func (teo *Teonet) SendAnswer(rec *receiveData, cmd byte, data []byte) (err error) {
 	if !rec.rd.IsL0() {
 		return teo.sendToTcd(rec.tcd, cmd, data)
-	} else {
-		addr, port := C.GoString(rec.rd.addr), int(rec.rd.port)
-		//fmt.Printf("SEND TO CLIENT %s from l0 '%s:%d'\n", rec.rd.From(), addr, port)
-		if addr == "" && port == teo.param.Port && teo.l0.allow {
-			teo.l0.sendTo(teo.param.Name, rec.rd.From(), cmd, data)
-			return
-		}
-		arp, ok := teo.arp.find(addr, port, 0)
-		if ok {
-			peer := arp.peer
-			//fmt.Printf("SEND TO CLIENT %s from peer: %s\n", rec.rd.From(), peer)
-			return teo.SendToL0(peer, rec.rd.From(), cmd, data)
-		}
-		return nil
 	}
+	addr, port := C.GoString(rec.rd.addr), int(rec.rd.port)
+	//fmt.Printf("SEND TO CLIENT %s from l0 '%s:%d'\n", rec.rd.From(), addr, port)
+	if addr == "" && port == teo.param.Port && teo.l0.allow {
+		teo.l0.sendTo(teo.param.Name, rec.rd.From(), cmd, data)
+		return
+	}
+	arp, ok := teo.arp.find(addr, port, 0)
+	if ok {
+		peer := arp.peer
+		//fmt.Printf("SEND TO CLIENT %s from peer: %s\n", rec.rd.From(), peer)
+		return teo.SendToL0(peer, rec.rd.From(), cmd, data)
+	}
+	return nil
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel

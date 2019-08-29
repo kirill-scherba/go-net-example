@@ -63,8 +63,8 @@ func (cry *crypt) decrypt(packet []byte, key string) ([]byte, error) {
 		packet = packet[2 : decryptLen+2]
 		teolog.DebugVvf(MODULE, "decripted to %d bytes packet, channel key: %s\n", decryptLen, key)
 	} else {
-		err = fmt.Errorf("can't decript %d bytes packet (try to use without decrypt), channel key: %s\n", len(packet), key)
-		teolog.DebugVvf(MODULE, err.Error())
+		err = fmt.Errorf("can't decript %d bytes packet (try to use without decrypt), channel key: %s", len(packet), key)
+		teolog.DebugVv(MODULE, err.Error())
 
 	}
 	return packet, err

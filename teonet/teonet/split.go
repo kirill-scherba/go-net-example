@@ -137,7 +137,7 @@ func (split *splitPacket) combine(rec *receiveData) (packet []byte, cmd byte, er
 // removeClient remove disconnected user from packets map
 // \TODO: use this function when client disconneted
 func (split *splitPacket) removeClient(client string) {
-	for key, _ := range split.m {
+	for key := range split.m {
 		if strings.HasPrefix(key, client+":") {
 			delete(split.m, key)
 		}

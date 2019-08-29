@@ -69,7 +69,7 @@ func (stat *l0Stat) sprint() (str string) {
 	}
 
 	var line = "\033[2K" + strings.Repeat("-", 50) + "\n"
-	var length, lenadd = 0, 8
+	var length, lenadd = 0, 7
 	stat.isUpdated = false
 
 	// Sort clients table:
