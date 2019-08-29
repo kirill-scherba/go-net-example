@@ -1,3 +1,7 @@
+// Copyright 2019 teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 package teocli
 
 //// CGO definition (don't delay or edit it):
@@ -39,6 +43,7 @@ import (
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
 )
 
+// Version teocli version
 const Version = "3.0.0"
 
 const (
@@ -231,6 +236,7 @@ func (teocli *TeoLNull) sendEchoAnswer(packet []byte) (length int, err error) {
 	return
 }
 
+// Init initialize teocli
 func Init(tcp bool) (teo *TeoLNull, err error) {
 	teo = &TeoLNull{tcp: tcp, readBuffer: make([]byte, 0)}
 	return
@@ -311,7 +317,7 @@ FOR:
 			packet := make([]byte, 2048)
 			length, _ := teocli.conn.Read(packet)
 			if length == 0 {
-				err = errors.New("server disconnected...")
+				err = errors.New("server disconnected")
 				break FOR
 			}
 			packet = packet[:length]
@@ -361,7 +367,7 @@ type Packet struct {
 	teocli *TeoLNull
 }
 
-// packetNew Creates new packet from packet slice
+// PacketNew Creates new packet from packet slice
 func (teocli *TeoLNull) PacketNew(packet []byte) *Packet {
 	return &Packet{packet: packet, teocli: teocli}
 }
