@@ -68,7 +68,7 @@ func (stat *l0Stat) sprint() (str string) {
 		return
 	}
 
-	var line = "\033[2K" + strings.Repeat("-", 50) + "\n"
+	var line = "\033[2K" + strings.Repeat("-", 77) + "\n"
 	var length, lenadd = 0, 7
 	stat.isUpdated = false
 
@@ -88,7 +88,7 @@ func (stat *l0Stat) sprint() (str string) {
 		"\033[2K" + // Clear line
 		"L0 clients statistic:\n" +
 		line +
-		"\033[2K" + "  # Name                    Address\n" +
+		"\033[2K" + "  # Name                    Net    Address                    Send     Recv\n" +
 		line,
 	)
 
@@ -100,13 +100,19 @@ func (stat *l0Stat) sprint() (str string) {
 		}
 		length++
 		str += fmt.Sprintf("\033[2K"+ // Clear line
-			"%3d %s%-22.*s%s  %s\n",
-			length,            // Number of line
-			teokeys.ANSIGreen, //
-			22,                // Length of lient name
-			name,              // Client name
-			teokeys.ANSINone,  //
-			cli.addr,          // Client address
+			"%3d %s%-22.*s%s  %-6s %s%-22.*s%s %8d %8d\n",
+			length,               // Number of line
+			teokeys.ANSIGreen,    //
+			22,                   // Length of client name
+			name,                 // Client name
+			teokeys.ANSINone,     //
+			stat.l0.network(cli), // Network type: tcp, trudp, etc.
+			teokeys.ANSIYellow,   //
+			22,                   // Length of client address
+			cli.addr,             // Client address
+			teokeys.ANSINone,     //
+			cli.stat.send,        // Number of send packets
+			cli.stat.receive,     // Number of receive packets
 		)
 	}
 
@@ -118,4 +124,18 @@ func (stat *l0Stat) sprint() (str string) {
 		length+lenadd,
 	)
 	return
+}
+
+// send set send operation in statistic
+func (stat *l0Stat) send(client *client, packet []byte) {
+	client.stat.send++
+	// client.stat.sendRT.Calculate(len(packet))
+	stat.updated()
+}
+
+// receive set receive operation in statistic
+func (stat *l0Stat) receive(client *client, packet []byte) {
+	client.stat.receive++
+	// client.stat.receiveRT.Calculate(len(packet))
+	stat.updated()
 }

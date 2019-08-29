@@ -181,6 +181,9 @@ func (teo *Teonet) Close() {
 	teo.ticker.Stop()
 
 	teo.cry.destroy()
+
+	// Clear terminal after log messages
+	fmt.Print("\033[r" + "\0338")
 }
 
 // kernel run function in trudp kernel (main process)
@@ -312,7 +315,7 @@ func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (err error) {
 }
 
 // SendToL0 send command to Teonet L0 client
-func (teo *Teonet) SendToL0(l0Peer string, client string, cmd byte, data []byte) (err error) {
+func (teo *Teonet) SendToClient(l0Peer string, client string, cmd byte, data []byte) (err error) {
 	teo.l0.sendToL0(l0Peer, client, cmd, data)
 	return nil
 }
@@ -323,7 +326,6 @@ func (teo *Teonet) SendAnswer(rec *receiveData, cmd byte, data []byte) (err erro
 		return teo.sendToTcd(rec.tcd, cmd, data)
 	}
 	addr, port := C.GoString(rec.rd.addr), int(rec.rd.port)
-	//fmt.Printf("SEND TO CLIENT %s from l0 '%s:%d'\n", rec.rd.From(), addr, port)
 	if addr == "" && port == teo.param.Port && teo.l0.allow {
 		teo.l0.sendTo(teo.param.Name, rec.rd.From(), cmd, data)
 		return
@@ -331,8 +333,7 @@ func (teo *Teonet) SendAnswer(rec *receiveData, cmd byte, data []byte) (err erro
 	arp, ok := teo.arp.find(addr, port, 0)
 	if ok {
 		peer := arp.peer
-		//fmt.Printf("SEND TO CLIENT %s from peer: %s\n", rec.rd.From(), peer)
-		return teo.SendToL0(peer, rec.rd.From(), cmd, data)
+		return teo.SendToClient(peer, rec.rd.From(), cmd, data)
 	}
 	return nil
 }

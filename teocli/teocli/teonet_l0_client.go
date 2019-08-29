@@ -5,6 +5,7 @@
 package teocli
 
 //// CGO definition (don't delay or edit it):
+//#include <string.h>
 //#include "teonet_l0_client.h"
 /*
 uint8_t packetGetCommand(void *packetPtr) {
@@ -414,4 +415,33 @@ func (pac *Packet) Peers() string {
 	buf := C.arp_data_print(arpDataAr)
 	defer C.free(unsafe.Pointer(buf))
 	return C.GoString(buf)
+}
+
+// PeerData create arp peer bynary data
+func PeerData(mode int, peer, addr string, port int, triptime float32) (d []byte) {
+
+	// Fill ksnet_arp data structure
+	arpData := &C.ksnet_arp_data{}
+	arpDataLen := C.sizeof_ksnet_arp_data
+	arpData.mode = C.int16_t(mode)
+	if len(addr) > 0 {
+		C.memcpy(unsafe.Pointer(&arpData.addr[0]), unsafe.Pointer(&[]byte(addr)[0]),
+			C.size_t(len(addr)))
+	}
+	arpData.port = C.int16_t(port)
+	arpData.last_triptime = C.double(triptime)
+
+	// Peer name
+	cname := []byte(peer)
+	if l := len(cname); l < int(C.ARP_TABLE_IP_SIZE) {
+		cname = append(cname, make([]byte, C.ARP_TABLE_IP_SIZE-l)...)
+	} else {
+		cname = cname[:C.ARP_TABLE_IP_SIZE]
+	}
+
+	// Create slice from unsafe C raw pointer (the data does not copy)
+	d = (*[1 << 28]byte)(unsafe.Pointer(arpData))[:arpDataLen:arpDataLen]
+	d = append(cname, d...)
+
+	return
 }

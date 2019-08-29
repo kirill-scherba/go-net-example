@@ -20,17 +20,17 @@ type channelStat struct {
 }
 
 // realTimeSpeed type to calculate real time speed
-type realTimeSpeed struct {
+type RealTimeSpeed struct {
 	secArr      [10][2]int // Secondes array
 	lastIDX     int        // Last secundes array index
-	speedPacSec int        // Speed in pacets/second
+	SpeedPacSec int        // Speed in pacets/second
 	speedMbSec  float32    // Speed in mb/second
 }
 
 var line = "\033[2K" + strings.Repeat("-", 190) + "\n"
 
 // calculate function calculate real time packets speed in pac/sec and mb/sec
-func (realTime *realTimeSpeed) calculate(length int) {
+func (realTime *RealTimeSpeed) Calculate(length int) {
 	now := time.Now()
 	nsec := now.UnixNano()
 	millis := nsec / 1000000
@@ -44,7 +44,7 @@ func (realTime *realTimeSpeed) calculate(length int) {
 		realTime.secArr[currentIdx][0]++
 	}
 	realTime.secArr[currentIdx][1] += length
-	realTime.speedPacSec, realTime.speedMbSec = func() (speedPacSec int, speedMbSec float32) {
+	realTime.SpeedPacSec, realTime.speedMbSec = func() (speedPacSec int, speedMbSec float32) {
 		for _, v := range realTime.secArr {
 			speedPacSec += v[0]
 			speedMbSec += float32(v[1])
@@ -83,8 +83,8 @@ func (tcs *channelStat) received(length int) {
 	tcs.trudp.packets.receive++                       // Total data packets received
 	tcs.packets.receiveLength += uint64(length)       // Length of packet
 	tcs.trudp.packets.receiveLength += uint64(length) // Total length of packet
-	tcs.packets.receiveRT.calculate(length)           // Calculate received real time speed
-	tcs.trudp.packets.receiveRT.calculate(length)     // Calculate total received real time speed
+	tcs.packets.receiveRT.Calculate(length)           // Calculate received real time speed
+	tcs.trudp.packets.receiveRT.Calculate(length)     // Calculate total received real time speed
 }
 
 // ackReceived adds ack packets received to statistic
@@ -105,8 +105,8 @@ func (tcs *channelStat) send(length int) {
 	tcs.trudp.packets.send++                       // Total packets send
 	tcs.packets.sendLength += uint64(length)       // Length of packet
 	tcs.trudp.packets.sendLength += uint64(length) // Total length of packet
-	tcs.packets.sendRT.calculate(length)           // Calculate send real time speed
-	tcs.trudp.packets.sendRT.calculate(length)     // Calculate total send real time speed
+	tcs.packets.sendRT.Calculate(length)           // Calculate send real time speed
+	tcs.trudp.packets.sendRT.Calculate(length)     // Calculate total send real time speed
 }
 
 // repeat adds data packets repeat to statistic
@@ -114,9 +114,9 @@ func (tcs *channelStat) repeat(r bool) {
 	if r {
 		tcs.trudp.packets.repeat++        // Total packets repeat
 		tcs.packets.repeat++              // Channel packets repeat
-		tcs.packets.repeatRT.calculate(1) // Calculate repeat speed
+		tcs.packets.repeatRT.Calculate(1) // Calculate repeat speed
 	} else {
-		tcs.packets.repeatRT.calculate(0) // Calculate repeat speed
+		tcs.packets.repeatRT.Calculate(0) // Calculate repeat speed
 	}
 }
 
@@ -153,10 +153,10 @@ func (tcs *channelStat) statFooter(length int) (str string) {
 				length, // Number of channels
 				1, "-", // Empty
 				tcs.trudp.packets.send,                               // Total send packet
-				tcs.trudp.packets.sendRT.speedPacSec,                 // Total send packet/sec
+				tcs.trudp.packets.sendRT.SpeedPacSec,                 // Total send packet/sec
 				float64(tcs.trudp.packets.sendLength)/(1024*1024),    // Total send in mb
 				tcs.trudp.packets.receive,                            // Total received packet
-				tcs.trudp.packets.receiveRT.speedPacSec,              // Total received packet/sec
+				tcs.trudp.packets.receiveRT.SpeedPacSec,              // Total received packet/sec
 				float64(tcs.trudp.packets.receiveLength)/(1024*1024), // Total received in mb
 				tcs.trudp.packets.ack,                                // packets ack received
 				tcs.trudp.packets.repeat,                             // packets repeat
@@ -211,17 +211,17 @@ func (tcs *channelStat) statBody(tcd *ChannelData, idx, page int) (retstr string
 		idx+1,       // trudp channel number (in statistic screen)
 		24, tcd.key, // key len and key
 		tcs.packets.send,                               // packets send
-		tcs.packets.sendRT.speedPacSec,                 // float64(tcs.packets.send)/timeSinceStart, // send speed in packets/sec
+		tcs.packets.sendRT.SpeedPacSec,                 // float64(tcs.packets.send)/timeSinceStart, // send speed in packets/sec
 		float64(tcs.packets.sendLength)/(1024*1024),    // send total in mb
 		tcs.triptime,                                   // trip time
 		tcs.triptimeMiddle,                             // trip time middle
 		tcs.packets.receive,                            // packets receive
-		tcs.packets.receiveRT.speedPacSec,              // float64(tcs.packets.receive)/timeSinceStart,    // receive speed in packets/sec
+		tcs.packets.receiveRT.SpeedPacSec,              // float64(tcs.packets.receive)/timeSinceStart,    // receive speed in packets/sec
 		float64(tcs.packets.receiveLength)/(1024*1024), // receive total in mb
 		tcs.packets.ack,                                // packets ack received
 		fmt.Sprintf("%d/%d(%d%%)",
 			tcs.packets.repeat,               // packets repeat
-			tcs.packets.repeatRT.speedPacSec, // packets repeat per sec
+			tcs.packets.repeatRT.SpeedPacSec, // packets repeat per sec
 			repeatP(&tcs.packets)),           // packets repeat in %
 		tcs.packets.dropped,    // packets dropped
 		droppedP(&tcs.packets), // packets dropped in %

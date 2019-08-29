@@ -103,7 +103,7 @@ func (tcd *ChannelData) sendQueueRemove(packet *packetType) {
 // sendQueueCalculateLength calculate send queue length
 func (tcd *ChannelData) sendQueueCalculateLength() {
 	// Calculate new send queue length if send packets speed more than 30 pac/sec
-	if tcd.stat.packets.sendRT.speedPacSec > 30 {
+	if tcd.stat.packets.sendRT.SpeedPacSec > 30 {
 		//currentLen := tcd.sendQueue.Len()
 		lessMaxSize := tcd.maxQueueSize < 1024
 		queueIsFull := tcd.sendQueue.Len() >= tcd.maxQueueSize
@@ -111,7 +111,7 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 		//  if queue capacity less max capacity size
 		if lessMaxSize {
 			// if repeat speed is nil (0 repeat packets during second) and queue is full
-			if tcd.stat.packets.repeatRT.speedPacSec == 0 && queueIsFull {
+			if tcd.stat.packets.repeatRT.SpeedPacSec == 0 && queueIsFull {
 				tcd.maxQueueSize += 8
 			}
 		}
@@ -119,7 +119,7 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 		if moreDefaultSize {
 			// if repeat speed more than 20 packets per second or
 			// if repeat speed more than 10 packets per second and queue is full
-			if tcd.stat.packets.repeatRT.speedPacSec > 20 || tcd.stat.packets.repeatRT.speedPacSec > 10 && queueIsFull {
+			if tcd.stat.packets.repeatRT.SpeedPacSec > 20 || tcd.stat.packets.repeatRT.SpeedPacSec > 10 && queueIsFull {
 				tcd.maxQueueSize -= 8
 			}
 		}

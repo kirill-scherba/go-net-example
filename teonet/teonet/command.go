@@ -279,7 +279,9 @@ func (com *command) peers(rec *receiveData) (err error) {
 
 	// Get type of request: 0 - binary; 1 - JSON
 	if com.isJSONRequest(rec.rd.Data()) {
-		data = []byte("{}")
+		data, _ = com.teo.arp.json()
+	} else {
+		data, _ = com.teo.arp.binary()
 	}
 
 	// \TODO: create peers answer on binary and json format. Create functions in

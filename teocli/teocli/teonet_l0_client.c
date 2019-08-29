@@ -38,7 +38,7 @@ char *arp_data_print(ksnet_arp_data_ar *arp_data_ar) {
   if (len) {
     buf = malloc(len * 100);
     for (i = 0; i < (int)arp_data_ar->length; i++) {
-      ptr += sprintf(buf + ptr, "%3d %-12s(%2d)   %-15s   %d %8.3f ms\n", i,
+      ptr += sprintf(buf + ptr, "%3d %-12s(%2d)   %-15s   %d %8.3f ms\n", i+1,
                      arp_data_ar->arp_data[i].name,
                      arp_data_ar->arp_data[i].data.mode,
                      arp_data_ar->arp_data[i].data.addr,

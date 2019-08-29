@@ -1,11 +1,15 @@
 package teonet
 
 import (
+	"bytes"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
+	"github.com/kirill-scherba/net-example-go/teocli/teocli"
 	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
 	"github.com/kirill-scherba/net-example-go/teolog/teolog"
 	"github.com/kirill-scherba/net-example-go/trudp/trudp"
@@ -83,7 +87,6 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 //  - find by addr, port (channel = 0): <addr string, port int>
 //  - find by addr, port and channel: <addr string, port int, channel int>
 func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
-	//fmt.Println("arp.find len(i):", len(i))
 	switch len(i) {
 	case 1:
 		switch p := i[0].(type) {
@@ -202,14 +205,6 @@ func (arp *arp) sprint() (str string) {
 	const clearl = "\033[2K" // clear line terminal code
 	var line = clearl + strings.Repeat("-", 80) + "\n"
 
-	// Sort peers table:
-	// read peers arp map keys to slice and sort it
-	keys := make([]string, len(arp.m))
-	for key := range arp.m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
 	// Header
 	str = "\0337" + // save cursor position
 		"\033[0;0H" + // set cursor to the top
@@ -219,6 +214,7 @@ func (arp *arp) sprint() (str string) {
 		line
 
 	// Body
+	keys := arp.sort()
 	for _, peer := range keys {
 		peerArp, ok := arp.m[peer]
 		if !ok {
@@ -259,6 +255,99 @@ func (arp *arp) sprint() (str string) {
 		"\0338", // restore cursor position
 		num+numadd,
 	)
+
+	return
+}
+
+// sort Sorts peers table
+func (arp *arp) sort() (keys []string) {
+	for key := range arp.m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return
+}
+
+// binary creates binary peers array
+func (arp *arp) binary() (peersDataAr []byte, peersDataArLen int) {
+
+	// Sort peers table and create binary peer buffer
+	keys := arp.sort()
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, uint32(len(keys))) // Number of peers
+	for _, peer := range keys {
+		peerArp, ok := arp.m[peer]
+		if !ok {
+			continue
+		}
+		var port int
+		var addr string
+		var triptime float32
+		if peerArp.tcd != nil {
+			addr = peerArp.tcd.GetAddr().IP.String()
+			port = peerArp.tcd.GetAddr().Port
+			triptime = peerArp.tcd.TripTime()
+		} else {
+			addr = localhostIP
+			port = arp.teo.param.Port
+		}
+		binary.Write(buf, binary.LittleEndian, teocli.PeerData(peerArp.mode, peer,
+			addr, port, triptime),
+		)
+		peersDataArLen++
+	}
+	peersDataAr = buf.Bytes()
+
+	return
+}
+
+// binary creates json peers array
+func (arp *arp) json() (data []byte, peersDataArLen int) {
+
+	type peersDataJSON struct {
+		Name     string  `json:"name"`
+		Mode     int     `json:"mode"`
+		Addr     string  `json:"addr"`
+		Port     int     `json:"port"`
+		Triptime float32 `json:"triptime"`
+		Uptime   float32 `json:"uptime"`
+	}
+
+	type peersDataArJSON struct {
+		Length  int             `json:"length"`
+		PeersAr []peersDataJSON `json:"arp_data_ar"`
+	}
+
+	peersDataAr := peersDataArJSON{}
+
+	// Sort peers table and create binary peer buffer
+	keys := arp.sort()
+	peersDataAr.Length = len(keys)
+	peersDataArLen = peersDataAr.Length
+	for _, peer := range keys {
+		peerArp, ok := arp.m[peer]
+		if !ok {
+			continue
+		}
+		var peersData peersDataJSON
+		peersData.Name = peer
+		peersData.Mode = peerArp.mode
+		if peerArp.tcd != nil {
+			peersData.Addr = peerArp.tcd.GetAddr().IP.String()
+			peersData.Port = peerArp.tcd.GetAddr().Port
+			peersData.Triptime = peerArp.tcd.TripTime()
+		} else {
+			peersData.Addr = localhostIP
+			peersData.Port = arp.teo.param.Port
+		}
+		peersDataAr.PeersAr = append(peersDataAr.PeersAr, peersData)
+	}
+	var err error
+	data, err = json.Marshal(peersDataAr)
+	if err != nil {
+		//
+	}
+	data = append(data, 0) // add trailing zero (cstring)
 
 	return
 }

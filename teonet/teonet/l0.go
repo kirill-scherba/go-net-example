@@ -59,7 +59,16 @@ type client struct {
 	name string           // name
 	addr string           // address (ip:port:ch)
 	conn conn             // Connection tcp (net.Conn) or trudp (*trudp.ChannelData)
+	stat clientStat       // Statistic
 	cli  *teocli.TeoLNull // teocli connection to use readBuffer
+}
+
+// clientStat client statistic
+type clientStat struct {
+	send    int // send packes to client counter
+	receive int // receive packes from client counter
+	// sendRT    trudp.RealTimeSpeed // send packes to client real time counter
+	// receiveRT trudp.RealTimeSpeed // receive packes to client real time counter
 }
 
 // l0New initialize l0 module
@@ -288,8 +297,8 @@ func (l0 *l0) process() {
 		for pac := range l0.ch {
 			teolog.Debugf(MODULE,
 				"valid packet received from client %s, length: %d\n",
-				pac.client.addr, len(pac.packet))
-
+				pac.client.addr, len(pac.packet),
+			)
 			p := pac.client.cli.PacketNew(pac.packet)
 
 			// Find address in clients map and add if it absent, or send packet to
@@ -303,6 +312,7 @@ func (l0 *l0) process() {
 				// from login command data)
 				if d := p.Data(); p.Command() == 0 && p.Name() == "" {
 					pac.client.name = string(d[:len(d)-1])
+					l0.stat.receive(pac.client, p.Data())
 					l0.add(pac.client)
 				} else {
 					teolog.Debugf(MODULE,
@@ -320,6 +330,7 @@ func (l0 *l0) process() {
 				continue
 			}
 			// Send command to peer for exising client
+			l0.stat.receive(client, p.Data())
 			l0.sendToPeer(p.Name(), client.name, p.Command(), p.Data())
 		}
 		l0.closeAll()
@@ -440,16 +451,20 @@ func (l0 *l0) sendTo(from string, name string, cmd byte, data []byte) {
 		return
 	}
 
-	// detect type of conn: tcp or trudp before l0
-	var network string
+	teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
+		cmd, len(data), l0.network(client), client.name)
+
+	l0.stat.send(client, packet)
+	client.conn.Write(packet)
+}
+
+// network return network type of conn: 'tcp' or' trudp' (in string)
+func (l0 *l0) network(client *client) (network string) {
 	switch client.conn.(type) {
 	case net.Conn:
 		network = "tcp"
 	case *trudp.ChannelData:
 		network = "trudp"
 	}
-	teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
-		cmd, len(data), network, client.name)
-
-	client.conn.Write(packet)
+	return
 }
