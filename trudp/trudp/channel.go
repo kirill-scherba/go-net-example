@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
 // ChannelData is the TRUDP channel data structure

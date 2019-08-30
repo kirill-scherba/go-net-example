@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
 )
 
 var line = strings.Repeat("-", 68) + "\n"

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
 // TestTRUDP execute TRUDP complex test

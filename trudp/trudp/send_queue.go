@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
 type sendQueueData struct {

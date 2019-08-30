@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
-	"github.com/kirill-scherba/net-example-go/trudp/trudp"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
 const MODULE = "main"

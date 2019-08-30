@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kirill-scherba/net-example-go/teocli/teocli"
-	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
-	"github.com/kirill-scherba/net-example-go/trudp/trudp"
+	"github.com/kirill-scherba/teonet-go/teocli/teocli"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
 // arpData arp map record data structure

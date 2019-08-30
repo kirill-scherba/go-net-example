@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
 // This module process all trudp internal events:

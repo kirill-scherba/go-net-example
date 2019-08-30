@@ -41,7 +41,7 @@ import (
 	"strconv"
 	"unsafe"
 
-	"github.com/kirill-scherba/net-example-go/trudp/trudp"
+	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
 // Version teocli version

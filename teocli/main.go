@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kirill-scherba/net-example-go/teocli/teocli"
+	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 )
 
 func main() {

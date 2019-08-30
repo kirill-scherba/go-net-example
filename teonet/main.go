@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kirill-scherba/net-example-go/teonet/teonet"
+	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Version is this application version

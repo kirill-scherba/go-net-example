@@ -23,8 +23,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
-	"github.com/kirill-scherba/net-example-go/trudp/trudp"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
 // rhostData r-host data

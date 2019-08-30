@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kirill-scherba/net-example-go/teokeys/teokeys"
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
 // Teonet hotkey menu module

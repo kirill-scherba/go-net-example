@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/kirill-scherba/net-example-go/teocli/teocli"
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
-	"github.com/kirill-scherba/net-example-go/trudp/trudp"
+	"github.com/kirill-scherba/teonet-go/teocli/teocli"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
 // Teonet L0 server module

@@ -7,7 +7,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/kirill-scherba/net-example-go/teolog/teolog"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
 // \TODO rename to trudpPacket
