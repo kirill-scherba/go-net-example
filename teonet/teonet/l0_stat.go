@@ -119,7 +119,7 @@ func (stat *l0Stat) sprint() (str string) {
 	// Footer
 	str += fmt.Sprintf(line+
 		"\033[2K\n"+ // Clear line
-		"\033[%d;r"+ // Setscroll mode
+		"\033[%d;r"+ // Set scroll mode
 		"\0338", // Restore cursor
 		length+lenadd,
 	)

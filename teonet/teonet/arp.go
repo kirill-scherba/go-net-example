@@ -251,7 +251,7 @@ func (arp *arp) sprint() (str string) {
 	str += line + fmt.Sprintf(""+
 		clearl+"\n"+ // clear line
 		//clearl+"\n"+ // clear line
-		"\033[%d;r"+ // setscroll mode
+		"\033[%d;r"+ // set scroll mode
 		"\0338", // restore cursor position
 		num+numadd,
 	)

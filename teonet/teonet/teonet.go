@@ -118,8 +118,8 @@ func (teo *Teonet) Reconnect() {
 
 // Run start Teonet event loop
 func (teo *Teonet) Run() {
+	fmt.Print("\0337" + "\033[r" + "\0338") // reset terminal scrolling
 	for teo.running {
-
 		// Reader
 		go func() {
 			defer teo.td.ChanEventClosed()
@@ -182,8 +182,7 @@ func (teo *Teonet) Close() {
 
 	teo.cry.destroy()
 
-	// Clear terminal after log messages
-	fmt.Print("\033[r" + "\0338")
+	fmt.Print("\0337" + "\033[r" + "\0338") // reset terminal scrolling
 }
 
 // kernel run function in trudp kernel (main process)

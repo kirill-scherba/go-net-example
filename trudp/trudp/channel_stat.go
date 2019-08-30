@@ -177,7 +177,7 @@ func (tcs *channelStat) statFooter(length int) (str string) {
 	}
 	str = line + str + fmt.Sprintf("\n"+
 		"\033[2K\n"+ // Clear line
-		"\033[%d;r"+ // Setscroll mode
+		"\033[%d;r"+ // Set scroll mode
 		"\0338", // Restore cursor
 		length+lenadd,
 	)
