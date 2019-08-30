@@ -26,8 +26,9 @@ func main() {
 		"\n",
 	)
 
-	// Teonet parameters
+	// Teonet parameters and config
 	param := new(teonet.Parameters)
+	param.ReadConfig()
 	// This application Usage message
 	flag.Usage = func() {
 		fmt.Printf("usage: %s [OPTIONS] host_name\n\noptions:\n\n", os.Args[0])

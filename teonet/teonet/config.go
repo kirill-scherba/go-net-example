@@ -8,20 +8,21 @@
 
 package teonet
 
-type config struct {
-	teo *Teonet
+// configNew initialize configuration receiver and read config file
+func (param *Parameters) ReadConfig() {
+	param.read()
 }
 
-// configNew initialize config receiver
-func (teo *Teonet) configNew() (conf *config) {
-	conf = &config{teo: teo}
-	return
+func (param *Parameters) read() {
+	// jsonFile, err := os.Open("users.json")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// fmt.Println("Successfully Opened users.json")
+	// defer jsonFile.Close()
+	// return
 }
 
-func (conf *config) read() (param *Parameters) {
-	return
-}
-
-func (conf *config) write(param *Parameters) {
+func (param *Parameters) write() {
 
 }
