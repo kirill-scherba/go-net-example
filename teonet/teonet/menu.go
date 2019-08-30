@@ -163,6 +163,10 @@ func (teo *Teonet) createMenu() {
 			}()
 		})
 
+		teo.menu.Add('x', "clear screen", func() {
+			fmt.Print("\033[0;0H" + teokeys.ANSICls)
+		})
+
 		teo.menu.Add('r', "reconnect this application", func() {
 			fmt.Printf("\b")
 			teo.Reconnect()
