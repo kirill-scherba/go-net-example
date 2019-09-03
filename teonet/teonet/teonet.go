@@ -29,27 +29,6 @@ const (
 	localhostIPv6 = "::1"
 )
 
-// Parameters is Teonet parameters
-type Parameters struct {
-	Name             string // this host client name
-	Port             int    // local port
-	RAddr            string // remote host address
-	RPort, RChan     int    // remote host port and channel(for TRUdp only)
-	Network          string // teonet network name
-	LogLevel         string // show log messages level
-	LogFilter        string // log messages filter
-	L0tcpPort        int    // L0 Server TCP port number (default 9000)
-	ForbidHotkeysF   bool   // forbid hotkeys menu
-	ShowTrudpStatF   bool   // show trudp statistic
-	ShowPeersStatF   bool   // show peers table
-	ShowClientsStatF bool   // show clients table
-	ShowHelpF        bool   // show usage
-	IPv6Allow        bool   // Allow IPv6 support (not supported in Teonet-C)
-	L0allow          bool   // Allow l0 server
-	DisallowEncrypt  bool   // Disable teonet packets encryption
-
-}
-
 // Teonet teonet connection data structure
 type Teonet struct {
 	td         *trudp.TRUDP        // TRUdp connection
@@ -68,6 +47,20 @@ type Teonet struct {
 	running    bool                // Teonet running flag
 	reconnect  bool                // Teonet reconnect flag
 	wg         sync.WaitGroup      // Wait stopped
+}
+
+// Logo print teonet logo
+func Logo(title, ver string) {
+	fmt.Println("" +
+		" _____                     _   \n" +
+		"|_   _|__  ___  _ __   ___| |_ \n" +
+		"  | |/ _ \\/ _ \\| '_ \\ / _ \\ __|\n" +
+		"  | |  __/ (_) | | | |  __/ |_ \n" +
+		"  |_|\\___|\\___/|_| |_|\\___|\\__|\n" +
+		"\n" +
+		title + " ver " + ver + ", based on teonet ver " + Version +
+		"\n",
+	)
 }
 
 // Connect initialize Teonet
