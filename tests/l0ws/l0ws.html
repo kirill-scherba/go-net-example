@@ -28,7 +28,7 @@
             var cmd = document.getElementById('cmd').value;
             var to = document.getElementById('to').value;
             var msg = document.getElementById('message').value;
-            sock.send(JSON.stringify({cmd: 1*cmd, to: to, data: msg}));
+            sock.send(JSON.stringify({cmd: +cmd, to: to, data: msg}));
         };
 
         function sendLogin() {
@@ -39,7 +39,7 @@
     </script>
 
     <h1>Teonet L0 WebSocket Test</h1>
-    <form>
+    <div>
         <p>
             Client name: <input id="name" type="text" value="teo-cli-001">
             <button onclick="sendLogin();">Send Login</button>
@@ -53,7 +53,7 @@
         <p>
             Message: <input id="message" type="text" value="Hello!">
         </p>
-    </form>
+    </div>
     <button onclick="send();">Send Message</button>
 </body>
 </html>
