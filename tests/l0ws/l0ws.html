@@ -1,0 +1,59 @@
+<html>
+<head></head>
+<body>
+    <script type="text/javascript">
+        var sock = null;
+        var wsuri = "ws://127.0.0.1:8089";
+
+        window.onload = function() {
+
+            console.log("onload");
+
+            sock = new WebSocket(wsuri);
+
+            sock.onopen = function() {
+                console.log("connected to " + wsuri);
+            }
+
+            sock.onclose = function(e) {
+                console.log("connection closed (" + e.code + ")");
+            }
+
+            sock.onmessage = function(e) {
+                console.log("message received: " + e.data);
+            }
+        };
+
+        function send() {
+            var cmd = document.getElementById('cmd').value;
+            var to = document.getElementById('to').value;
+            var msg = document.getElementById('message').value;
+            sock.send(JSON.stringify({cmd: 1*cmd, to: to, data: msg}));
+        };
+
+        function sendLogin() {
+            var name = document.getElementById('name').value;
+            sock.send(JSON.stringify({cmd: 0, to: "", data: name}));
+        };
+
+    </script>
+
+    <h1>Teonet L0 WebSocket Test</h1>
+    <form>
+        <p>
+            Client name: <input id="name" type="text" value="teo-cli-001">
+            <button onclick="sendLogin();">Send Login</button>
+        </p>
+        <p>
+            Cmd: <input id="cmd" type="text" value="65">
+        </p>
+        <p>
+            To: <input id="to" type="text" value="teo-go-001">
+        </p>
+        <p>
+            Message: <input id="message" type="text" value="Hello!">
+        </p>
+    </form>
+    <button onclick="send();">Send Message</button>
+</body>
+</html>

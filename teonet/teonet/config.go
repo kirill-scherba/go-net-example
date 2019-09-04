@@ -36,6 +36,8 @@ type Parameters struct {
 	DisallowEncrypt  bool   `json:"disallow-encrypt"` // disable teonet packets encryption
 	L0allow          bool   `json:"l0-allow"`         // allow l0 server
 	L0tcpPort        int    `json:"l0-tcp-port"`      // l0 Server tcp port number (default 9000)
+	L0wsAllow        bool   `json:"l0-ws-allow"`      // allow l0 WebSocket server
+	L0wsPort         int    `json:"l0-ws-port"`       // l0 Server websocket tcp port number (default 9080)
 }
 
 // Params read Teonet parameters from configuration file and parse application
@@ -69,6 +71,8 @@ func Params() (param *Parameters) {
 	flag.BoolVar(&param.IPv6Allow, "ipv6", param.IPv6Allow, "allow ipv6 connection")
 	flag.BoolVar(&param.L0allow, "l0-allow", param.L0allow, "allow l0 server")
 	flag.IntVar(&param.L0tcpPort, "l0-tcp-port", param.L0tcpPort, "l0 server tcp port number")
+	flag.BoolVar(&param.L0wsAllow, "l0-ws-allow", param.L0wsAllow, "allow l0 websocket server")
+	flag.IntVar(&param.L0wsPort, "l0-ws-port", param.L0wsPort, "l0 websocket server tcp port number")
 	flag.BoolVar(&param.DisallowEncrypt, "disable-encrypt", param.DisallowEncrypt, "disable teonet packets encryption")
 	flag.Parse()
 
@@ -124,7 +128,6 @@ func (param *Parameters) setDefault() {
 	param.Network = "local"
 	param.RAddr = "localhost"
 	param.LogLevel = "DEBUG"
-	param.L0tcpPort = 9010
 	param.ShowParametersF = true
 }
 

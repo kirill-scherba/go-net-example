@@ -29,16 +29,18 @@ import (
 
 // l0 is Module data structure
 type l0 struct {
-	teo    *Teonet            // Pointer to Teonet
-	stat   *l0Stat            // Statistic
-	allow  bool               // Allow L0 Server
-	port   int                // TCP port (if 0 - not allowed TCP)
-	conn   net.Listener       // TCP listener connection
-	ch     chan *packet       // Packet processing channel
-	ma     map[string]*client // Clients address map
-	mn     map[string]*client // Clients name map
-	mux    sync.Mutex         // Maps mutex
-	closed bool               // Closet flag
+	teo     *Teonet            // Pointer to Teonet
+	stat    *l0Stat            // Statistic
+	allow   bool               // Allow L0 Server
+	wsAllow bool               // Allow L0 websocket server
+	tcpPort int                // TCP port (if 0 - not allowed TCP)
+	wsPort  int                // Websocket TCP port (if 0 - not allowed websocket)
+	conn    net.Listener       // TCP listener connection
+	ch      chan *packet       // Packet processing channel
+	ma      map[string]*client // Clients address map
+	mn      map[string]*client // Clients name map
+	mux     sync.Mutex         // Maps mutex
+	closed  bool               // Closet flag
 }
 
 // packet is Packet processing channels data structure
@@ -73,17 +75,32 @@ type clientStat struct {
 
 // l0New initialize l0 module
 func (teo *Teonet) l0New() *l0 {
-	l0 := &l0{teo: teo, allow: teo.param.L0allow, port: teo.param.L0tcpPort}
+	l0 := &l0{
+		teo:     teo,                 // Pointer to Teonet
+		allow:   teo.param.L0allow,   // Allow udp and tcp server(if tcp port > 0)
+		tcpPort: teo.param.L0tcpPort, // Allow tcp server(if allow is true)
+		wsAllow: teo.param.L0wsAllow, // Allow websocket server(if websocket port > 0)
+		wsPort:  teo.param.L0wsPort,  // Allow websocket server(if wsAllow is true)
+	}
 	l0.stat = l0.l0StatNew()
-	if l0.allow {
-		teolog.Connect(MODULE, "l0 server start listen udp port:", l0.teo.param.Port)
+	if l0.allow || l0.wsAllow {
+		// Start L0 pocessing
 		l0.ma = make(map[string]*client)
 		l0.mn = make(map[string]*client)
 		l0.process()
-		//if l0.port > 0 {
-		l0.tcpServer(&l0.port)
-		teo.param.L0tcpPort = l0.port
-		//}
+		// Start udp l0 server
+		if l0.allow {
+			teolog.Connect(MODULE, "l0 server start listen udp port:", l0.teo.param.Port)
+		}
+		// Start tcp l0 server
+		if l0.tcpPort > 0 {
+			l0.tcpServer(&l0.tcpPort)
+			teo.param.L0tcpPort = l0.tcpPort
+		}
+		// Start websocket l0 server
+		if l0.wsAllow && l0.wsPort > 0 {
+			go l0.wsServe(l0.wsPort)
+		}
 	}
 	return l0
 }
@@ -116,7 +133,11 @@ func (l0 *l0) add(client *client) {
 }
 
 // close closes(disconnect) connected client
-func (l0 *l0) close(client *client) {
+func (l0 *l0) close(client *client) (err error) {
+	if client == nil {
+		err = errors.New("client is nil")
+		return
+	}
 	teolog.Debugf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
 	if client.conn != nil {
 		client.conn.Close()
@@ -127,6 +148,7 @@ func (l0 *l0) close(client *client) {
 	delete(l0.mn, client.name)
 	l0.mux.Unlock()
 	l0.stat.updated()
+	return
 }
 
 // closeAddr closes(disconnect) connected client by address
@@ -234,10 +256,13 @@ func (l0 *l0) toprocess(p []byte, cli *teocli.TeoLNull, addr string, conn conn) 
 // processed and send, or -1 if part of packet received and we wait next
 // subpacket
 func (l0 *l0) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int) {
-	// Find this trudp key (connection) in cliens table and get cli, or
-	// create new if not fount
-	var cli *teocli.TeoLNull
+	if !l0.allow {
+		return nil, 1
+	}
+	// Find this trudp key (connection) in cliens table and get cli, or create
+	// new if not fount
 	key := tcd.GetKey()
+	var cli *teocli.TeoLNull
 	client, ok := l0.findAddr(key)
 	if !ok {
 		cli, _ = teocli.Init(false) // create new client
@@ -250,7 +275,7 @@ func (l0 *l0) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int
 // packetCheck check that received tcp packet is l0 packet and process it so.
 // Return satatus 1 if not processed(if it is not teocli packet), or 0 if
 // processed and send, or -1 if part of packet received and we wait next subpacket
-func (l0 *l0) packetCheck(cli *teocli.TeoLNull, addr string, conn conn /* interface{} */, data []byte) (p []byte, status int) {
+func (l0 *l0) packetCheck(cli *teocli.TeoLNull, addr string, conn conn, data []byte) (p []byte, status int) {
 check:
 	p, status = cli.PacketCheck(data)
 	switch status {
@@ -318,6 +343,7 @@ func (l0 *l0) process() {
 					teolog.Debugf(MODULE,
 						"incorrect login packet received from client %s, disconnect...\n",
 						pac.client.addr)
+					fmt.Printf("cmd: %d, to: %s, data: %v\n", p.Command(), p.Name(), p.Data())
 					// Send http answer to tcp request
 					switch pac.client.conn.(type) {
 					case net.Conn:
@@ -465,6 +491,8 @@ func (l0 *l0) network(client *client) (network string) {
 		network = "tcp"
 	case *trudp.ChannelData:
 		network = "trudp"
+	case *wsConn:
+		network = "ws"
 	}
 	return
 }
