@@ -14,6 +14,7 @@ package teonet
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -338,8 +339,17 @@ func (l0 *l0) process() {
 				// from login command data)
 				if d := p.Data(); p.Command() == 0 && p.Name() == "" {
 					pac.client.name = string(d[:len(d)-1])
-					l0.stat.receive(pac.client, p.Data())
+					l0.stat.receive(pac.client, d) //p.Data())
 					l0.add(pac.client)
+
+					// \TODO: Send to auth
+					TEO_AUTH := "teo-auth"
+					fmt.Printf("Send to auth: %s, data: %v\n", TEO_AUTH, d)
+					l0.teo.SendTo(TEO_AUTH, CmdUser, d)
+
+					// (kev->kc, TEO_AUTH, CMD_USER,
+					// 				kld->name, kld->name_length);
+
 				} else {
 					teolog.Debugf(MODULE,
 						"incorrect login packet received from client %s, disconnect...\n",
@@ -455,6 +465,34 @@ func (l0 *l0) cmdL0To(rec *receiveData) {
 	// Parse command data
 	name, cmd, data := l0.packetParse(rec.rd.Data())
 	l0.sendTo(rec.rd.From(), name, cmd, data)
+}
+
+// cmdL0Auth Check l0 client answer from authentication application
+func (l0 *l0) cmdL0Auth(rec *receiveData) {
+	l0.teo.com.log(rec.rd, "CMD_L0_AUTH command")
+
+	type authJSON struct {
+		UserId      string   `json:"userId"`
+		ClientId    string   `json:"clientId"`
+		Username    string   `json:"username"`
+		AccessToken string   `json:"accessToken"`
+		User        string   `json:"user"`
+		Networks    []string `json:"networks"`
+	}
+	type authToJSON struct {
+		Name     string   `json:"name"`
+		Networks []string `json:"networks"`
+	}
+	var j authJSON
+	if err := json.Unmarshal(rec.rd.Data()[:rec.rd.DataLen()-1], &j); err != nil {
+		fmt.Printf("%s\n", err.Error())
+	}
+	fmt.Printf("d: %s, AccessToken: %s\n", string(rec.rd.Data()), j.AccessToken)
+	// { \"name\": \"%s\", \"networks\": %s }
+	// \TODO set correct name
+	var jt = authToJSON{Name: j.AccessToken, Networks: j.Networks}
+	jdata, _ := json.Marshal(jt)
+	l0.sendTo(rec.rd.From(), j.AccessToken, rec.rd.Cmd(), jdata)
 }
 
 // sendTo send command to client

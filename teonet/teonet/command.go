@@ -28,6 +28,8 @@ const (
 	CmdPeersAnswer    = C.CMD_PEERS_ANSWER     // #73 Get peers answer
 	CmdHostInfo       = C.CMD_HOST_INFO        // #90 Request host info, allow JSON in request
 	CmdHostInfoAnswer = C.CMD_HOST_INFO_ANSWER // #91 Request host info, allow JSON in request
+	CmdL0Auth         = C.CMD_L0_AUTH          // #96 L0 server auth request answer command
+	CmdUser           = C.CMD_USER             // #129 User command
 )
 
 // JSON data prefix used in teonet requests
@@ -90,6 +92,9 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_HOST_INFO_ANSWER:
 		com.hostInfoAnswer(rec)
+
+	case C.CMD_L0_AUTH:
+		com.teo.l0.cmdL0Auth(rec)
 
 	default:
 		com.log(rec.rd, "UNKNOWN command")
