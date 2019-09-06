@@ -21,17 +21,20 @@ import (
 
 // wsConn websocket connection
 type wsConn struct {
+	cli    *teocli.TeoLNull
 	ws     *websocket.Conn
-	client *client
+	addr   string
+	closed bool
 	l0     *l0
 }
 
 // Close disconnect l0 client and close websocket connection
 func (conn *wsConn) Close() (err error) {
-	if conn.client != nil {
-		conn.client.conn = nil
+	if conn.closed {
+		return
 	}
-	err = conn.l0.close(conn.client)
+	conn.closed = true
+	conn.l0.closeAddr(conn.addr)
 	if conn.ws != nil {
 		err = conn.ws.Close()
 	}
@@ -46,7 +49,7 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 		From string `json:"from"`
 		Data string `json:"data"`
 	}
-	pac := conn.client.cli.PacketNew(packet)
+	pac := conn.cli.PacketNew(packet)
 	// Remove trailing zero from data
 	data := pac.Data()
 	if l := len(data); l > 0 && data[l-1] == 0 {
@@ -62,36 +65,24 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 
 // handler process data received from websocket client
 func (l0 *l0) wsHandler(ws *websocket.Conn) {
-	var conn = &wsConn{l0: l0, ws: ws}
-	var addr = ws.Request().RemoteAddr
+	var conn = &wsConn{l0: l0, ws: ws, addr: ws.Request().RemoteAddr}
+	conn.cli, _ = teocli.Init(false)
+	var teocli = &teocli.TeoLNull{}
 	var err error
 
 	for {
-		var reply []byte
-
-		// Check client connection
-		var cli *teocli.TeoLNull
-		client, ok := l0.findAddr(addr)
-		if !ok {
-			cli, _ = teocli.Init(false) // create new client
-		} else {
-			if conn.client == nil {
-				conn.client = client
-			}
-			cli = client.cli
-		}
+		var jdata []byte
 
 		// Receive data
-		if err = websocket.Message.Receive(ws, &reply); err != nil {
-			fmt.Println("Client disconnected (Can't receive) from", addr, "err:", err.Error())
+		if err = websocket.Message.Receive(ws, &jdata); err != nil {
+			fmt.Println("Client disconnected (or can't receive) from", conn.addr, "err:", err.Error())
 			if err.Error() == "EOF" {
 				conn.ws = nil
 				conn.Close()
-				//l0ws.l0.close(conn.client)
 			}
 			break
 		}
-		fmt.Println("Received from client: "+string(reply), addr)
+		fmt.Println("Received from client: "+string(jdata), conn.addr)
 
 		// Parse JSON
 		type teoJSON struct {
@@ -100,14 +91,14 @@ func (l0 *l0) wsHandler(ws *websocket.Conn) {
 			Data string `json:"data"`
 		}
 		data := teoJSON{}
-		if err := json.Unmarshal(reply, &data); err != nil {
-			panic(err)
+		if err := json.Unmarshal(jdata, &data); err != nil {
+			teolog.Error(err.Error())
+			break
 		}
-		var t = &teocli.TeoLNull{}
-		packet, _ := t.PacketCreate(data.Cmd, data.To, append([]byte(data.Data), 0))
+		packet, _ := teocli.PacketCreate(data.Cmd, data.To, append([]byte(data.Data), 0))
 
 		// Process packet
-		l0.toprocess(packet, cli, addr, conn)
+		l0.toprocess(packet, conn.cli, conn.addr, conn)
 
 		// msg := "Received:  " + string(reply)
 		// fmt.Println("Sending to client: " + msg)

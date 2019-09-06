@@ -136,6 +136,7 @@ func (l0 *l0) add(client *client) {
 func (l0 *l0) close(client *client) (err error) {
 	if client == nil {
 		err = errors.New("client is nil")
+		teolog.Error(MODULE, err.Error())
 		return
 	}
 	teolog.Debugf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
