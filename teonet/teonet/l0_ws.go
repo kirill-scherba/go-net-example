@@ -49,12 +49,14 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	if l := len(data); l > 0 && data[l-1] == 0 {
 		data = data[:l-1]
 	}
-	fmt.Printf("Data: %v\n%s\n", pac.Data(), string(pac.Data()))
+	fmt.Printf("Data: %v\nString: %s\n", pac.Data(), string(pac.Data()))
 	// Parse data
 	var obj interface{}
 	switch pac.Command() {
 	case CmdL0ClientsAnswer:
-		data = marshalClients(data)
+		data = marshalClients(pac.Data())
+	case CmdL0ClientsNumAnswer:
+		data = marshalClientsNum(pac.Data())
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		obj = data
@@ -67,13 +69,13 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	}
 	j := teoJSON{Cmd: pac.Command(), From: pac.Name(), Data: obj}
 	if d, err := json.Marshal(j); err == nil {
-		fmt.Printf("Write json: %s\n", string(d))
+		fmt.Printf("Send json to websocket client: %s\n", string(d))
 		conn.ws.Write(d)
 	}
 	return
 }
 
-// handler process data received from websocket client
+// handler got and process data received from websocket client
 func (l0 *l0) wsHandler(ws *websocket.Conn) {
 	var conn = &wsConn{l0: l0, ws: ws, addr: ws.Request().RemoteAddr}
 	conn.cli, _ = teocli.Init(false)
@@ -115,8 +117,12 @@ func (l0 *l0) wsHandler(ws *websocket.Conn) {
 			js = JSON
 		default:
 			js, _ = json.Marshal(data.Data)
+			if err == nil {
+				js = append(js, 0)
+			}
 		}
 
+		fmt.Printf("Got from websocket client to %s, cmd: %d, data: %s\n", data.To, data.Cmd, string(js))
 		packet, _ := teocli.PacketCreate(data.Cmd, data.To, js) // append([]byte(data.Data.(string)), 0)
 
 		// Process packet

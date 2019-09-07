@@ -5,6 +5,7 @@ package teonet
 import "C"
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,21 +18,23 @@ import (
 
 // Teonet commands
 const (
-	CmdNone            = C.CMD_NONE              // #00 Cmd none used as first peers command
-	CmdConnectR        = C.CMD_CONNECT_R         // #04 A Peer want connect to r-host
-	CmdConnect         = C.CMD_CONNECT           // #05 Inform peer about connected peer
-	CmdDisconnect      = C.CMD_DISCONNECTED      // #06 Send to peers signal about disconnect
-	CmdSplit           = C.CMD_SPLIT             // #68 Group of packets (Splited packets)
-	CmdL0              = C.CMD_L0                // #70 Command from L0 Client
-	CmdL0To            = C.CMD_L0_TO             // #71 Command to L0 Client
-	CmdPeers           = C.CMD_PEERS             // #72 Get peers, allow JSON in request
-	CmdPeersAnswer     = C.CMD_PEERS_ANSWER      // #73 Get peers answer
-	CmdL0Clients       = C.CMD_L0_CLIENTS        // #79 Request clients list
-	CmdL0ClientsAnswer = C.CMD_L0_CLIENTS_ANSWER // #80 Clients list
-	CmdHostInfo        = C.CMD_HOST_INFO         // #90 Request host info, allow JSON in request
-	CmdHostInfoAnswer  = C.CMD_HOST_INFO_ANSWER  // #91 Request host info, allow JSON in request
-	CmdL0Auth          = C.CMD_L0_AUTH           // #96 L0 server auth request answer command
-	CmdUser            = C.CMD_USER              // #129 User command
+	CmdNone               = C.CMD_NONE                // #00 Cmd none used as first peers command
+	CmdConnectR           = C.CMD_CONNECT_R           // #04 A Peer want connect to r-host
+	CmdConnect            = C.CMD_CONNECT             // #05 Inform peer about connected peer
+	CmdDisconnect         = C.CMD_DISCONNECTED        // #06 Send to peers signal about disconnect
+	CmdSplit              = C.CMD_SPLIT               // #68 Group of packets (Splited packets)
+	CmdL0                 = C.CMD_L0                  // #70 Command from L0 Client
+	CmdL0To               = C.CMD_L0_TO               // #71 Command to L0 Client
+	CmdPeers              = C.CMD_PEERS               // #72 Get peers, allow JSON in request
+	CmdPeersAnswer        = C.CMD_PEERS_ANSWER        // #73 Get peers answer
+	CmdL0Clients          = C.CMD_L0_CLIENTS          // #79 Request clients list
+	CmdL0ClientsAnswer    = C.CMD_L0_CLIENTS_ANSWER   // #80 Clients list
+	CmdL0ClientsNum       = C.CMD_L0_CLIENTS_N        // #84 Request clients number, allow JSON in request
+	CmdL0ClientsNumAnswer = C.CMD_L0_CLIENTS_N_ANSWER // #85 Clients number
+	CmdHostInfo           = C.CMD_HOST_INFO           // #90 Request host info, allow JSON in request
+	CmdHostInfoAnswer     = C.CMD_HOST_INFO_ANSWER    // #91 Request host info, allow JSON in request
+	CmdL0Auth             = C.CMD_L0_AUTH             // #96 L0 server auth request answer command
+	CmdUser               = C.CMD_USER                // #129 User command
 )
 
 // JSON data prefix used in teonet requests
@@ -297,12 +300,21 @@ func (com *command) peers(rec *receiveData) (err error) {
 	return
 }
 
-// marshalClients convert binary client list data to json
+// marshalClients convert binary client list data to json,
+// cmd: CMD_L0_CLIENTS_ANSWER #80
 func marshalClients(data []byte) (js []byte) {
 	var dataLen C.size_t
 	jstr := C.marshalClients(unsafe.Pointer(&data[0]), &dataLen)
 	jstrPtr := unsafe.Pointer(jstr)
 	js = C.GoBytes(jstrPtr, C.int(dataLen))
 	C.free(jstrPtr)
+	return
+}
+
+// marshalClientsNum convert binary clients number data to json,
+// cmd: CMD_L0_CLIENTS_N_ANSWER #85
+func marshalClientsNum(data []byte) (js []byte) {
+	numClients := binary.LittleEndian.Uint32(data)
+	js = []byte(fmt.Sprintf(`{"numClients":%d}`, numClients))
 	return
 }
