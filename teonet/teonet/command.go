@@ -29,6 +29,9 @@ const (
 	CmdPeersAnswer        = C.CMD_PEERS_ANSWER        // #73 Get peers answer
 	CmdL0Clients          = C.CMD_L0_CLIENTS          // #79 Request clients list
 	CmdL0ClientsAnswer    = C.CMD_L0_CLIENTS_ANSWER   // #80 Clients list
+	CmdSubscribe          = C.CMD_SUBSCRIBE           // #81 Subscribe to event
+	CmdUnsubscribe        = C.CMD_UNSUBSCRIBE         // #82 UnSubscribe from event
+	CmdSubscribeAnswer    = C.CMD_SUBSCRIBE_ANSWER    // #83 Subscribe answer
 	CmdL0ClientsNum       = C.CMD_L0_CLIENTS_N        // #84 Request clients number, allow JSON in request
 	CmdL0ClientsNumAnswer = C.CMD_L0_CLIENTS_N_ANSWER // #85 Clients number
 	CmdHostInfo           = C.CMD_HOST_INFO           // #90 Request host info, allow JSON in request
@@ -305,6 +308,17 @@ func (com *command) peers(rec *receiveData) (err error) {
 func marshalClients(data []byte) (js []byte) {
 	var dataLen C.size_t
 	jstr := C.marshalClients(unsafe.Pointer(&data[0]), &dataLen)
+	jstrPtr := unsafe.Pointer(jstr)
+	js = C.GoBytes(jstrPtr, C.int(dataLen))
+	C.free(jstrPtr)
+	return
+}
+
+// marshalSubscribe convert binary subscribe answer data to json
+// cmd: CMD_L_SUBSCRIBE_ANSWER #83
+func marshalSubscribe(data []byte) (js []byte) {
+	var dataLen C.size_t
+	jstr := C.marshalSubscribe(unsafe.Pointer(&data[0]), C.size_t(len(data)), &dataLen)
 	jstrPtr := unsafe.Pointer(jstr)
 	js = C.GoBytes(jstrPtr, C.int(dataLen))
 	C.free(jstrPtr)

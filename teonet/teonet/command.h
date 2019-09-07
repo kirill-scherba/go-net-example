@@ -100,6 +100,17 @@ typedef struct teonet_client_data_ar {
 
 } teonet_client_data_ar;
 
+/**
+ * teoSScr class list or CMD_SUBSCRIBE_ANSWER data
+ */
+typedef struct teoSScrData {
+
+  uint16_t ev; ///< Event (used when send data to subscriber)
+  uint8_t cmd; ///< Command ID (used when send data to subscriber)
+  char data[]; ///< Remote peer name in list or data in CMD_SUBSCRIBE_ANSWER
+
+} teoSScrData;
+
 // #define DIG_IN_TEO_VER 3
 //
 // /**
@@ -166,7 +177,8 @@ extern "C" {
 //
 // int cmd_disconnected_cb(ksnCommandClass *kco, ksnCorePacketData *rd);
 
-char *marshalClients(void *data, size_t *data_len);
+char *marshalClients(void *data, size_t *ret_data_len);
+char *marshalSubscribe(void *data, size_t in_data_len, size_t *ret_data_len);
 
 #ifdef __cplusplus
 }

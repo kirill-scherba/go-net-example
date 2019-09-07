@@ -57,6 +57,8 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 		data = marshalClients(pac.Data())
 	case CmdL0ClientsNumAnswer:
 		data = marshalClientsNum(pac.Data())
+	case CmdSubscribeAnswer:
+		data = marshalSubscribe(pac.Data())
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		obj = data
