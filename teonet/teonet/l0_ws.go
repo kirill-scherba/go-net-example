@@ -52,6 +52,10 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	fmt.Printf("Data: %v\n%s\n", pac.Data(), string(pac.Data()))
 	// Parse data
 	var obj interface{}
+	switch pac.Command() {
+	case CmdL0ClientsAnswer:
+		data = marshalClients(data)
+	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		obj = data
 	}
@@ -108,7 +112,7 @@ func (l0 *l0) wsHandler(ws *websocket.Conn) {
 		case CmdNone: // 0  && data.To == "" {
 			js = append([]byte(data.Data.(string)), 0)
 		case CmdPeers: // 72
-			js = append(JSON, 0)
+			js = JSON
 		default:
 			js, _ = json.Marshal(data.Data)
 		}

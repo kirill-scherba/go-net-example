@@ -10,6 +10,10 @@
 #ifndef NET_COM_H
 #define NET_COM_H
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+
 enum ksnCMD {
 
   // Core level not TR-UDP mode: 0...63
@@ -26,17 +30,17 @@ enum ksnCMD {
 
   // Core level TR-UDP mode: 64...127
   CMD_64_RESERVED = 64, ///< #64 Reserver for future use
-  CMD_ECHO,             ///< #65 Echo test message: auto replay test message command
-  CMD_ECHO_ANSWER,      ///< #66 Answer to auto replay message command
-  CMD_TUN,              ///< #67 Tunnel command
-  CMD_SPLIT,            ///< #68 Group of packets (Splited packets)
-  CMD_STREAM,           ///< #69 Stream command
-  CMD_L0,               ///< #70 Command from L0 Client
-  CMD_L0_TO,            ///< #71 Command to L0 Client
-  CMD_PEERS,            ///< #72 Get peers, allow JSON in request
-  CMD_PEERS_ANSWER,     ///< #73 Get peers answer
-  CMD_RESEND,           ///< #74 Resend command
-  CMD_RECONNECT,        ///< #75 Reconnect command
+  CMD_ECHO,         ///< #65 Echo test message: auto replay test message command
+  CMD_ECHO_ANSWER,  ///< #66 Answer to auto replay message command
+  CMD_TUN,          ///< #67 Tunnel command
+  CMD_SPLIT,        ///< #68 Group of packets (Splited packets)
+  CMD_STREAM,       ///< #69 Stream command
+  CMD_L0,           ///< #70 Command from L0 Client
+  CMD_L0_TO,        ///< #71 Command to L0 Client
+  CMD_PEERS,        ///< #72 Get peers, allow JSON in request
+  CMD_PEERS_ANSWER, ///< #73 Get peers answer
+  CMD_RESEND,       ///< #74 Resend command
+  CMD_RECONNECT,    ///< #75 Reconnect command
   CMD_RECONNECT_ANSWER,  ///< #76 Reconnect answer command
   CMD_AUTH,              ///< #77 Auth command
   CMD_AUTH_ANSWER,       ///< #78 Auth answer command
@@ -47,9 +51,9 @@ enum ksnCMD {
   CMD_SUBSCRIBE_ANSWER,  ///< #83 Subscribe answer
   CMD_L0_CLIENTS_N,      ///< #84 Request clients number, allow JSON in request
   CMD_L0_CLIENTS_N_ANSWER, ///< #85 Clients number
-  CMD_GET_NUM_PEERS,     ///< #86 Request number of peers, allow JSON in request
+  CMD_GET_NUM_PEERS, ///< #86 Request number of peers, allow JSON in request
   CMD_GET_NUM_PEERS_ANSWER, ///< #87 Number of peers answer
-  CMD_L0_STAT,           ///< #88 Get LO server statistic request, allow JSON in request
+  CMD_L0_STAT, ///< #88 Get LO server statistic request, allow JSON in request
   CMD_L0_STAT_ANSWER,    ///< #89 LO server statistic
   CMD_HOST_INFO,         ///< #90 Request host info, allow JSON in request
   CMD_HOST_INFO_ANSWER,  ///< #91 Host info amswer
@@ -62,8 +66,8 @@ enum ksnCMD {
   CMD_AM,              ///< #97 AM application command
   CMD_LOGGING,         ///< #98 LOGGING command
   CMD_L0_CLIENT_RESET, ///< #99 L0 client reset command
-  CMD_SUBSCRIBE_RND,   ///< #100 Subscribe command extension. (Send answer for one
-                       ///< random peer by type)
+  CMD_SUBSCRIBE_RND, ///< #100 Subscribe command extension. (Send answer for one
+                     ///< random peer by type)
 
   // Application level TR-UDP mode: 128...191
   CMD_128_RESERVED = 128, ///< #128 Reserver for future use
@@ -78,6 +82,23 @@ enum ksnCMD {
 #define CMD_TRUDP_CHECK(CMD)                                                   \
   (!CMD || CMD == CMD_CONNECT ||                                               \
    (CMD >= CMD_64_RESERVED && CMD < CMD_192_RESERVED))
+
+#define KSN_BUFFER_SIZE 1024
+
+/**
+ * Clients list data structure
+ */
+typedef struct teonet_client_data_ar {
+
+  uint32_t length;
+  struct _client_data {
+
+    char name[128];
+    // ksnLNullData data;
+
+  } client_data[];
+
+} teonet_client_data_ar;
 
 // #define DIG_IN_TEO_VER 3
 //
@@ -144,6 +165,8 @@ extern "C" {
 //   char *addr, uint32_t port);
 //
 // int cmd_disconnected_cb(ksnCommandClass *kco, ksnCorePacketData *rd);
+
+char *marshalClients(void *data, size_t *data_len);
 
 #ifdef __cplusplus
 }
