@@ -270,7 +270,6 @@ func (arp *arp) sort() (keys []string) {
 
 // binary creates binary peers array
 func (arp *arp) binary() (peersDataAr []byte, peersDataArLen int) {
-
 	// Sort peers table and create binary peer buffer
 	keys := arp.sort()
 	buf := new(bytes.Buffer)
@@ -297,26 +296,51 @@ func (arp *arp) binary() (peersDataAr []byte, peersDataArLen int) {
 		peersDataArLen++
 	}
 	peersDataAr = buf.Bytes()
+	return
+}
 
+type peersDataJSON struct {
+	Name     string  `json:"name"`
+	Mode     int     `json:"mode"`
+	Addr     string  `json:"addr"`
+	Port     int     `json:"port"`
+	Triptime float32 `json:"triptime"`
+	Uptime   float32 `json:"uptime"`
+}
+
+type peersDataArJSON struct {
+	Length  int             `json:"length"`
+	PeersAr []peersDataJSON `json:"arp_data_ar"`
+}
+
+// binaryToJSON convert binary peers array to JSON format
+func (arp *arp) binaryToJSON(indata []byte) (data []byte, peersDataArLen int) {
+	peersDataAr := peersDataArJSON{}
+	buf := bytes.NewReader(indata)
+	le := binary.LittleEndian
+	var numOfPeers uint32
+	binary.Read(buf, le, &numOfPeers) // Number of peers
+	for i := 0; i < int(numOfPeers); i++ {
+		peerData := make([]byte, teocli.PeerDataLength())
+		binary.Read(buf, le, peerData)
+		var peersData peersDataJSON
+		peersData.Mode, peersData.Name, peersData.Addr, peersData.Port, peersData.Triptime = teocli.ParsePeerData(peerData)
+		peersDataAr.PeersAr = append(peersDataAr.PeersAr, peersData)
+	}
+	peersDataAr.Length = int(numOfPeers)
+	peersDataArLen = int(numOfPeers)
+	var err error
+	data, err = json.Marshal(peersDataAr)
+	if err != nil {
+		//
+	}
+	//data = append(data, 0) // add trailing zero (cstring)
+	//fmt.Printf("binaryToJSON: %s\n", string(data))
 	return
 }
 
 // binary creates json peers array
 func (arp *arp) json() (data []byte, peersDataArLen int) {
-
-	type peersDataJSON struct {
-		Name     string  `json:"name"`
-		Mode     int     `json:"mode"`
-		Addr     string  `json:"addr"`
-		Port     int     `json:"port"`
-		Triptime float32 `json:"triptime"`
-		Uptime   float32 `json:"uptime"`
-	}
-
-	type peersDataArJSON struct {
-		Length  int             `json:"length"`
-		PeersAr []peersDataJSON `json:"arp_data_ar"`
-	}
 
 	peersDataAr := peersDataArJSON{}
 
@@ -347,7 +371,7 @@ func (arp *arp) json() (data []byte, peersDataArLen int) {
 	if err != nil {
 		//
 	}
-	data = append(data, 0) // add trailing zero (cstring)
+	//data = append(data, 0) // add trailing zero (cstring)
 
 	return
 }

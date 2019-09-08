@@ -37,6 +37,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"strconv"
 	"unsafe"
@@ -444,4 +445,23 @@ func PeerData(mode int, peer, addr string, port int, triptime float32) (d []byte
 	d = append(cname, d...)
 
 	return
+}
+
+// ParsePeerData parse peer data from binary buffer
+func ParsePeerData(d []byte) (mode int, peer, addr string, port int, triptime float32) {
+	cpeer := (*C.char)(unsafe.Pointer(&d[0]))
+	dptr := unsafe.Pointer(&d[C.ARP_TABLE_IP_SIZE])
+	arpData := (*C.ksnet_arp_data)(dptr)
+	mode = int(arpData.mode)
+	peer = C.GoString(cpeer)
+	addr = C.GoString(&arpData.addr[0])
+	port = int(arpData.port)
+	triptime = float32(math.Round(float64(arpData.last_triptime)*1000) / 1000)
+	//triptime = float32(arpData.last_triptime)
+	return
+}
+
+// PeerDataLength return length of binary PeerData buffer
+func PeerDataLength() int {
+	return C.ARP_TABLE_IP_SIZE + C.sizeof_ksnet_arp_data
 }

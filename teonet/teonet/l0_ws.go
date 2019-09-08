@@ -49,10 +49,12 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	if l := len(data); l > 0 && data[l-1] == 0 {
 		data = data[:l-1]
 	}
-	fmt.Printf("Data: %v\nString: %s\n", pac.Data(), string(pac.Data()))
+	fmt.Printf("Cmd:%d\nData: %v\nString: %s\n", pac.Command(), pac.Data(), string(pac.Data()))
 	// Parse data
 	var obj interface{}
 	switch pac.Command() {
+	case CmdPeersAnswer:
+		data, _ = conn.l0.teo.arp.binaryToJSON(pac.Data())
 	case CmdL0ClientsAnswer:
 		data = marshalClients(pac.Data())
 	case CmdL0ClientsNumAnswer:
@@ -115,8 +117,8 @@ func (l0 *l0) wsHandler(ws *websocket.Conn) {
 		switch data.Cmd {
 		case CmdNone: // 0  && data.To == "" {
 			js = append([]byte(data.Data.(string)), 0)
-		case CmdPeers: // 72
-			js = JSON
+		// case CmdPeers: // 72
+		// 	js = JSON
 		default:
 			js, _ = json.Marshal(data.Data)
 			if err == nil {
