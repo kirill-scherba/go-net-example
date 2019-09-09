@@ -39,7 +39,7 @@ type Teonet struct {
 	arp        *arp                // Arp module
 	rhost      *rhostData          // R-host module
 	split      *splitPacket        // Solitter module
-	l0         *l0                 // L0 server module
+	l0         *l0Conn             // L0 server module
 	menu       *teokeys.HotkeyMenu // Hotkey menu
 	ticker     *time.Ticker        // Idle timer ticker (to use in hokeys)
 	chanKernel chan func()         // Channel to execute function on kernel level

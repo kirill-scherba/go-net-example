@@ -21,74 +21,15 @@ import (
 
 // wsConn websocket connection
 type wsConn struct {
+	l0     *l0Conn
 	cli    *teocli.TeoLNull
 	ws     *websocket.Conn
 	addr   string
 	closed bool
-	l0     *l0
-}
-
-// Close disconnect l0 client and close websocket connection
-func (conn *wsConn) Close() (err error) {
-	if conn.closed {
-		return
-	}
-	conn.closed = true
-	conn.l0.closeAddr(conn.addr)
-	if conn.ws != nil {
-		err = conn.ws.Close()
-	}
-	return
-}
-
-// Write send data to websocket client
-func (conn *wsConn) Write(packet []byte) (n int, err error) {
-	pac := conn.cli.PacketNew(packet)
-	// Remove trailing zero from data
-	data := pac.Data()
-	if l := len(data); l > 0 && data[l-1] == 0 {
-		data = data[:l-1]
-	}
-	// Quick check string is json string
-	ifJSON := func(d []byte) bool {
-		return data[0] == '{' && data[len(data)-1] == '}' || data[0] == '[' && data[len(data)-1] == ']'
-	}
-	fmt.Printf("Cmd:%d\nData: %v\nString: %s\n", pac.Command(), pac.Data(), string(pac.Data()))
-	// Parse data
-	var obj interface{}
-	switch pac.Command() {
-	case CmdPeersAnswer:
-		if !ifJSON(data) {
-			data, _ = conn.l0.teo.arp.binaryToJSON(pac.Data())
-		}
-	case CmdL0ClientsAnswer:
-		if !ifJSON(data) {
-			data = marshalClients(pac.Data())
-		}
-	case CmdL0ClientsNumAnswer:
-		data = marshalClientsNum(pac.Data())
-	case CmdSubscribeAnswer:
-		data = marshalSubscribe(pac.Data())
-	}
-	if err := json.Unmarshal(data, &obj); err != nil {
-		obj = data
-	}
-	// teoJSON structure to marshal JSON
-	type teoJSON struct {
-		Cmd  byte        `json:"cmd"`
-		From string      `json:"from"`
-		Data interface{} `json:"data"`
-	}
-	j := teoJSON{Cmd: pac.Command(), From: pac.Name(), Data: obj}
-	if d, err := json.Marshal(j); err == nil {
-		fmt.Printf("Send json to websocket client: %s\n", string(d))
-		conn.ws.Write(d)
-	}
-	return
 }
 
 // handler got and process data received from websocket client
-func (l0 *l0) wsHandler(ws *websocket.Conn) {
+func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 	var conn = &wsConn{l0: l0, ws: ws, addr: ws.Request().RemoteAddr}
 	conn.cli, _ = teocli.Init(false)
 	var teocli = &teocli.TeoLNull{}
@@ -151,10 +92,69 @@ func (l0 *l0) wsHandler(ws *websocket.Conn) {
 
 // serve listens on the TCP network address addr and then calls
 // Serve with handler to handle requests on incoming connections.
-func (l0 *l0) wsServe(port int) {
+func (l0 *l0Conn) wsServe(port int) {
 	teolog.Connect(MODULE, "l0 websocket server start listen tcp port:", port)
 	http.Handle("/ws", websocket.Handler(l0.wsHandler))
 	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
+}
+
+// Close disconnect l0 client and close websocket connection
+func (conn *wsConn) Close() (err error) {
+	if conn.closed {
+		return
+	}
+	conn.closed = true
+	conn.l0.closeAddr(conn.addr)
+	if conn.ws != nil {
+		err = conn.ws.Close()
+	}
+	return
+}
+
+// Write send data to websocket client
+func (conn *wsConn) Write(packet []byte) (n int, err error) {
+	pac := conn.cli.PacketNew(packet)
+	// Remove trailing zero from data
+	data := pac.Data()
+	if l := len(data); l > 0 && data[l-1] == 0 {
+		data = data[:l-1]
+	}
+	// Quick check string is json string
+	ifJSON := func(d []byte) bool {
+		return data[0] == '{' && data[len(data)-1] == '}' || data[0] == '[' && data[len(data)-1] == ']'
+	}
+	fmt.Printf("Cmd:%d\nData: %v\nString: %s\n", pac.Command(), pac.Data(), string(pac.Data()))
+	// Parse data
+	var obj interface{}
+	switch pac.Command() {
+	case CmdPeersAnswer:
+		if !ifJSON(data) {
+			data, _ = conn.l0.teo.arp.binaryToJSON(pac.Data())
+		}
+	case CmdL0ClientsAnswer:
+		if !ifJSON(data) {
+			data = marshalClients(pac.Data())
+		}
+	case CmdL0ClientsNumAnswer:
+		data = marshalClientsNum(pac.Data())
+	case CmdSubscribeAnswer:
+		data = marshalSubscribe(pac.Data())
+	}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		obj = data
+	}
+	// teoJSON structure to marshal JSON
+	type teoJSON struct {
+		Cmd  byte        `json:"cmd"`
+		From string      `json:"from"`
+		Data interface{} `json:"data"`
+	}
+	j := teoJSON{Cmd: pac.Command(), From: pac.Name(), Data: obj}
+	if d, err := json.Marshal(j); err == nil {
+		fmt.Printf("Send json to websocket client: %s\n", string(d))
+		conn.ws.Write(d)
+	}
+	return
 }

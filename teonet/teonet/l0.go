@@ -28,8 +28,8 @@ import (
 
 // Teonet L0 server module
 
-// l0 is Module data structure
-type l0 struct {
+// l0Conn is Module data structure
+type l0Conn struct {
 	teo     *Teonet            // Pointer to Teonet
 	stat    *l0Stat            // Statistic
 	allow   bool               // Allow L0 Server
@@ -75,8 +75,8 @@ type clientStat struct {
 }
 
 // l0New initialize l0 module
-func (teo *Teonet) l0New() *l0 {
-	l0 := &l0{
+func (teo *Teonet) l0New() *l0Conn {
+	l0 := &l0Conn{
 		teo:     teo,                 // Pointer to Teonet
 		allow:   teo.param.L0allow,   // Allow udp and tcp server(if tcp port > 0)
 		tcpPort: teo.param.L0tcpPort, // Allow tcp server(if allow is true)
@@ -107,7 +107,7 @@ func (teo *Teonet) l0New() *l0 {
 }
 
 // destroy destroys l0 module
-func (l0 *l0) destroy() {
+func (l0 *l0Conn) destroy() {
 	if l0.allow {
 		l0.closeAll()
 		teolog.Connect(MODULE, "l0 server stop listen udp port:", l0.teo.param.Port)
@@ -123,7 +123,7 @@ func (l0 *l0) destroy() {
 }
 
 // add adds new client
-func (l0 *l0) add(client *client) {
+func (l0 *l0Conn) add(client *client) {
 	teolog.Debugf(MODULE, "new client %s (%s) connected\n", client.name, client.addr)
 	l0.closeName(client.name)
 	l0.mux.Lock()
@@ -134,7 +134,7 @@ func (l0 *l0) add(client *client) {
 }
 
 // close closes(disconnect) connected client
-func (l0 *l0) close(client *client) (err error) {
+func (l0 *l0Conn) close(client *client) (err error) {
 	if client == nil {
 		err = errors.New("client is nil")
 		teolog.Error(MODULE, err.Error())
@@ -154,7 +154,7 @@ func (l0 *l0) close(client *client) (err error) {
 }
 
 // closeAddr closes(disconnect) connected client by address
-func (l0 *l0) closeAddr(addr string) (done bool) {
+func (l0 *l0Conn) closeAddr(addr string) (done bool) {
 	if client, ok := l0.findAddr(addr); ok {
 		l0.close(client)
 		done = true
@@ -163,7 +163,7 @@ func (l0 *l0) closeAddr(addr string) (done bool) {
 }
 
 // closeName closes(disconnect) connected client by name
-func (l0 *l0) closeName(name string) (done bool) {
+func (l0 *l0Conn) closeName(name string) (done bool) {
 	if client, ok := l0.findName(name); ok {
 		l0.close(client)
 		done = true
@@ -172,14 +172,14 @@ func (l0 *l0) closeName(name string) (done bool) {
 }
 
 // closeAll close(disconnect) all connected clients
-func (l0 *l0) closeAll() {
+func (l0 *l0Conn) closeAll() {
 	for _, client := range l0.mn {
 		l0.close(client)
 	}
 }
 
 // tcpServer TCP L0 server
-func (l0 *l0) tcpServer(port *int) {
+func (l0 *l0Conn) tcpServer(port *int) {
 
 	const (
 		network  = "tcp"
@@ -221,7 +221,7 @@ func (l0 *l0) tcpServer(port *int) {
 }
 
 // findAddr finds client in clients map by address
-func (l0 *l0) findAddr(addr string) (client *client, ok bool) {
+func (l0 *l0Conn) findAddr(addr string) (client *client, ok bool) {
 	l0.mux.Lock()
 	client, ok = l0.ma[addr]
 	l0.mux.Unlock()
@@ -229,7 +229,7 @@ func (l0 *l0) findAddr(addr string) (client *client, ok bool) {
 }
 
 // findName finds client in clients map by name
-func (l0 *l0) findName(name string) (client *client, ok bool) {
+func (l0 *l0Conn) findName(name string) (client *client, ok bool) {
 	l0.mux.Lock()
 	client, ok = l0.mn[name]
 	l0.mux.Unlock()
@@ -237,7 +237,7 @@ func (l0 *l0) findName(name string) (client *client, ok bool) {
 }
 
 // exists return true if client exists in clients map
-func (l0 *l0) exists(client *client) (ok bool) {
+func (l0 *l0Conn) exists(client *client) (ok bool) {
 	for _, cli := range l0.mn {
 		if cli == client {
 			ok = true
@@ -248,7 +248,7 @@ func (l0 *l0) exists(client *client) (ok bool) {
 }
 
 // toprocess send packet to packet processing
-func (l0 *l0) toprocess(p []byte, cli *teocli.TeoLNull, addr string, conn conn) {
+func (l0 *l0Conn) toprocess(p []byte, cli *teocli.TeoLNull, addr string, conn conn) {
 	l0.ch <- &packet{packet: p, client: &client{cli: cli, addr: addr, conn: conn}}
 	return
 }
@@ -257,7 +257,7 @@ func (l0 *l0) toprocess(p []byte, cli *teocli.TeoLNull, addr string, conn conn) 
 // Return satatus 1 if not processed(if it is not teocli packet), or 0 if
 // processed and send, or -1 if part of packet received and we wait next
 // subpacket
-func (l0 *l0) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int) {
+func (l0 *l0Conn) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int) {
 	if !l0.allow {
 		return nil, 1
 	}
@@ -277,7 +277,7 @@ func (l0 *l0) check(tcd *trudp.ChannelData, packet []byte) (p []byte, status int
 // packetCheck check that received tcp packet is l0 packet and process it so.
 // Return satatus 1 if not processed(if it is not teocli packet), or 0 if
 // processed and send, or -1 if part of packet received and we wait next subpacket
-func (l0 *l0) packetCheck(cli *teocli.TeoLNull, addr string, conn conn, data []byte) (p []byte, status int) {
+func (l0 *l0Conn) packetCheck(cli *teocli.TeoLNull, addr string, conn conn, data []byte) (p []byte, status int) {
 check:
 	p, status = cli.PacketCheck(data)
 	switch status {
@@ -296,7 +296,7 @@ check:
 }
 
 // Handle TCP connection
-func (l0 *l0) handleConnection(conn net.Conn) {
+func (l0 *l0Conn) handleConnection(conn net.Conn) {
 	teolog.Connectf(MODULE, "l0 server tcp client %v connected...", conn.RemoteAddr())
 	cli, _ := teocli.Init(true)
 	b := make([]byte, 2048)
@@ -316,7 +316,7 @@ func (l0 *l0) handleConnection(conn net.Conn) {
 }
 
 // Process received packets
-func (l0 *l0) process() {
+func (l0 *l0Conn) process() {
 	teolog.Debugf(MODULE, "l0 packet process started\n")
 	l0.ch = make(chan *packet)
 	l0.teo.wg.Add(1)
@@ -377,7 +377,7 @@ func (l0 *l0) process() {
 }
 
 // packetCreate creates packet data for sendToPeer and sendToL0
-func (l0 *l0) packetCreate(client string, cmd byte, data []byte) []byte {
+func (l0 *l0Conn) packetCreate(client string, cmd byte, data []byte) []byte {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
 	binary.Write(buf, le, cmd)                       // Command
@@ -389,7 +389,7 @@ func (l0 *l0) packetCreate(client string, cmd byte, data []byte) []byte {
 }
 
 // packetParse parse command data
-func (l0 *l0) packetParse(d []byte) (name string, cmd byte, data []byte) {
+func (l0 *l0Conn) packetParse(d []byte) (name string, cmd byte, data []byte) {
 	buf := bytes.NewReader(d)
 	le := binary.LittleEndian
 	var fromLen byte
@@ -410,8 +410,8 @@ func (l0 *l0) packetParse(d []byte) (name string, cmd byte, data []byte) {
 	return
 }
 
-// sendToPeer from L0 server, send packet received from client to peer
-func (l0 *l0) sendToPeer(peer string, client string, cmd byte, data []byte) {
+// sendToPeer (send from L0 server to peer) send packet received from client to peer
+func (l0 *l0Conn) sendToPeer(peer string, client string, cmd byte, data []byte) {
 	teolog.Debugf(MODULE,
 		"send cmd: %d, %d bytes data packet to peer %s, from client: %s",
 		cmd, len(data), peer, client,
@@ -419,8 +419,8 @@ func (l0 *l0) sendToPeer(peer string, client string, cmd byte, data []byte) {
 	l0.teo.SendTo(peer, CmdL0, l0.packetCreate(client, cmd, data)) // Send to peer
 }
 
-// sendToL0 to L0 server, send packet from peer to client
-func (l0 *l0) sendToL0(peer string, client string, cmd byte, data []byte) {
+// sendToL0 (send from peer to L0 server) send packet from peer to client
+func (l0 *l0Conn) sendToL0(peer string, client string, cmd byte, data []byte) {
 	teolog.Debugf(MODULE,
 		"send cmd: %d, %d bytes data packet to l0 %s, from client: %s",
 		cmd, len(data), peer, client,
@@ -428,75 +428,8 @@ func (l0 *l0) sendToL0(peer string, client string, cmd byte, data []byte) {
 	l0.teo.SendTo(peer, CmdL0To, l0.packetCreate(client, cmd, data)) // Send to L0
 }
 
-// cmdL0 parse cmd got from L0 server with packet from L0 client
-func (l0 *l0) cmdL0(rec *receiveData) (processed bool, err error) {
-	l0.teo.com.log(rec.rd, "CMD_L0 command")
-
-	// Create packet
-	rd, err := l0.teo.packetCreateNew(l0.packetParse(rec.rd.Data())).Parse()
-	if err != nil {
-		err = errors.New("can't parse packet from l0")
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Sel L0 flag and addresses
-	rd.setL0(func() (addr string, port int) {
-		if port = l0.teo.param.Port; rec.tcd != nil {
-			addr, port = rec.tcd.GetAddr().IP.String(), rec.tcd.GetAddr().Port
-		}
-		return
-	}())
-
-	// Process command
-	processed = l0.teo.com.process(&receiveData{rd, rec.tcd})
-	return
-}
-
-// cmdL0To parse cmd got from peer to L0 client
-func (l0 *l0) cmdL0To(rec *receiveData) {
-	l0.teo.com.log(rec.rd, "CMD_L0_TO command")
-
-	if !l0.allow {
-		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
-		return
-	}
-
-	// Parse command data
-	name, cmd, data := l0.packetParse(rec.rd.Data())
-	l0.sendTo(rec.rd.From(), name, cmd, data)
-}
-
-// cmdL0Auth Check l0 client answer from authentication application
-func (l0 *l0) cmdL0Auth(rec *receiveData) {
-	l0.teo.com.log(rec.rd, "CMD_L0_AUTH command")
-
-	type authJSON struct {
-		UserId      string   `json:"userId"`
-		ClientId    string   `json:"clientId"`
-		Username    string   `json:"username"`
-		AccessToken string   `json:"accessToken"`
-		User        string   `json:"user"`
-		Networks    []string `json:"networks"`
-	}
-	type authToJSON struct {
-		Name     string   `json:"name"`
-		Networks []string `json:"networks"`
-	}
-	var j authJSON
-	if err := json.Unmarshal(rec.rd.Data()[:rec.rd.DataLen()-1], &j); err != nil {
-		fmt.Printf("%s\n", err.Error())
-	}
-	fmt.Printf("d: %s, AccessToken: %s\n", string(rec.rd.Data()), j.AccessToken)
-	// { \"name\": \"%s\", \"networks\": %s }
-	// \TODO set correct name
-	var jt = authToJSON{Name: j.AccessToken, Networks: j.Networks}
-	jdata, _ := json.Marshal(jt)
-	l0.sendTo(rec.rd.From(), j.AccessToken, rec.rd.Cmd(), jdata)
-}
-
-// sendTo send command to client
-func (l0 *l0) sendTo(from string, name string, cmd byte, data []byte) {
+// sendTo send command from this host L0 server to L0 client connected to this server
+func (l0 *l0Conn) sendTo(from string, name string, cmd byte, data []byte) {
 
 	// Get client data from name map
 	l0.mux.Lock()
@@ -524,7 +457,7 @@ func (l0 *l0) sendTo(from string, name string, cmd byte, data []byte) {
 }
 
 // network return network type of conn: 'tcp' or' trudp' (in string)
-func (l0 *l0) network(client *client) (network string) {
+func (l0 *l0Conn) network(client *client) (network string) {
 	switch client.conn.(type) {
 	case net.Conn:
 		network = "tcp"
@@ -535,3 +468,72 @@ func (l0 *l0) network(client *client) (network string) {
 	}
 	return
 }
+
+// cmdL0 parse cmd got from L0 server with packet from L0 client
+func (l0 *l0Conn) cmdL0(rec *receiveData) (processed bool, err error) {
+	l0.teo.com.log(rec.rd, "CMD_L0 command")
+
+	// Create packet
+	rd, err := l0.teo.packetCreateNew(l0.packetParse(rec.rd.Data())).Parse()
+	if err != nil {
+		err = errors.New("can't parse packet from l0")
+		fmt.Println(err.Error())
+		return
+	}
+
+	// Sel L0 flag and addresses
+	rd.setL0(func() (addr string, port int) {
+		if port = l0.teo.param.Port; rec.tcd != nil {
+			addr, port = rec.tcd.GetAddr().IP.String(), rec.tcd.GetAddr().Port
+		}
+		return
+	}())
+
+	// Process command
+	processed = l0.teo.com.process(&receiveData{rd, rec.tcd})
+	return
+}
+
+// cmdL0To parse cmd got from peer to L0 client
+func (l0 *l0Conn) cmdL0To(rec *receiveData) {
+	l0.teo.com.log(rec.rd, "CMD_L0_TO command")
+
+	if !l0.allow {
+		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
+		return
+	}
+
+	// Parse command data
+	name, cmd, data := l0.packetParse(rec.rd.Data())
+	l0.sendTo(rec.rd.From(), name, cmd, data)
+}
+
+// cmdL0Auth Check l0 client answer from authentication application
+func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
+	l0.teo.com.log(rec.rd, "CMD_L0_AUTH command")
+
+	type authJSON struct {
+		UserId      string   `json:"userId"`
+		ClientId    string   `json:"clientId"`
+		Username    string   `json:"username"`
+		AccessToken string   `json:"accessToken"`
+		User        string   `json:"user"`
+		Networks    []string `json:"networks"`
+	}
+	type authToJSON struct {
+		Name     string   `json:"name"`
+		Networks []string `json:"networks"`
+	}
+	var j authJSON
+	if err := json.Unmarshal(rec.rd.Data()[:rec.rd.DataLen()-1], &j); err != nil {
+		fmt.Printf("%s\n", err.Error())
+	}
+	fmt.Printf("d: %s, AccessToken: %s\n", string(rec.rd.Data()), j.AccessToken)
+	// { \"name\": \"%s\", \"networks\": %s }
+	// \TODO set correct name
+	var jt = authToJSON{Name: j.AccessToken, Networks: j.Networks}
+	jdata, _ := json.Marshal(jt)
+	l0.sendTo(rec.rd.From(), j.AccessToken, rec.rd.Cmd(), jdata)
+}
+
+//CMD_L0_CLIENTS
