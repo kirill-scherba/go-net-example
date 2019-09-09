@@ -536,4 +536,22 @@ func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
 	l0.sendTo(rec.rd.From(), j.AccessToken, rec.rd.Cmd(), jdata)
 }
 
-//CMD_L0_CLIENTS
+// cmdL0ClientsNumber parse cmd 'got clients number' and send answer with number of clients
+func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
+	l0.teo.com.log(rec.rd, "CMD_L0_CLIENTS_N command")
+	if !l0.allow {
+		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
+		return
+	}
+	// \TODO: write code ...
+}
+
+// cmdL0Clients parse cmd 'got clients list' and send answer with list of clients
+func (l0 *l0Conn) cmdL0Clients(rec *receiveData) {
+	l0.teo.com.log(rec.rd, "CMD_L0_CLIENTS command")
+	if !l0.allow {
+		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
+		return
+	}
+	// \TODO: write code ...
+}

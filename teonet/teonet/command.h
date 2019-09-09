@@ -30,17 +30,17 @@ enum ksnCMD {
 
   // Core level TR-UDP mode: 64...127
   CMD_64_RESERVED = 64, ///< #64 Reserver for future use
-  CMD_ECHO,         ///< #65 Echo test message: auto replay test message command
-  CMD_ECHO_ANSWER,  ///< #66 Answer to auto replay message command
-  CMD_TUN,          ///< #67 Tunnel command
-  CMD_SPLIT,        ///< #68 Group of packets (Splited packets)
-  CMD_STREAM,       ///< #69 Stream command
-  CMD_L0,           ///< #70 Command from L0 Client
-  CMD_L0_TO,        ///< #71 Command to L0 Client
-  CMD_PEERS,        ///< #72 Get peers, allow JSON in request
-  CMD_PEERS_ANSWER, ///< #73 Get peers answer
-  CMD_RESEND,       ///< #74 Resend command
-  CMD_RECONNECT,    ///< #75 Reconnect command
+  CMD_ECHO,             ///< #65 Echo test message: auto replay test message command
+  CMD_ECHO_ANSWER,      ///< #66 Answer to auto replay message command
+  CMD_TUN,              ///< #67 Tunnel command
+  CMD_SPLIT,            ///< #68 Group of packets (Splited packets)
+  CMD_STREAM,           ///< #69 Stream command
+  CMD_L0,               ///< #70 Command from L0 Client
+  CMD_L0_TO,            ///< #71 Command to L0 Client
+  CMD_PEERS,            ///< #72 Get peers, allow JSON in request
+  CMD_PEERS_ANSWER,     ///< #73 Get peers answer
+  CMD_RESEND,           ///< #74 Resend command
+  CMD_RECONNECT,        ///< #75 Reconnect command
   CMD_RECONNECT_ANSWER,  ///< #76 Reconnect answer command
   CMD_AUTH,              ///< #77 Auth command
   CMD_AUTH_ANSWER,       ///< #78 Auth answer command

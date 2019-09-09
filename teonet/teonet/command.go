@@ -92,6 +92,15 @@ func (com *command) process(rec *receiveData) (processed bool) {
 	case C.CMD_L0_TO:
 		com.teo.l0.cmdL0To(rec)
 
+	case C.CMD_L0_AUTH:
+		com.teo.l0.cmdL0Auth(rec)
+
+	case C.CMD_L0_CLIENTS:
+		com.teo.l0.cmdL0Clients(rec)
+
+	case C.CMD_L0_CLIENTS_N:
+		com.teo.l0.cmdL0ClientsNumber(rec)
+
 	case C.CMD_PEERS:
 		com.peers(rec)
 
@@ -100,9 +109,6 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_HOST_INFO_ANSWER:
 		com.hostInfoAnswer(rec)
-
-	case C.CMD_L0_AUTH:
-		com.teo.l0.cmdL0Auth(rec)
 
 	default:
 		com.log(rec.rd, "UNKNOWN command")
