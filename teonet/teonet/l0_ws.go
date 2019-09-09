@@ -134,13 +134,13 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 			data, _ = conn.l0.teo.arp.binaryToJSON(pac.Data())
 		}
 	case CmdL0ClientsAnswer:
-		if !ifJSON(data) {
-			data = marshalClients(pac.Data())
-		}
+		data = conn.l0.teo.com.marshalClients(pac.Data())
 	case CmdL0ClientsNumAnswer:
-		data = marshalClientsNum(pac.Data())
+		if !ifJSON(data) {
+			data = conn.l0.teo.com.marshalClientsNum(pac.Data())
+		}
 	case CmdSubscribeAnswer:
-		data = marshalSubscribe(pac.Data())
+		data = conn.l0.teo.com.marshalSubscribe(pac.Data())
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		obj = data

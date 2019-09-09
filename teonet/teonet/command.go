@@ -320,7 +320,7 @@ func (com *command) structToJSON(data interface{}) ([]byte, error) {
 
 // marshalClients convert binary client list data to json,
 // cmd: CMD_L0_CLIENTS_ANSWER #80
-func marshalClients(data []byte) (js []byte) {
+func (com *command) marshalClients(data []byte) (js []byte) {
 	var dataLen C.size_t
 	jstr := C.marshalClients(unsafe.Pointer(&data[0]), &dataLen)
 	jstrPtr := unsafe.Pointer(jstr)
@@ -331,7 +331,7 @@ func marshalClients(data []byte) (js []byte) {
 
 // marshalSubscribe convert binary subscribe answer data to json
 // cmd: CMD_L_SUBSCRIBE_ANSWER #83
-func marshalSubscribe(data []byte) (js []byte) {
+func (com *command) marshalSubscribe(data []byte) (js []byte) {
 	var dataLen C.size_t
 	jstr := C.marshalSubscribe(unsafe.Pointer(&data[0]), C.size_t(len(data)), &dataLen)
 	jstrPtr := unsafe.Pointer(jstr)
@@ -342,7 +342,7 @@ func marshalSubscribe(data []byte) (js []byte) {
 
 // marshalClientsNum convert binary clients number data to json,
 // cmd: CMD_L0_CLIENTS_N_ANSWER #85
-func marshalClientsNum(data []byte) (js []byte) {
+func (com *command) marshalClientsNum(data []byte) (js []byte) {
 	numClients := binary.LittleEndian.Uint32(data)
 	js = []byte(fmt.Sprintf(`{"numClients":%d}`, numClients))
 	return

@@ -566,8 +566,19 @@ func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
 func (l0 *l0Conn) cmdL0Clients(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_CLIENTS command")
 	if !l0.allow {
-		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
+		teolog.Error(MODULE, "can't process this command because I'm not L0 server\n")
 		return
 	}
 	// \TODO: write code ...
+
+	numClients := uint32(len(l0.mn))
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, numClients) // Number of clients
+	// binary.Write(buf, le, byte(len(client)+1))       // Client name length (include trailing zero)
+	// binary.Write(buf, le, uint16(len(data)))         // Packet data length
+	// binary.Write(buf, le, append([]byte(client), 0)) // Client name (include trailing zero)
+	// binary.Write(buf, le, []byte(data))              // Packet data
+	//return buf.Bytes()
+
 }
