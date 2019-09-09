@@ -540,10 +540,26 @@ func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
 func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_CLIENTS_N command")
 	if !l0.allow {
-		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
+		teolog.Error(MODULE, "can't process this command because I'm not L0 server\n")
 		return
 	}
-	// \TODO: write code ...
+	var err error
+	var data []byte
+	type numClientsJSON struct {
+		NumClients uint32 `json:"numClients"`
+	}
+	numClients := uint32(len(l0.mn))
+	if l0.teo.com.isJSONRequest(rec.rd.Data()) {
+		data, err = l0.teo.com.structToJSON(numClientsJSON{numClients})
+	} else {
+		data = make([]byte, 4)
+		binary.LittleEndian.PutUint32(data, numClients)
+	}
+	if err != nil {
+		teolog.Error(MODULE, err)
+		return
+	}
+	l0.teo.SendAnswer(rec, CmdL0ClientsNumAnswer, data)
 }
 
 // cmdL0Clients parse cmd 'got clients list' and send answer with list of clients

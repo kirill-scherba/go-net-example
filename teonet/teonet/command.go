@@ -309,6 +309,15 @@ func (com *command) peers(rec *receiveData) (err error) {
 	return
 }
 
+// structToJSON convert structure to JSON format
+func (com *command) structToJSON(data interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := json.NewEncoder(buf).Encode(data); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 // marshalClients convert binary client list data to json,
 // cmd: CMD_L0_CLIENTS_ANSWER #80
 func marshalClients(data []byte) (js []byte) {

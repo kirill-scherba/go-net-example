@@ -8,12 +8,9 @@ import (
 
 func StructToJSON(data interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
-
-	//fmt.Printf("%v\n", data)
 	if err := json.NewEncoder(buf).Encode(data); err != nil {
 		return nil, err
 	}
-
 	return buf.Bytes(), nil
 }
 
@@ -32,5 +29,5 @@ func main() {
 		fmt.Print(err)
 	}
 
-	fmt.Printf("%s\n", string(jsonBytes))
+	fmt.Printf("%s", string(jsonBytes))
 }
