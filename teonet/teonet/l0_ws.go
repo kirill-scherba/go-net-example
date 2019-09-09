@@ -49,14 +49,22 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	if l := len(data); l > 0 && data[l-1] == 0 {
 		data = data[:l-1]
 	}
+	// Quick check string is json string
+	ifJSON := func(d []byte) bool {
+		return data[0] == '{' && data[len(data)-1] == '}' || data[0] == '[' && data[len(data)-1] == ']'
+	}
 	fmt.Printf("Cmd:%d\nData: %v\nString: %s\n", pac.Command(), pac.Data(), string(pac.Data()))
 	// Parse data
 	var obj interface{}
 	switch pac.Command() {
 	case CmdPeersAnswer:
-		data, _ = conn.l0.teo.arp.binaryToJSON(pac.Data())
+		if !ifJSON(data) {
+			data, _ = conn.l0.teo.arp.binaryToJSON(pac.Data())
+		}
 	case CmdL0ClientsAnswer:
-		data = marshalClients(pac.Data())
+		if !ifJSON(data) {
+			data = marshalClients(pac.Data())
+		}
 	case CmdL0ClientsNumAnswer:
 		data = marshalClientsNum(pac.Data())
 	case CmdSubscribeAnswer:
@@ -115,9 +123,9 @@ func (l0 *l0) wsHandler(ws *websocket.Conn) {
 		// Parse data
 		var js []byte
 		switch data.Cmd {
-		case CmdNone: // 0  && data.To == "" {
+		case CmdNone:
 			js = append([]byte(data.Data.(string)), 0)
-		// case CmdPeers: // 72
+		// case CmdPeers, CmdHostInfo: // Reques answer in JSON format for this commands
 		// 	js = JSON
 		default:
 			js, _ = json.Marshal(data.Data)
