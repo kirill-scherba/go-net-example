@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -513,8 +514,8 @@ func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_AUTH command")
 
 	type authJSON struct {
-		UserId      string   `json:"userId"`
-		ClientId    string   `json:"clientId"`
+		UserID      string   `json:"userId"`
+		ClientID    string   `json:"clientId"`
 		Username    string   `json:"username"`
 		AccessToken string   `json:"accessToken"`
 		User        string   `json:"user"`
@@ -569,16 +570,26 @@ func (l0 *l0Conn) cmdL0Clients(rec *receiveData) {
 		teolog.Error(MODULE, "can't process this command because I'm not L0 server\n")
 		return
 	}
-	// \TODO: write code ...
 
-	numClients := uint32(len(l0.mn))
+	names := func() (keys []string) {
+		for key := range l0.mn {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		return
+	}()
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
+	numClients := uint32(len(names))
 	binary.Write(buf, le, numClients) // Number of clients
-	// binary.Write(buf, le, byte(len(client)+1))       // Client name length (include trailing zero)
-	// binary.Write(buf, le, uint16(len(data)))         // Packet data length
-	// binary.Write(buf, le, append([]byte(client), 0)) // Client name (include trailing zero)
-	// binary.Write(buf, le, []byte(data))              // Packet data
-	//return buf.Bytes()
-
+	for i := 0; i < int(numClients); i++ {
+		name := make([]byte, 128)
+		copy(name, []byte(names[i]))
+		binary.Write(buf, le, []byte(name)) // Client name (include trailing zero)
+	}
+	data := buf.Bytes()
+	if l0.teo.com.isJSONRequest(rec.rd.Data()) {
+		data = l0.teo.com.marshalClients(data)
+	}
+	l0.teo.SendAnswer(rec, CmdL0ClientsAnswer, data)
 }

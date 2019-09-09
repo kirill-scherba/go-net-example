@@ -339,7 +339,7 @@ func (arp *arp) binaryToJSON(indata []byte) (data []byte, peersDataArLen int) {
 	return
 }
 
-// binary creates json peers array
+// json creates json peers array
 func (arp *arp) json() (data []byte, peersDataArLen int) {
 
 	peersDataAr := peersDataArJSON{}
