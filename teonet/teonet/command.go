@@ -43,6 +43,8 @@ const (
 // JSON data prefix used in teonet requests
 var JSON = []byte("JSON")
 
+//var JSONs = []byte("\"JSON\"")
+
 // BINARY data prefix used in teonet requests
 var BINARY = []byte("BINARY")
 
@@ -123,7 +125,9 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 // isJSONRequest return true if request command ask JSON in answer
 func (com *command) isJSONRequest(data []byte) (isJSON bool) {
-	if l := len(JSON); len(data) >= l && bytes.Equal(data[:l], JSON) {
+	if l := len(JSON); len(data) >= l &&
+		bytes.Equal(data[:l], JSON) {
+		//(bytes.Equal(data[:l], JSON) || bytes.Equal(data[:l+2], JSONs)) {
 		isJSON = true
 	}
 	return

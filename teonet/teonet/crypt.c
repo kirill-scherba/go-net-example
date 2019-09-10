@@ -114,7 +114,6 @@ size_t _encrypt(unsigned char *plaintext, size_t plaintext_len,
    * IV size for *most* modes is the same as the block size. For AES this
    * is 128 bits */
   if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
-
     handleErrors();
     return 0;
   }
@@ -123,7 +122,6 @@ size_t _encrypt(unsigned char *plaintext, size_t plaintext_len,
    * EVP_EncryptUpdate can be called multiple times if necessary
    */
   if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len)) {
-
     handleErrors();
     return 0;
   }
@@ -133,7 +131,6 @@ size_t _encrypt(unsigned char *plaintext, size_t plaintext_len,
    * this stage.
    */
   if (1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) {
-
     handleErrors();
     return 0;
   }
@@ -168,7 +165,6 @@ int _decrypt(ksnCryptClass *kcr, unsigned char *ciphertext, int ciphertext_len,
 
   /* Create and initialize the context */
   if (!(ctx = EVP_CIPHER_CTX_new())) {
-
     handleErrors();
     return 0;
   }
@@ -179,7 +175,6 @@ int _decrypt(ksnCryptClass *kcr, unsigned char *ciphertext, int ciphertext_len,
    * IV size for *most* modes is the same as the block size. For AES this
    * is 128 bits */
   if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
-
     handleErrors();
     return 0;
   }

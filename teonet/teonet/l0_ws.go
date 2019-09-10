@@ -9,8 +9,6 @@ package teonet
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -40,14 +38,13 @@ func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 
 		// Receive data
 		if err = websocket.Message.Receive(ws, &jdata); err != nil {
-			fmt.Println("Client disconnected (or can't receive) from", conn.addr, "err:", err.Error())
+			teolog.Debug(MODULE, "Client disconnected from", conn.addr, "err:", err.Error())
 			if err.Error() == "EOF" {
 				conn.ws = nil
 				conn.Close()
 			}
 			break
 		}
-		fmt.Println("Received from client: "+string(jdata), conn.addr)
 
 		// Parse JSON
 		type teoJSON struct {
@@ -63,30 +60,35 @@ func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 
 		// Parse data
 		var js []byte
-		switch data.Cmd {
-		case CmdNone:
-			js = append([]byte(data.Data.(string)), 0)
-		// case CmdPeers, CmdHostInfo: // Reques answer in JSON format for this commands
-		// 	js = JSON
-		default:
+		// switch data.Cmd {
+		// case CmdNone:
+		// 	js = append([]byte(data.Data.(string)), 0)
+		// // case CmdPeers, CmdHostInfo: // Reques answer in JSON format for this commands
+		// // 	js = JSON
+		// default:
+		if jss, ok := data.Data.(string); ok {
+			//js = append([]byte(jss), 0)
+			js = []byte(jss)
+		} else {
 			js, _ = json.Marshal(data.Data)
-			if err == nil {
-				js = append(js, 0)
-			}
+			// if err == nil {
+			// 	js = append(js, 0)
+			// }
 		}
+		// }
 
-		fmt.Printf("Got from websocket client to %s, cmd: %d, data: %s\n", data.To, data.Cmd, string(js))
-		packet, _ := teocli.PacketCreate(data.Cmd, data.To, js) // append([]byte(data.Data.(string)), 0)
+		teolog.Debugf(MODULE,
+			"Receive from websocket client '%s' to %s, cmd: %d, data: %s\n",
+			conn.addr, data.To, data.Cmd, string(js),
+		)
+
+		if len(js) > 0 {
+			js = append(js, 0)
+		}
+		packet, _ := teocli.PacketCreate(data.Cmd, data.To, js)
 
 		// Process packet
 		l0.toprocess(packet, conn.cli, conn.addr, conn)
-
-		// msg := "Received:  " + string(reply)
-		// fmt.Println("Sending to client: " + msg)
-		// if err = websocket.Message.Send(ws, msg); err != nil {
-		// 	fmt.Println("Can't send")
-		// 	break
-		// }
 	}
 }
 
@@ -96,7 +98,7 @@ func (l0 *l0Conn) wsServe(port int) {
 	teolog.Connect(MODULE, "l0 websocket server start listen tcp port:", port)
 	http.Handle("/ws", websocket.Handler(l0.wsHandler))
 	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil {
-		log.Fatal("ListenAndServe:", err)
+		teolog.Error("ListenAndServe:", err)
 	}
 }
 
@@ -116,16 +118,19 @@ func (conn *wsConn) Close() (err error) {
 // Write send data to websocket client
 func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	pac := conn.cli.PacketNew(packet)
+
 	// Remove trailing zero from data
 	data := pac.Data()
 	if l := len(data); l > 0 && data[l-1] == 0 {
 		data = data[:l-1]
 	}
-	// Quick check string is json string
-	ifJSON := func(d []byte) bool {
-		return data[0] == '{' && data[len(data)-1] == '}' || data[0] == '[' && data[len(data)-1] == ']'
+
+	// Quick check that string is json string
+	ifJSON := func(data []byte) bool {
+		return data[0] == '{' && data[len(data)-1] == '}' ||
+			data[0] == '[' && data[len(data)-1] == ']'
 	}
-	fmt.Printf("Cmd:%d\nData: %v\nString: %s\n", pac.Command(), pac.Data(), string(pac.Data()))
+
 	// Parse data
 	var obj interface{}
 	switch pac.Command() {
@@ -143,8 +148,9 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 		data = conn.l0.teo.com.marshalSubscribe(pac.Data())
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
-		obj = data
+		obj = string(data)
 	}
+
 	// teoJSON structure to marshal JSON
 	type teoJSON struct {
 		Cmd  byte        `json:"cmd"`
@@ -153,7 +159,10 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	}
 	j := teoJSON{Cmd: pac.Command(), From: pac.Name(), Data: obj}
 	if d, err := json.Marshal(j); err == nil {
-		fmt.Printf("Send json to websocket client: %s\n", string(d))
+		teolog.Debugf(MODULE,
+			"Write to websocket client '%s' from: %s, cmd: %d, data: %s\n",
+			conn.addr, pac.Name(), pac.Command(), string(d),
+		)
 		conn.ws.Write(d)
 	}
 	return

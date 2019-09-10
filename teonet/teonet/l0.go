@@ -324,8 +324,8 @@ func (l0 *l0Conn) process() {
 	go func() {
 		for pac := range l0.ch {
 			teolog.Debugf(MODULE,
-				"valid packet received from client %s, length: %d\n",
-				pac.client.addr, len(pac.packet),
+				"valid packet received from client %s, length: %d, %v\n",
+				pac.client.addr, len(pac.packet), pac.packet,
 			)
 			p := pac.client.cli.PacketNew(pac.packet)
 
@@ -414,8 +414,8 @@ func (l0 *l0Conn) packetParse(d []byte) (name string, cmd byte, data []byte) {
 // sendToPeer (send from L0 server to peer) send packet received from client to peer
 func (l0 *l0Conn) sendToPeer(peer string, client string, cmd byte, data []byte) {
 	teolog.Debugf(MODULE,
-		"send cmd: %d, %d bytes data packet to peer %s, from client: %s",
-		cmd, len(data), peer, client,
+		"send cmd: %d, %d bytes data packet to peer %s, from client: %s %v",
+		cmd, len(data), peer, client, data,
 	)
 	l0.teo.SendTo(peer, CmdL0, l0.packetCreate(client, cmd, data)) // Send to peer
 }
