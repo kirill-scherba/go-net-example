@@ -367,9 +367,14 @@ func (l0 *l0Conn) process() {
 				}
 				continue
 			}
-			// Send command to peer for exising client
+			// if client exists: send it command to Client connected to this server
+			// or to Peer for exising client
 			l0.stat.receive(client, p.Data())
-			l0.sendToPeer(p.Name(), client.name, p.Command(), p.Data())
+			if _, ok := l0.findName(p.Name()); ok {
+				l0.sendTo(client.name, p.Name(), p.Command(), p.Data())
+			} else {
+				l0.sendToPeer(p.Name(), client.name, p.Command(), p.Data())
+			}
 		}
 		l0.closeAll()
 		teolog.Debugf(MODULE, "l0 packet process stopped\n")
@@ -429,20 +434,20 @@ func (l0 *l0Conn) sendToL0(peer string, client string, cmd byte, data []byte) {
 	l0.teo.SendTo(peer, CmdL0To, l0.packetCreate(client, cmd, data)) // Send to L0
 }
 
-// sendTo send command from this host L0 server to L0 client connected to this server
-func (l0 *l0Conn) sendTo(from string, name string, cmd byte, data []byte) {
+// sendTo send command from peer or client to L0 client connected to this server
+func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) {
 
 	// Get client data from name map
 	l0.mux.Lock()
-	client, ok := l0.mn[name]
+	client, ok := l0.mn[toClient]
 	l0.mux.Unlock()
 	if !ok {
-		teolog.Debugf(MODULE, "can't find client '%s' in clients map\n", name)
+		teolog.Debugf(MODULE, "can't find client '%s' in clients map\n", toClient)
 		return
 	}
 
 	teolog.Debugf(MODULE, "got cmd: %d, %d bytes data packet from peer %s, to client: %s\n",
-		cmd, len(data), from, name)
+		cmd, len(data), from, toClient)
 
 	packet, err := client.cli.PacketCreate(uint8(cmd), from, data)
 	if err != nil {
