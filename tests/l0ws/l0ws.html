@@ -26,6 +26,11 @@
           }
           sock.onmessage = function(e) {
               console.log("message received: " + e.data);
+              var pac = JSON.parse(e.data)
+              console.log("message received: " + e.data, pac);
+              if(pac.cmd == 65) {
+                  sock.send(JSON.stringify({cmd: 66, to: pac.from, data: pac.data}));
+              }    
           }
         }
         connect();
