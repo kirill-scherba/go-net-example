@@ -26,6 +26,16 @@ type wsConn struct {
 	closed bool
 }
 
+// serve listens on the TCP network address addr and then calls
+// Serve with handler to handle requests on incoming connections.
+func (l0 *l0Conn) wsServe(port int) {
+	teolog.Connect(MODULE, "l0 websocket server start listen tcp port:", port)
+	http.Handle("/ws", websocket.Handler(l0.wsHandler))
+	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil {
+		teolog.Error("ListenAndServe:", err)
+	}
+}
+
 // handler got and process data received from websocket client
 func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 	var conn = &wsConn{l0: l0, ws: ws, addr: ws.Request().RemoteAddr}
@@ -38,7 +48,7 @@ func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 
 		// Receive data
 		if err = websocket.Message.Receive(ws, &jdata); err != nil {
-			teolog.Debug(MODULE, "Client disconnected from", conn.addr, "err:", err.Error())
+			teolog.Connect(MODULE, "client disconnected from", conn.addr, "err:", err.Error())
 			if err.Error() == "EOF" {
 				conn.ws = nil
 				conn.Close()
@@ -60,26 +70,15 @@ func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 
 		// Parse data
 		var js []byte
-		// switch data.Cmd {
-		// case CmdNone:
-		// 	js = append([]byte(data.Data.(string)), 0)
-		// // case CmdPeers, CmdHostInfo: // Reques answer in JSON format for this commands
-		// // 	js = JSON
-		// default:
 		if jss, ok := data.Data.(string); ok {
-			//js = append([]byte(jss), 0)
 			js = []byte(jss)
 		} else {
 			js, _ = json.Marshal(data.Data)
-			// if err == nil {
-			// 	js = append(js, 0)
-			// }
 		}
-		// }
 
-		teolog.Debugf(MODULE,
-			"Receive from websocket client '%s' to %s, cmd: %d, data: %s\n",
-			conn.addr, data.To, data.Cmd, string(js),
+		teolog.DebugVf(MODULE,
+			"receive from websocket client '%s' to %s, cmd: %d, data_len: %d\n",
+			conn.addr, data.To, data.Cmd, len(js),
 		)
 
 		if len(js) > 0 {
@@ -89,16 +88,6 @@ func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 
 		// Process packet
 		l0.toprocess(packet, conn.cli, conn.addr, conn)
-	}
-}
-
-// serve listens on the TCP network address addr and then calls
-// Serve with handler to handle requests on incoming connections.
-func (l0 *l0Conn) wsServe(port int) {
-	teolog.Connect(MODULE, "l0 websocket server start listen tcp port:", port)
-	http.Handle("/ws", websocket.Handler(l0.wsHandler))
-	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil {
-		teolog.Error("ListenAndServe:", err)
 	}
 }
 
@@ -159,9 +148,9 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	}
 	j := teoJSON{Cmd: pac.Command(), From: pac.Name(), Data: obj}
 	if d, err := json.Marshal(j); err == nil {
-		teolog.Debugf(MODULE,
-			"Write to websocket client '%s' from: %s, cmd: %d, data: %s\n",
-			conn.addr, pac.Name(), pac.Command(), string(d),
+		teolog.DebugVf(MODULE,
+			"write to websocket client '%s' from: %s, cmd: %d, data_len: %d\n",
+			conn.addr, pac.Name(), pac.Command(), len(d),
 		)
 		conn.ws.Write(d)
 	}

@@ -279,7 +279,7 @@ FOR:
 // sendToHimself send command to this host
 func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (err error) {
 
-	teolog.Debugf(MODULE, "send command to this host: %s, cmd: %d, data_len: %d\n",
+	teolog.DebugVf(MODULE, "send command to this host: %s, cmd: %d, data_len: %d\n",
 		to, cmd, len(data))
 
 	rd, err := teo.packetCreateNew(teo.param.Name, byte(cmd), data).Parse()

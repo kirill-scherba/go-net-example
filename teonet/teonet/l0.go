@@ -29,6 +29,8 @@ import (
 
 // Teonet L0 server module
 
+const notL0ServerError = "can't process this command because I'm not L0 server"
+
 // l0Conn is Module data structure
 type l0Conn struct {
 	teo     *Teonet            // Pointer to Teonet
@@ -125,7 +127,7 @@ func (l0 *l0Conn) destroy() {
 
 // add adds new client
 func (l0 *l0Conn) add(client *client) {
-	teolog.Debugf(MODULE, "new client %s (%s) connected\n", client.name, client.addr)
+	teolog.Connectf(MODULE, "client %s (%s) connected\n", client.name, client.addr)
 	l0.closeName(client.name)
 	l0.mux.Lock()
 	l0.ma[client.addr] = client
@@ -141,7 +143,7 @@ func (l0 *l0Conn) close(client *client) (err error) {
 		teolog.Error(MODULE, err.Error())
 		return
 	}
-	teolog.Debugf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
+	teolog.Connectf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
 	if client.conn != nil {
 		client.conn.Close()
 		client.conn = nil
@@ -210,8 +212,7 @@ func (l0 *l0Conn) tcpServer(port *int) {
 		for {
 			conn, err := l0.conn.Accept()
 			if err != nil {
-				teolog.Debug(MODULE, "stop accepting: ", err.Error())
-				//os.Exit(1)
+				//teolog.Debug(MODULE, "stop accepting: ", err.Error())
 				break
 			}
 			// Handle connections in a new goroutine.
@@ -288,10 +289,10 @@ check:
 		goto check // check next packet in read buffer
 	case -1:
 		if data != nil {
-			teolog.Debugf(MODULE, "packet not received yet (got part of packet)\n")
+			teolog.DebugVv(MODULE, "packet not received yet (got part of packet)")
 		}
 	case 1:
-		teolog.Debugf(MODULE, "wrong packet received (drop it): %d, data: %v\n", len(p), p)
+		teolog.DebugVvf(MODULE, "wrong packet received (drop it): %d, data: %v\n", len(p), p)
 	}
 	return
 }
@@ -306,7 +307,7 @@ func (l0 *l0Conn) handleConnection(conn net.Conn) {
 		if err != nil {
 			break
 		}
-		teolog.Debugf(MODULE, "got %d bytes data from tcp clien: %v\n",
+		teolog.DebugVvf(MODULE, "got %d bytes data from tcp clien: %v\n",
 			n, conn.RemoteAddr().String())
 		l0.packetCheck(cli, conn.RemoteAddr().String(), conn, b[:n])
 	}
@@ -318,14 +319,14 @@ func (l0 *l0Conn) handleConnection(conn net.Conn) {
 
 // Process received packets
 func (l0 *l0Conn) process() {
-	teolog.Debugf(MODULE, "l0 packet process started\n")
+	teolog.DebugVvf(MODULE, "l0 packet process started\n")
 	l0.ch = make(chan *packet)
 	l0.teo.wg.Add(1)
 	go func() {
 		for pac := range l0.ch {
-			teolog.Debugf(MODULE,
-				"valid packet received from client %s, length: %d, %v\n",
-				pac.client.addr, len(pac.packet), pac.packet,
+			teolog.DebugVvf(MODULE,
+				"valid packet received from client %s, length: %d\n",
+				pac.client.addr, len(pac.packet),
 			)
 			p := pac.client.cli.PacketNew(pac.packet)
 
@@ -345,17 +346,17 @@ func (l0 *l0Conn) process() {
 
 					// \TODO: Send to auth
 					TEO_AUTH := "teo-auth"
-					fmt.Printf("Send to auth: %s, data: %v\n", TEO_AUTH, d)
+					teolog.DebugVf(MODULE, "login command, send to auth: %s, data: %v\n", TEO_AUTH, d)
 					l0.teo.SendTo(TEO_AUTH, CmdUser, d)
 
 					// (kev->kc, TEO_AUTH, CMD_USER,
 					// 				kld->name, kld->name_length);
 
 				} else {
-					teolog.Debugf(MODULE,
+					teolog.Errorf(MODULE,
 						"incorrect login packet received from client %s, disconnect...\n",
 						pac.client.addr)
-					fmt.Printf("cmd: %d, to: %s, data: %v\n", p.Command(), p.Name(), p.Data())
+					//fmt.Printf("cmd: %d, to: %s, data: %v\n", p.Command(), p.Name(), p.Data())
 					// Send http answer to tcp request
 					switch pac.client.conn.(type) {
 					case net.Conn:
@@ -377,7 +378,7 @@ func (l0 *l0Conn) process() {
 			}
 		}
 		l0.closeAll()
-		teolog.Debugf(MODULE, "l0 packet process stopped\n")
+		teolog.DebugVv(MODULE, "l0 packet process stopped")
 		l0.teo.wg.Done()
 	}()
 }
@@ -418,16 +419,16 @@ func (l0 *l0Conn) packetParse(d []byte) (name string, cmd byte, data []byte) {
 
 // sendToPeer (send from L0 server to peer) send packet received from client to peer
 func (l0 *l0Conn) sendToPeer(peer string, client string, cmd byte, data []byte) {
-	teolog.Debugf(MODULE,
-		"send cmd: %d, %d bytes data packet to peer %s, from client: %s %v",
-		cmd, len(data), peer, client, data,
+	teolog.DebugVf(MODULE,
+		"send cmd: %d, %d bytes data packet to peer %s, from client: %s",
+		cmd, len(data), peer, client,
 	)
 	l0.teo.SendTo(peer, CmdL0, l0.packetCreate(client, cmd, data)) // Send to peer
 }
 
 // sendToL0 (send from peer to L0 server) send packet from peer to client
 func (l0 *l0Conn) sendToL0(peer string, client string, cmd byte, data []byte) {
-	teolog.Debugf(MODULE,
+	teolog.DebugVf(MODULE,
 		"send cmd: %d, %d bytes data packet to l0 %s, from client: %s",
 		cmd, len(data), peer, client,
 	)
@@ -442,12 +443,17 @@ func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) {
 	client, ok := l0.mn[toClient]
 	l0.mux.Unlock()
 	if !ok {
-		teolog.Debugf(MODULE, "can't find client '%s' in clients map\n", toClient)
+		teolog.Errorf(MODULE,
+			"send to client: can't find client '%s' in clients map\n",
+			toClient,
+		)
 		return
 	}
 
-	teolog.Debugf(MODULE, "got cmd: %d, %d bytes data packet from peer %s, to client: %s\n",
-		cmd, len(data), from, toClient)
+	teolog.DebugVf(MODULE,
+		"got cmd: %d, %d bytes data packet from peer %s, to client: %s\n",
+		cmd, len(data), from, toClient,
+	)
 
 	packet, err := client.cli.PacketCreate(uint8(cmd), from, data)
 	if err != nil {
@@ -455,7 +461,7 @@ func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) {
 		return
 	}
 
-	teolog.Debugf(MODULE, "send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
+	teolog.DebugVf(MODULE, "send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
 		cmd, len(data), l0.network(client), client.name)
 
 	l0.stat.send(client, packet)
@@ -505,7 +511,7 @@ func (l0 *l0Conn) cmdL0To(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_TO command")
 
 	if !l0.allow {
-		teolog.Debugf(MODULE, "can't process this command because I'm not L0 server\n")
+		teolog.Error(MODULE, "can't process cmdL0To command because I'm not L0 server")
 		return
 	}
 
@@ -532,11 +538,12 @@ func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
 	}
 	var j authJSON
 	if err := json.Unmarshal(rec.rd.Data()[:rec.rd.DataLen()-1], &j); err != nil {
-		fmt.Printf("%s\n", err.Error())
+		teolog.Errorf(MODULE, "%s\n", err.Error())
 	}
-	fmt.Printf("d: %s, AccessToken: %s\n", string(rec.rd.Data()), j.AccessToken)
-	// { \"name\": \"%s\", \"networks\": %s }
-	// \TODO set correct name
+	teolog.DebugVf("got access token from auth: d: %s, accessToken: %s\n",
+		string(rec.rd.Data()), j.AccessToken)
+
+	// \TODO check it, and set correct name if incorrect
 	var jt = authToJSON{Name: j.AccessToken, Networks: j.Networks}
 	jdata, _ := json.Marshal(jt)
 	l0.sendTo(rec.rd.From(), j.AccessToken, rec.rd.Cmd(), jdata)
@@ -546,7 +553,7 @@ func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
 func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_CLIENTS_N command")
 	if !l0.allow {
-		teolog.Error(MODULE, "can't process this command because I'm not L0 server\n")
+		teolog.Error(MODULE, notL0ServerError)
 		return
 	}
 	var err error
@@ -572,7 +579,7 @@ func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
 func (l0 *l0Conn) cmdL0Clients(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_CLIENTS command")
 	if !l0.allow {
-		teolog.Error(MODULE, "can't process this command because I'm not L0 server\n")
+		teolog.Error(MODULE, notL0ServerError)
 		return
 	}
 
