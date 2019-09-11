@@ -1,73 +1,87 @@
 <html>
 <head></head>
 <body>
-    <script type="text/javascript">
-        var sock = null;
-        var wsuri = "ws://127.0.0.1:8089/ws";
+  <script type="text/javascript">
+    var sock = null;
+    var wsuri = "ws://127.0.0.1:8089/ws";
 
-        window.onload = function() {
+    window.onload = function() {
 
-            console.log("onload");
+        console.log("onload");
 
-            sock = new WebSocket(wsuri);
+        connect = function() {
+          sock = new WebSocket(wsuri);
+          sock.onopen = function() {
+              console.log("connected to " + wsuri);
+              document.getElementsByName("sendloginbutton")[0].disabled=false;
+              if(document.getElementsByName("autologin")[0].checked == true) {
+                sendLogin();
+              }
+          }
+          sock.onclose = function(e) {
+              console.log("connection closed (" + e.code + ")");
+              document.getElementsByName("sendbutton")[0].disabled=true;
+              document.getElementsByName("sendloginbutton")[0].disabled=true;
+              setTimeout(connect, 2000);
+          }
+          sock.onmessage = function(e) {
+              console.log("message received: " + e.data);
+          }
+        }
+        connect();
+    };
 
-            sock.onopen = function() {
-                console.log("connected to " + wsuri);
-            }
+    function send() {
+        var cmd = document.getElementById('cmd').value;
+        var to = document.getElementById('to').value;
+        var msg = document.getElementById('message').value;
+        sock.send(JSON.stringify({cmd: +cmd, to: to, data: msg}));
+    };
 
-            sock.onclose = function(e) {
-                console.log("connection closed (" + e.code + ")");
-            }
+    function sendLogin() {
+        var name = document.getElementById('name').value;
+        sock.send(JSON.stringify({cmd: 0, to: "", data: name}));
+        document.getElementsByName("sendbutton")[0].disabled=false;
+        // document.getElementsByName("sendloginbutton")[0].disabled=true;
+    };
 
-            sock.onmessage = function(e) {
-                console.log("message received: " + e.data);
-            }
-        };
+  </script>
 
-        function send() {
-            var cmd = document.getElementById('cmd').value;
-            var to = document.getElementById('to').value;
-            var msg = document.getElementById('message').value;
-            sock.send(JSON.stringify({cmd: +cmd, to: to, data: msg}));
-        };
+  <h1>Teonet L0 WebSocket Test</h1>
+  <div>
+    <p>
+        <b>1. Send login command</b>
+    </p>
+    <p>
+        Autologin: <input type="checkbox" checked name="autologin" value="true"><br>
+        Client name: <input id="name" type="text" value="teo-cli-001">
+        <button name="sendloginbutton" disabled onclick="sendLogin();">Send Login</button>
+        <br><br>
+    </p>
 
-        function sendLogin() {
-            var name = document.getElementById('name').value;
-            sock.send(JSON.stringify({cmd: 0, to: "", data: name}));
-            document.getElementsByName("sendbutton")[0].disabled=false;
-            // document.getElementsByName("sendloginbutton")[0].disabled=true;
-        };
-
-    </script>
-
-    <h1>Teonet L0 WebSocket Test</h1>
-    <div>
-        <p>
-            <b>1. Send login command</b>
-        </p>
-        <p>
-            Client name: <input id="name" type="text" value="teo-cli-001">
-            <button name="sendloginbutton" onclick="sendLogin();">Send Login</button>
-            <br><br>
-        </p>
-
-        <p>
-            <b>2. Send any command to teonet</b>
-        </p>
-        <table>
-          <tr>
-            <td>Cmd:</td><td><input id="cmd" type="text" value="65"></td>
-         </tr>
-         <tr>
-            <td>To:</td><td><input id="to" type="text" value="teo-go-001"></td>
-        </tr>
-        <tr>
-            <td>Message:</td><td><input id="message" type="text" value="Hello!"></td>
-        </tr>
-        <tr>
-            <td></td><td><br><button name="sendbutton" disabled onclick="send();">Send Message</button></td>
-        </tr>
-      </table>
-    </div>
+    <p>
+        <b>2. Send any command to teonet</b>
+    </p>
+    <table>
+      <tr>
+         <td>To:</td>
+         <td><input id="to" type="text" value="teo-go-001"></td>
+      </tr>
+      <tr>
+        <td>Cmd:</td>
+        <td><input id="cmd" type="text" value="65"></td>
+      </tr>
+      <tr>
+          <td>Message:</td>
+          <td><input id="message" type="text" value="Hello!"></td>
+      </tr>
+      <tr>
+          <td></td>
+          <td><br>
+            <button name="sendbutton" disabled onclick="send();">Send Message</button>
+          </td>
+      </tr>
+    </table>
+  </div>
 </body>
 </html>
