@@ -9,6 +9,7 @@ package teonet
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -17,9 +18,15 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-// wsConn websocket connection
+// wsConn websocket receiver
 type wsConn struct {
-	l0     *l0Conn
+	l0  *l0Conn
+	srv *http.Server
+}
+
+// wsHandlerConn websocket handler connection
+type wsHandlerConn struct {
+	wsc    *wsConn
 	cli    *teocli.TeoLNull
 	ws     *websocket.Conn
 	addr   string
@@ -28,17 +35,32 @@ type wsConn struct {
 
 // serve listens on the TCP network address addr and then calls
 // Serve with handler to handle requests on incoming connections.
-func (l0 *l0Conn) wsServe(port int) {
-	teolog.Connect(MODULE, "l0 websocket server start listen tcp port:", port)
-	http.Handle("/ws", websocket.Handler(l0.wsHandler))
-	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil {
-		teolog.Error("ListenAndServe:", err)
-	}
+func (l0 *l0Conn) wsServe(port int) (wsc *wsConn) {
+	wsc = &wsConn{l0: l0}
+	mux := http.NewServeMux()
+	mux.Handle("/ws", websocket.Handler(wsc.handler))
+	wsc.srv = &http.Server{Addr: ":" + strconv.Itoa(port), Handler: mux}
+	l0.teo.wg.Add(1)
+	go func() {
+		teolog.Connect(MODULE, "l0 websocket server start listen tcp port:", port)
+		if err := wsc.srv.ListenAndServe(); err != http.ErrServerClosed {
+			// \TODO: replace panic to thomething valid :-)
+			panic(fmt.Sprintf("ListenAndServe(): %s", err))
+		}
+		teolog.Connect(MODULE, "l0 websocket server stop listen tcp port:", port)
+		l0.teo.wg.Done()
+	}()
+	return
+}
+
+// destroy gracefully shuts down the websocket l0 server and close all connections
+func (wsc *wsConn) destroy() {
+	wsc.srv.Close()
 }
 
 // handler got and process data received from websocket client
-func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
-	var conn = &wsConn{l0: l0, ws: ws, addr: ws.Request().RemoteAddr}
+func (wsc *wsConn) handler(ws *websocket.Conn) {
+	var conn = &wsHandlerConn{wsc: wsc, ws: ws, addr: ws.Request().RemoteAddr}
 	conn.cli, _ = teocli.Init(false)
 	var teocli = &teocli.TeoLNull{}
 	var err error
@@ -48,7 +70,7 @@ func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 
 		// Receive data
 		if err = websocket.Message.Receive(ws, &jdata); err != nil {
-			teolog.Connect(MODULE, "client disconnected from", conn.addr, "err:", err.Error())
+			teolog.Connectf(MODULE, "client disconnected from %s\n", conn.addr)
 			if err.Error() == "EOF" {
 				conn.ws = nil
 				conn.Close()
@@ -87,17 +109,17 @@ func (l0 *l0Conn) wsHandler(ws *websocket.Conn) {
 		packet, _ := teocli.PacketCreate(data.Cmd, data.To, js)
 
 		// Process packet
-		l0.toprocess(packet, conn.cli, conn.addr, conn)
+		wsc.l0.toprocess(packet, conn.cli, conn.addr, conn)
 	}
 }
 
 // Close disconnect l0 client and close websocket connection
-func (conn *wsConn) Close() (err error) {
+func (conn *wsHandlerConn) Close() (err error) {
 	if conn.closed {
 		return
 	}
 	conn.closed = true
-	conn.l0.closeAddr(conn.addr)
+	conn.wsc.l0.closeAddr(conn.addr)
 	if conn.ws != nil {
 		err = conn.ws.Close()
 	}
@@ -105,7 +127,7 @@ func (conn *wsConn) Close() (err error) {
 }
 
 // Write send data to websocket client
-func (conn *wsConn) Write(packet []byte) (n int, err error) {
+func (conn *wsHandlerConn) Write(packet []byte) (n int, err error) {
 	pac := conn.cli.PacketNew(packet)
 
 	// Remove trailing zero from data
@@ -125,16 +147,16 @@ func (conn *wsConn) Write(packet []byte) (n int, err error) {
 	switch pac.Command() {
 	case CmdPeersAnswer:
 		if !ifJSON(data) {
-			data, _ = conn.l0.teo.arp.binaryToJSON(pac.Data())
+			data, _ = conn.wsc.l0.teo.arp.binaryToJSON(pac.Data())
 		}
 	case CmdL0ClientsAnswer:
-		data = conn.l0.teo.com.marshalClients(pac.Data())
+		data = conn.wsc.l0.teo.com.marshalClients(pac.Data())
 	case CmdL0ClientsNumAnswer:
 		if !ifJSON(data) {
-			data = conn.l0.teo.com.marshalClientsNum(pac.Data())
+			data = conn.wsc.l0.teo.com.marshalClientsNum(pac.Data())
 		}
 	case CmdSubscribeAnswer:
-		data = conn.l0.teo.com.marshalSubscribe(pac.Data())
+		data = conn.wsc.l0.teo.com.marshalSubscribe(pac.Data())
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		obj = string(data)

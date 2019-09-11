@@ -38,6 +38,7 @@ type l0Conn struct {
 	allow   bool               // Allow L0 Server
 	wsAllow bool               // Allow L0 websocket server
 	tcpPort int                // TCP port (if 0 - not allowed TCP)
+	wsConn  *wsConn            // Wwebsocket server connector
 	wsPort  int                // Websocket TCP port (if 0 - not allowed websocket)
 	conn    net.Listener       // TCP listener connection
 	ch      chan *packet       // Packet processing channel
@@ -64,7 +65,7 @@ type conn interface {
 type client struct {
 	name string           // name
 	addr string           // address (ip:port:ch)
-	conn conn             // Connection tcp (net.Conn) or trudp (*trudp.ChannelData)
+	conn conn             // Connection tcp (net.Conn), websocket or trudp (*trudp.ChannelData)
 	stat clientStat       // Statistic
 	cli  *teocli.TeoLNull // teocli connection to use readBuffer
 }
@@ -103,7 +104,7 @@ func (teo *Teonet) l0New() *l0Conn {
 		}
 		// Start websocket l0 server
 		if l0.wsAllow && l0.wsPort > 0 {
-			go l0.wsServe(l0.wsPort)
+			l0.wsConn = l0.wsServe(l0.wsPort)
 		}
 	}
 	return l0
@@ -121,6 +122,9 @@ func (l0 *l0Conn) destroy() {
 		if !l0.closed {
 			close(l0.ch)
 			l0.closed = true
+		}
+		if l0.wsConn != nil {
+			l0.wsConn.destroy()
 		}
 	}
 }
@@ -143,8 +147,8 @@ func (l0 *l0Conn) close(client *client) (err error) {
 		teolog.Error(MODULE, err.Error())
 		return
 	}
-	teolog.Connectf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
 	if client.conn != nil {
+		teolog.Connectf(MODULE, "client %s (%s) disconnected\n", client.name, client.addr)
 		client.conn.Close()
 		client.conn = nil
 	}
@@ -475,7 +479,7 @@ func (l0 *l0Conn) network(client *client) (network string) {
 		network = "tcp"
 	case *trudp.ChannelData:
 		network = "trudp"
-	case *wsConn:
+	case *wsHandlerConn:
 		network = "ws"
 	}
 	return
