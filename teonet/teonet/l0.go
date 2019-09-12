@@ -529,20 +529,20 @@ func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_AUTH command")
 
 	type authJSON struct {
-		UserID      string   `json:"userId"`
-		ClientID    string   `json:"clientId"`
-		Username    string   `json:"username"`
-		AccessToken string   `json:"accessToken"`
-		User        string   `json:"user"`
-		Networks    []string `json:"networks"`
+		UserID      string        `json:"userId"`
+		ClientID    string        `json:"clientId"`
+		Username    string        `json:"username"`
+		AccessToken string        `json:"accessToken"`
+		User        interface{}   `json:"user"`
+		Networks    []interface{} `json:"networks"`
 	}
 	type authToJSON struct {
-		Name     string   `json:"name"`
-		Networks []string `json:"networks"`
+		Name     string        `json:"name"`
+		Networks []interface{} `json:"networks"`
 	}
 	var j authJSON
 	if err := json.Unmarshal(rec.rd.Data()[:rec.rd.DataLen()-1], &j); err != nil {
-		teolog.Errorf(MODULE, "%s\n", err.Error())
+		teolog.Errorf(MODULE, "%s, %s\n", err.Error(), string(rec.rd.Data()))
 	}
 	teolog.DebugVf("got access token from auth: d: %s, accessToken: %s\n",
 		string(rec.rd.Data()), j.AccessToken)

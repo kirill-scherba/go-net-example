@@ -27,6 +27,8 @@ const (
 	CmdL0To               = C.CMD_L0_TO               // #71 Command to L0 Client
 	CmdPeers              = C.CMD_PEERS               // #72 Get peers, allow JSON in request
 	CmdPeersAnswer        = C.CMD_PEERS_ANSWER        // #73 Get peers answer
+	cmdAuht               = C.CMD_AUTH                // #77 Auth command
+	cmdAuthAnswer         = C.CMD_AUTH_ANSWER         // #78 Auth answer command
 	CmdL0Clients          = C.CMD_L0_CLIENTS          // #79 Request clients list
 	CmdL0ClientsAnswer    = C.CMD_L0_CLIENTS_ANSWER   // #80 Clients list
 	CmdSubscribe          = C.CMD_SUBSCRIBE           // #81 Subscribe to event
@@ -111,6 +113,9 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_HOST_INFO_ANSWER:
 		com.hostInfoAnswer(rec)
+
+	case C.CMD_AUTH:
+		com.teo.l0.wsConn.auth.cmdAuth(rec)
 
 	default:
 		com.log(rec.rd, "UNKNOWN command")

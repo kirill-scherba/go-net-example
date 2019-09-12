@@ -20,8 +20,9 @@ import (
 
 // wsConn websocket receiver
 type wsConn struct {
-	l0  *l0Conn
-	srv *http.Server
+	l0   *l0Conn
+	auth *l0AuthCom
+	srv  *http.Server
 }
 
 // wsHandlerConn websocket handler connection
@@ -37,6 +38,7 @@ type wsHandlerConn struct {
 // Serve with handler to handle requests on incoming connections.
 func (l0 *l0Conn) wsServe(port int) (wsc *wsConn) {
 	wsc = &wsConn{l0: l0}
+	wsc.auth = &l0AuthCom{wsc: wsc}
 	mux := http.NewServeMux()
 	mux.Handle("/ws", websocket.Handler(wsc.handler))
 	wsc.srv = &http.Server{Addr: ":" + strconv.Itoa(port), Handler: mux}

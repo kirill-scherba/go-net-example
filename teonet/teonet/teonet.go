@@ -278,10 +278,10 @@ FOR:
 
 // sendToHimself send command to this host
 func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (err error) {
-
-	teolog.DebugVf(MODULE, "send command to this host: %s, cmd: %d, data_len: %d\n",
-		to, cmd, len(data))
-
+	teolog.DebugVf(MODULE,
+		"send command to this host: '%s', cmd: %d, data_len: %d\n",
+		to, cmd, len(data),
+	)
 	rd, err := teo.packetCreateNew(teo.param.Name, byte(cmd), data).Parse()
 	if err != nil {
 		err = errors.New("can't parse packet to himself")
@@ -295,11 +295,11 @@ func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (err error) {
 // SendTo send command to Teonet peer
 func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (err error) {
 	arp, ok := teo.arp.m[to]
-	if !ok {
+	if !ok && to != "" {
 		err = errors.New("peer " + to + " not connected to this host")
 		return
 	}
-	if arp.tcd == nil {
+	if arp == nil || arp.tcd == nil {
 		//err = errors.New("send himself not implemented yet")
 		return teo.sendToHimself(to, cmd, data)
 	}
