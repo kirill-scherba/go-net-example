@@ -140,6 +140,25 @@ func (l0 *l0Conn) add(client *client) {
 	l0.stat.updated()
 }
 
+// rename renames new
+func (l0 *l0Conn) rename(name, newname string) {
+	if name == newname {
+		return
+	}
+	cli, ok := l0.findName(name)
+	if !ok {
+		return
+	}
+	teolog.Connectf(MODULE, "client %s renamed to %s\n", name, newname)
+	l0.mux.Lock()
+	//delete(l0.ma, cli.addr)
+	delete(l0.mn, cli.name)
+	cli.name = newname
+	//l0.ma[cli.addr] = cli
+	l0.mn[cli.name] = cli
+	l0.mux.Unlock()
+}
+
 // close closes(disconnect) connected client
 func (l0 *l0Conn) close(client *client) (err error) {
 	if client == nil {
@@ -529,28 +548,40 @@ func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_AUTH command")
 
 	type authJSON struct {
-		UserID      string        `json:"userId"`
-		ClientID    string        `json:"clientId"`
-		Username    string        `json:"username"`
-		AccessToken string        `json:"accessToken"`
-		User        interface{}   `json:"user"`
-		Networks    []interface{} `json:"networks"`
+		// UserID      string      `json:"userId"`
+		// ClientID    string      `json:"clientId"`
+		// Username    string      `json:"username"`
+		AccessToken string      `json:"accessToken"`
+		User        interface{} `json:"user"`
+		Networks    interface{} `json:"networks"`
 	}
 	type authToJSON struct {
-		Name     string        `json:"name"`
-		Networks []interface{} `json:"networks"`
+		Name     string      `json:"name"`
+		Networks interface{} `json:"networks"`
 	}
 	var j authJSON
 	if err := json.Unmarshal(rec.rd.Data()[:rec.rd.DataLen()-1], &j); err != nil {
 		teolog.Errorf(MODULE, "%s, %s\n", err.Error(), string(rec.rd.Data()))
 	}
-	teolog.DebugVf("got access token from auth: d: %s, accessToken: %s\n",
-		string(rec.rd.Data()), j.AccessToken)
+	var user map[string]interface{}
+	userJSON, _ := json.Marshal(j.User)
+	json.Unmarshal([]byte(userJSON), &user)
+	teolog.Debugf(MODULE,
+		"got access token from auth: d: %s, accessToken: %s, userId: %s, clientId: %s\n",
+		string(rec.rd.Data()), j.AccessToken, user["userId"], user["clientId"])
+
+	var name string
+	if user["userId"] != nil && user["clientId"] != nil {
+		name = user["userId"].(string) + ":" + user["clientId"].(string)
+	} else {
+		name = j.AccessToken
+	}
 
 	// \TODO check it, and set correct name if incorrect
-	var jt = authToJSON{Name: j.AccessToken, Networks: j.Networks}
+	var jt = authToJSON{Name: name, Networks: j.Networks}
 	jdata, _ := json.Marshal(jt)
 	l0.sendTo(rec.rd.From(), j.AccessToken, rec.rd.Cmd(), jdata)
+	l0.rename(j.AccessToken, name)
 }
 
 // cmdL0ClientsNumber parse cmd 'got clients number' and send answer with number of clients
