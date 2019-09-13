@@ -97,7 +97,7 @@ func (com *command) process(rec *receiveData) (processed bool) {
 		com.teo.l0.cmdL0To(rec)
 
 	case C.CMD_L0_AUTH:
-		com.teo.l0.cmdL0Auth(rec)
+		com.teo.l0.auth.cmdL0Auth(rec)
 
 	case C.CMD_L0_CLIENTS:
 		com.teo.l0.cmdL0Clients(rec)
@@ -115,7 +115,7 @@ func (com *command) process(rec *receiveData) (processed bool) {
 		com.hostInfoAnswer(rec)
 
 	case C.CMD_AUTH:
-		com.teo.l0.wsConn.auth.cmdAuth(rec)
+		com.teo.l0.auth.cmdAuth(rec)
 
 	default:
 		com.log(rec.rd, "UNKNOWN command")
@@ -318,13 +318,19 @@ func (com *command) peers(rec *receiveData) (err error) {
 	return
 }
 
-// structToJSON convert structure to JSON format
-func (com *command) structToJSON(data interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	if err := json.NewEncoder(buf).Encode(data); err != nil {
-		return nil, err
+// removeTrailingZero remove trailing zero in byte slice
+func (com *command) removeTrailingZero(data []byte) []byte {
+	if l := len(data); l > 0 && data[l-1] == 0 {
+		data = data[:l-1]
 	}
-	return buf.Bytes(), nil
+	return data
+}
+
+// dataIsJSON simple check that data is JSON string
+func (com *command) dataIsJSON(data []byte) bool {
+	data = com.removeTrailingZero(data)
+	return len(data) >= 2 && (data[0] == '{' && data[len(data)-1] == '}' ||
+		data[0] == '[' && data[len(data)-1] == ']')
 }
 
 // marshalClients convert binary client list data to json,
@@ -352,7 +358,7 @@ func (com *command) marshalSubscribe(data []byte) (js []byte) {
 // marshalClientsNum convert binary clients number data to json,
 // cmd: CMD_L0_CLIENTS_N_ANSWER #85
 func (com *command) marshalClientsNum(data []byte) (js []byte) {
-	numClients := binary.LittleEndian.Uint32(data)
+	numClients := binary.LittleEndian.Uint32(data[:unsafe.Sizeof(uint32(0))])
 	js = []byte(fmt.Sprintf(`{"numClients":%d}`, numClients))
 	return
 }

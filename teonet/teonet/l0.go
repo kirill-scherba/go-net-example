@@ -35,6 +35,7 @@ const notL0ServerError = "can't process this command because I'm not L0 server"
 type l0Conn struct {
 	teo     *Teonet            // Pointer to Teonet
 	stat    *l0Stat            // Statistic
+	auth    *l0AuthCom         // Authentication
 	allow   bool               // Allow L0 Server
 	wsAllow bool               // Allow L0 websocket server
 	tcpPort int                // TCP port (if 0 - not allowed TCP)
@@ -87,7 +88,9 @@ func (teo *Teonet) l0New() *l0Conn {
 		wsAllow: teo.param.L0wsAllow, // Allow websocket server(if websocket port > 0)
 		wsPort:  teo.param.L0wsPort,  // Allow websocket server(if wsAllow is true)
 	}
-	l0.stat = l0.l0StatNew()
+	l0.stat = l0.statNew() // Staistic module
+	l0.auth = l0.authNew() // Authenticate module
+
 	if l0.allow || l0.wsAllow {
 		// Start L0 pocessing
 		l0.ma = make(map[string]*client)
@@ -364,7 +367,7 @@ func (l0 *l0Conn) process() {
 				// from login command data)
 				if d := p.Data(); p.Command() == 0 && p.Name() == "" {
 					pac.client.name = string(d[:len(d)-1])
-					l0.stat.receive(pac.client, d) //p.Data())
+					l0.stat.receive(pac.client, d)
 					l0.add(pac.client)
 
 					// \TODO: Send to auth
@@ -543,47 +546,6 @@ func (l0 *l0Conn) cmdL0To(rec *receiveData) {
 	l0.sendTo(rec.rd.From(), name, cmd, data)
 }
 
-// cmdL0Auth Check l0 client answer from authentication application
-func (l0 *l0Conn) cmdL0Auth(rec *receiveData) {
-	l0.teo.com.log(rec.rd, "CMD_L0_AUTH command")
-
-	type authJSON struct {
-		// UserID      string      `json:"userId"`
-		// ClientID    string      `json:"clientId"`
-		// Username    string      `json:"username"`
-		AccessToken string      `json:"accessToken"`
-		User        interface{} `json:"user"`
-		Networks    interface{} `json:"networks"`
-	}
-	type authToJSON struct {
-		Name     string      `json:"name"`
-		Networks interface{} `json:"networks"`
-	}
-	var j authJSON
-	if err := json.Unmarshal(rec.rd.Data()[:rec.rd.DataLen()-1], &j); err != nil {
-		teolog.Errorf(MODULE, "%s, %s\n", err.Error(), string(rec.rd.Data()))
-	}
-	var user map[string]interface{}
-	userJSON, _ := json.Marshal(j.User)
-	json.Unmarshal([]byte(userJSON), &user)
-	teolog.Debugf(MODULE,
-		"got access token from auth: d: %s, accessToken: %s, userId: %s, clientId: %s\n",
-		string(rec.rd.Data()), j.AccessToken, user["userId"], user["clientId"])
-
-	var name string
-	if user["userId"] != nil && user["clientId"] != nil {
-		name = user["userId"].(string) + ":" + user["clientId"].(string)
-	} else {
-		name = j.AccessToken
-	}
-
-	// \TODO check it, and set correct name if incorrect
-	var jt = authToJSON{Name: name, Networks: j.Networks}
-	jdata, _ := json.Marshal(jt)
-	l0.sendTo(rec.rd.From(), j.AccessToken, rec.rd.Cmd(), jdata)
-	l0.rename(j.AccessToken, name)
-}
-
 // cmdL0ClientsNumber parse cmd 'got clients number' and send answer with number of clients
 func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
 	l0.teo.com.log(rec.rd, "CMD_L0_CLIENTS_N command")
@@ -598,7 +560,7 @@ func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
 	}
 	numClients := uint32(len(l0.mn))
 	if l0.teo.com.isJSONRequest(rec.rd.Data()) {
-		data, err = l0.teo.com.structToJSON(numClientsJSON{numClients})
+		data, err = json.Marshal(numClientsJSON{numClients})
 	} else {
 		data = make([]byte, 4)
 		binary.LittleEndian.PutUint32(data, numClients)

@@ -20,9 +20,8 @@ import (
 
 // wsConn websocket receiver
 type wsConn struct {
-	l0   *l0Conn
-	auth *l0AuthCom
-	srv  *http.Server
+	l0  *l0Conn
+	srv *http.Server
 }
 
 // wsHandlerConn websocket handler connection
@@ -38,7 +37,6 @@ type wsHandlerConn struct {
 // Serve with handler to handle requests on incoming connections.
 func (l0 *l0Conn) wsServe(port int) (wsc *wsConn) {
 	wsc = &wsConn{l0: l0}
-	wsc.auth = &l0AuthCom{wsc: wsc}
 	mux := http.NewServeMux()
 	mux.Handle("/ws", websocket.Handler(wsc.handler))
 	wsc.srv = &http.Server{Addr: ":" + strconv.Itoa(port), Handler: mux}
@@ -132,29 +130,21 @@ func (conn *wsHandlerConn) Close() (err error) {
 func (conn *wsHandlerConn) Write(packet []byte) (n int, err error) {
 	pac := conn.cli.PacketNew(packet)
 
-	// Remove trailing zero from data
-	data := pac.Data()
-	if l := len(data); l > 0 && data[l-1] == 0 {
-		data = data[:l-1]
-	}
-
-	// Quick check that string is json string
-	ifJSON := func(data []byte) bool {
-		return data[0] == '{' && data[len(data)-1] == '}' ||
-			data[0] == '[' && data[len(data)-1] == ']'
-	}
+	// Remove trailing zero from data and check that data is json string
+	data := conn.wsc.l0.teo.com.removeTrailingZero(pac.Data())
+	isJSON := conn.wsc.l0.teo.com.dataIsJSON(data)
 
 	// Parse data
 	var obj interface{}
 	switch pac.Command() {
 	case CmdPeersAnswer:
-		if !ifJSON(data) {
+		if !isJSON {
 			data, _ = conn.wsc.l0.teo.arp.binaryToJSON(pac.Data())
 		}
 	case CmdL0ClientsAnswer:
 		data = conn.wsc.l0.teo.com.marshalClients(pac.Data())
 	case CmdL0ClientsNumAnswer:
-		if !ifJSON(data) {
+		if !isJSON {
 			data = conn.wsc.l0.teo.com.marshalClientsNum(pac.Data())
 		}
 	case CmdSubscribeAnswer:
