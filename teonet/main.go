@@ -25,15 +25,23 @@ func main() {
 	process := func(teo *teonet.Teonet) {
 		//defer teo.ChanEventClosed()
 		for ev := range teo.Event() {
-			fmt.Printf("ev: %d\n", ev.Event)
 			switch ev.Event {
+			case teonet.EventConnected:
+				pac := ev.Data
+				fmt.Printf("Event Connected from: %s\n", pac.From())
+			case teonet.EventDisconnected:
+				pac := ev.Data
+				fmt.Printf("Event Disconnected from: %s\n", pac.From())
 			case teonet.EventReceived:
 				pac := ev.Data
-				fmt.Printf("from: %s, cmd: %d, data: %s\n", pac.From(), pac.Cmd(), pac.Data())
+				fmt.Printf("Event Received from: %s, cmd: %d, data: %s\n",
+					pac.From(), pac.Cmd(), pac.Data())
 				switch pac.Cmd() {
 				case 129:
 					teo.SendTo(pac.From(), pac.Cmd()+1, pac.Data())
 				}
+			default:
+				fmt.Printf("event: %d\n", ev.Event)
 			}
 		}
 		fmt.Println("teonet even loop closed")

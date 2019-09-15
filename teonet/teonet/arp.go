@@ -77,6 +77,12 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	arp.print()
 	arp.teo.sendToTcd(rec.tcd, CmdNone, []byte{0})
 	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
+	go func() {
+		r := <-arp.teo.WaitFrom(peer, CmdHostInfoAnswer)
+		if r.Err == nil {
+			arp.teo.ev.send(EventConnected, arp.teo.packetCreateNew(peer, 0, nil))
+		}
+	}()
 	return
 }
 
@@ -126,6 +132,13 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 	return
 }
 
+// deletePeer remove peer from arp table
+func (arp *arp) deletePeer(peer string) {
+	arp.teo.ev.send(EventDisconnected, arp.teo.packetCreateNew(peer, 0, nil))
+	delete(arp.m, peer)
+	arp.print()
+}
+
 // delete remove peer from arp table and close trudp channel (by receiveData)
 func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 	peer := rec.rd.From()
@@ -136,8 +149,10 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 	if peerArp.tcd != nil {
 		peerArp.tcd.Close()
 	}
-	delete(arp.m, peer)
-	arp.print()
+	// arp.teo.ev.send(EventDisconnected, arp.teo.packetCreateNew(peer, 0, nil))
+	// delete(arp.m, peer)
+	// arp.print()
+	arp.deletePeer(peer)
 	return
 }
 
@@ -156,8 +171,9 @@ func (arp *arp) deleteKey(key string) (peerArp *arpData) {
 	for peer, peerArp := range arp.m {
 		if peerArp.tcd != nil && peerArp.tcd.GetKey() == key {
 			peerArp.tcd.Close()
-			delete(arp.m, peer)
-			arp.print()
+			// delete(arp.m, peer)
+			// arp.print()
+			arp.deletePeer(peer)
 			break
 		}
 	}
@@ -185,8 +201,9 @@ func (arp *arp) deleteAll() {
 				arpData.tcd.Close()
 			}
 		}
-		delete(arp.m, peer)
-		arp.print()
+		// delete(arp.m, peer)
+		// arp.print()
+		arp.deletePeer(peer)
 	}
 }
 
