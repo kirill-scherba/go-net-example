@@ -34,6 +34,7 @@ type Teonet struct {
 	td         *trudp.TRUDP        // TRUdp connection
 	param      *Parameters         // Teonet parameters
 	cry        *crypt              // Crypt module
+	ev         *event              // Event module
 	com        *command            // Commands module
 	wcom       *waitCommand        // Command wait module
 	arp        *arp                // Arp module
@@ -74,10 +75,11 @@ func Connect(param *Parameters) (teo *Teonet) {
 	teo.ticker = time.NewTicker(250 * time.Millisecond)
 	teo.chanKernel = make(chan func())
 
-	// Command, Command wait and Crypto modules init
+	// Command, Command wait, Crypto and Event modules init
 	teo.com = &command{teo}
 	teo.wcom = teo.waitFromNew()
 	teo.cry = teo.cryptNew(param.Network)
+	teo.ev = teo.eventNew()
 
 	// Trudp init
 	teo.td = trudp.Init(&param.Port)
@@ -117,16 +119,23 @@ func (teo *Teonet) Run() {
 		go func() {
 			defer teo.td.ChanEventClosed()
 			teo.wg.Add(1)
+			teo.ev.send(EventStarted, nil)
 			for teo.running {
 				rd, err := teo.read()
 				if err != nil || rd == nil {
 					teolog.Error(MODULE, rd, err)
 					continue
 				}
-				teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d, data: %v\n",
-					rd.Cmd(), rd.From(), len(rd.Data()), rd.Data())
+				teolog.DebugVf(MODULE,
+					"got packet: cmd %d from %s, data len: %d, data: %v\n",
+					rd.Cmd(), rd.From(), len(rd.Data()), rd.Data(),
+				)
+				teo.ev.send(EventReceived, rd.Packet())
 			}
+			teo.ev.send(EventStoppedBefore, nil)
 			teo.wg.Done()
+			teo.ev.send(EventStopped, nil)
+			close(teo.ev.ch)
 		}()
 
 		// Start running
@@ -176,6 +185,11 @@ func (teo *Teonet) Close() {
 	teo.cry.destroy()
 
 	fmt.Print("\0337" + "\033[r" + "\0338") // reset terminal scrolling
+}
+
+// Event returns pointer to EventCH channel
+func (teo *Teonet) Event() <-chan *EventData {
+	return teo.ev.ch
 }
 
 // kernel run function in trudp kernel (main process)
@@ -306,7 +320,7 @@ func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (err error) {
 	return teo.sendToTcd(arp.tcd, cmd, data)
 }
 
-// SendToL0 send command to Teonet L0 client
+// SendToClient send command to Teonet L0 client
 func (teo *Teonet) SendToClient(l0Peer string, client string, cmd byte, data []byte) (err error) {
 	teo.l0.sendToL0(l0Peer, client, cmd, data)
 	return nil

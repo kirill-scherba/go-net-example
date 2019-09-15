@@ -92,9 +92,9 @@ func (pac *Packet) Parse() (rd *C.ksnCorePacketData, err error) {
 // Packet return packet
 func (rd *C.ksnCorePacketData) Packet() (pac *Packet) {
 	var data []byte
-	dataLength := rd.data_len
+	dataLength := rd.raw_data_len
 	if dataLength > 0 {
-		data = (*[1 << 28]byte)(rd.data)[:dataLength:dataLength]
+		data = (*[1 << 28]byte)(rd.raw_data)[:dataLength:dataLength]
 	}
 	pac = &Packet{packet: data}
 	return
