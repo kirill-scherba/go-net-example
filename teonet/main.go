@@ -23,9 +23,13 @@ func main() {
 
 	// Teonet process events
 	process := func(teo *teonet.Teonet) {
-		//defer teo.ChanEventClosed()
 		for ev := range teo.Event() {
 			switch ev.Event {
+			case teonet.EventStarted:
+				fmt.Printf("Event Started\n")
+			case teonet.EventStoppedBefore:
+			case teonet.EventStopped:
+				fmt.Printf("Event Stopped\n")
 			case teonet.EventConnected:
 				pac := ev.Data
 				fmt.Printf("Event Connected from: %s\n", pac.From())
