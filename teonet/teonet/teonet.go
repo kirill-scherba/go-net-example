@@ -44,7 +44,6 @@ type Teonet struct {
 	menu       *teokeys.HotkeyMenu // Hotkey menu
 	ticker     *time.Ticker        // Idle timer ticker (to use in hokeys)
 	chanKernel chan func()         // Channel to execute function on kernel level
-	ctrlc      bool                // Ctrl+C is on flag (for use in reconnect)
 	running    bool                // Teonet running flag
 	reconnect  bool                // Teonet reconnect flag
 	wg         sync.WaitGroup      // Wait stopped
@@ -65,7 +64,7 @@ func Logo(title, ver string) {
 }
 
 // Connect initialize Teonet
-func Connect(param *Parameters) (teo *Teonet) {
+func Connect(param *Parameters, appType []string, appVersion string) (teo *Teonet) {
 
 	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
@@ -102,6 +101,15 @@ func Connect(param *Parameters) (teo *Teonet) {
 	// Hotkeys CreateMenu
 	teo.createMenu()
 
+	// Process Ctrl+C to close Teonet
+	teo.ctrlC()
+
+	// Set app type
+	teo.setType(appType)
+
+	// Set app version
+	teo.setVersion(appVersion)
+
 	return
 }
 
@@ -112,7 +120,7 @@ func (teo *Teonet) Reconnect() {
 }
 
 // Run start Teonet event loop
-func (teo *Teonet) Run() {
+func (teo *Teonet) Run(proccess func(*Teonet)) {
 	fmt.Print("\0337" + "\033[r" + "\0338") // reset terminal scrolling
 	for teo.running {
 		// Reader
@@ -127,16 +135,25 @@ func (teo *Teonet) Run() {
 					continue
 				}
 				teolog.DebugVf(MODULE,
-					"got packet: cmd %d from %s, data len: %d, data: %v\n",
-					rd.Cmd(), rd.From(), len(rd.Data()), rd.Data(),
+					"got packet: cmd %d from %s, data len: %d\n",
+					rd.Cmd(), rd.From(), len(rd.Data()),
 				)
 				teo.ev.send(EventReceived, rd.Packet())
 			}
 			teo.ev.send(EventStoppedBefore, nil)
 			teo.wg.Done()
 			teo.ev.send(EventStopped, nil)
-			close(teo.ev.ch)
+			teo.ev.close()
 		}()
+
+		// Users level event loop process (or empty loop if proccess parameter skipped)
+		if proccess == nil {
+			proccess = func(teo *Teonet) {
+				for range teo.ev.ch {
+				}
+			}
+		}
+		go func() { teo.wg.Add(1); proccess(teo); teo.wg.Done() }()
 
 		// Start running
 		teo.rhost.run()
@@ -147,18 +164,13 @@ func (teo *Teonet) Run() {
 
 		// Reconnect
 		if teo.reconnect {
-			appType := teo.GetType()
-			ctrlc := teo.ctrlc
-			//teolog.Connect(MODULE, "reconnect...")
-			fmt.Println("reconnect...")
 			param := teo.param
+			appType := teo.GetType()
+			appVersion := teo.GetVersion()
+			fmt.Println("reconnect...")
 			teo = nil
 			time.Sleep(1 * time.Second)
-			teo = Connect(param)
-			teo.SetType(appType)
-			if ctrlc {
-				teo.CtrlC()
-			}
+			teo = Connect(param, appType, appVersion)
 			teo.reconnect = false
 			teo.running = true
 		}
@@ -205,6 +217,7 @@ FOR:
 		// Trudp event
 		case ev, ok := <-teo.td.ChanEvent():
 			if !ok {
+				rd = nil
 				break FOR
 			}
 			packet := ev.Data
@@ -286,6 +299,9 @@ FOR:
 				teo.menu.Check()
 			}
 		}
+	}
+	if !teo.running {
+		rd = nil
 	}
 	return
 }
@@ -390,13 +406,24 @@ func (teo *Teonet) GetType() []string {
 	return peerArp.appType
 }
 
+// GetVersion return this teonet application version
+func (teo *Teonet) GetVersion() string {
+	// Select this host in arp table
+	peerArp, ok := teo.arp.m[teo.param.Name]
+	if !ok {
+		//err = errors.New("host " + teo.param.Name + " does not exist in arp table")
+		return ""
+	}
+	return peerArp.appVersion
+}
+
 // Host return host name byte array with leading zerro
 func (teo *Teonet) Host() []byte {
 	return append([]byte(teo.param.Name), 0)
 }
 
 // SetType set this teonet application type (array of types)
-func (teo *Teonet) SetType(appType []string) (err error) {
+func (teo *Teonet) setType(appType []string) (err error) {
 	// Select this host in arp table
 	peerArp, ok := teo.arp.m[teo.param.Name]
 	if !ok {
@@ -409,7 +436,7 @@ func (teo *Teonet) SetType(appType []string) (err error) {
 }
 
 // SetVersion set this teonet application version
-func (teo *Teonet) SetVersion(appVersion string) (err error) {
+func (teo *Teonet) setVersion(appVersion string) (err error) {
 	// Select this host in arp table
 	peerArp, ok := teo.arp.m[teo.param.Name]
 	if !ok {
@@ -426,9 +453,11 @@ func (teo *Teonet) Version() string {
 	return Version
 }
 
-// CtrlC process Ctrl+C to close Teonet
-func (teo *Teonet) CtrlC() {
-	teo.ctrlc = true
+// ctrlC process Ctrl+C to close Teonet
+func (teo *Teonet) ctrlC() {
+	if !teo.param.CtrlcF {
+		return
+	}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 	go func() {

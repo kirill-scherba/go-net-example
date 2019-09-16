@@ -41,3 +41,8 @@ func (teo *Teonet) eventNew() (ev *event) {
 func (ev *event) send(event int, data *Packet) {
 	ev.ch <- &EventData{event, data}
 }
+
+// close closes event channel
+func (ev *event) close() {
+	close(ev.ch)
+}

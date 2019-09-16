@@ -34,6 +34,7 @@ type Parameters struct {
 	ShowHelpF        bool   `json:"show-help"`        // show usage
 	IPv6Allow        bool   `json:"ipv6-allow"`       // allow IPv6 support (not supported in Teonet-C)
 	DisallowEncrypt  bool   `json:"disallow-encrypt"` // disable teonet packets encryption
+	CtrlcF           bool   `json:"ctrlc"`            // use Ctrl+C to gracefully exit from application
 	L0allow          bool   `json:"l0-allow"`         // allow l0 server
 	L0tcpPort        int    `json:"l0-tcp-port"`      // l0 Server tcp port number (default 9000)
 	L0wsAllow        bool   `json:"l0-ws-allow"`      // allow l0 WebSocket server
@@ -128,6 +129,7 @@ func (param *Parameters) setDefault() {
 	param.Network = "local"
 	param.RAddr = "localhost"
 	param.LogLevel = "DEBUG"
+	param.CtrlcF = true
 	param.ShowParametersF = true
 }
 

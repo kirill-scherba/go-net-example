@@ -134,9 +134,13 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 
 // deletePeer remove peer from arp table
 func (arp *arp) deletePeer(peer string) {
-	arp.teo.ev.send(EventDisconnected, arp.teo.packetCreateNew(peer, 0, nil))
-	delete(arp.m, peer)
-	arp.print()
+	if peerArp, ok := arp.m[peer]; ok {
+		if peerArp.mode != -1 {
+			arp.teo.ev.send(EventDisconnected, arp.teo.packetCreateNew(peer, 0, nil))
+		}
+		delete(arp.m, peer)
+		arp.print()
+	}
 }
 
 // delete remove peer from arp table and close trudp channel (by receiveData)
@@ -149,9 +153,6 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 	if peerArp.tcd != nil {
 		peerArp.tcd.Close()
 	}
-	// arp.teo.ev.send(EventDisconnected, arp.teo.packetCreateNew(peer, 0, nil))
-	// delete(arp.m, peer)
-	// arp.print()
 	arp.deletePeer(peer)
 	return
 }
@@ -171,8 +172,6 @@ func (arp *arp) deleteKey(key string) (peerArp *arpData) {
 	for peer, peerArp := range arp.m {
 		if peerArp.tcd != nil && peerArp.tcd.GetKey() == key {
 			peerArp.tcd.Close()
-			// delete(arp.m, peer)
-			// arp.print()
 			arp.deletePeer(peer)
 			break
 		}

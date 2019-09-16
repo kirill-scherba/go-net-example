@@ -21,8 +21,10 @@ func main() {
 	// Show host and network name
 	fmt.Printf("\nhost: %s\nnetwork: %s\n", param.Name, param.Network)
 
-	// Teonet process events
-	process := func(teo *teonet.Teonet) {
+	// Teonet connect and run
+	teo := teonet.Connect(param, []string{"teo-go"}, Version)
+	teo.Run(func(teo *teonet.Teonet) {
+		fmt.Println("Teonet even loop started")
 		for ev := range teo.Event() {
 			switch ev.Event {
 			case teonet.EventStarted:
@@ -48,14 +50,6 @@ func main() {
 				fmt.Printf("event: %d\n", ev.Event)
 			}
 		}
-		fmt.Println("teonet even loop closed")
-	}
-
-	// Teonet connect and run
-	teo := teonet.Connect(param)    // connect to teonet
-	teo.SetType([]string{"teo-go"}) // set this teonet application type
-	teo.SetVersion(Version)         // set this teonet application version
-	go process(teo)                 // process Teonet events
-	teo.CtrlC()                     // set allow Ctrl+C to exit
-	teo.Run()                       // run teonet
+		fmt.Println("Teonet even loop stopped")
+	})
 }
