@@ -131,7 +131,7 @@ func (teo *Teonet) Run(proccess func(*Teonet)) {
 			for teo.running {
 				rd, err := teo.read()
 				if err != nil || rd == nil {
-					teolog.Error(MODULE, rd, err)
+					//teolog.Error(MODULE, rd, err)
 					continue
 				}
 				teolog.DebugVf(MODULE,
