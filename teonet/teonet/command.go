@@ -318,6 +318,12 @@ func (com *command) peers(rec *receiveData) (err error) {
 	return
 }
 
+// RemoveTrailingZero remove trailing zero in byte slice
+func RemoveTrailingZero(data []byte) []byte { com := &command{}; return com.removeTrailingZero(data) }
+
+// DataIsJSON simple check that data is JSON string
+func DataIsJSON(data []byte) bool { com := &command{}; return com.dataIsJSON(data) }
+
 // removeTrailingZero remove trailing zero in byte slice
 func (com *command) removeTrailingZero(data []byte) []byte {
 	if l := len(data); l > 0 && data[l-1] == 0 {
