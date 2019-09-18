@@ -24,7 +24,7 @@ USE teoregistry;
 //
 // Tables
 // Table 'applications': Teonet applications (services) description
-CREATE TABLE applications(
+CREATE TABLE IF NOT EXISTS applications(
   uuid        TIMEUUID,
   name        TEXT,
   descr       TEXT,
@@ -34,11 +34,11 @@ CREATE TABLE applications(
   git      		TEXT,
   PRIMARY KEY(uuid)
 );
-CREATE INDEX ON applications (name);
+CREATE INDEX IF NOT EXISTS ON applications (name);
 //
 // Table 'commands': Teonet applications commands description
 // - cmdType values:  0 - input; 1 - input/output (same parameters); 2 - output
-CREATE TABLE commands(
+CREATE TABLE IF NOT EXISTS commands(
   app_id       TIMEUUID,
   cmd          INT,
   type     		 TINYINT,
