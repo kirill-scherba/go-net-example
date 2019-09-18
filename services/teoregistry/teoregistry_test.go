@@ -49,7 +49,7 @@ func TestTeoregistry(t *testing.T) {
 	defer tre.Close()
 
 	app = Application{
-		Uuid:   gocql.TimeUUID(),
+		UUID:   gocql.TimeUUID(),
 		Name:   AppName,
 		Descr:  "Teonet test application",
 		Author: "Kirill Scherba <kirill@scherba.ru>",
@@ -86,7 +86,7 @@ func TestTeoregistry(t *testing.T) {
 	})
 
 	t.Run("Application Set(insert new application)", func(t *testing.T) {
-		app.Uuid = gocql.TimeUUID()
+		app.UUID = gocql.TimeUUID()
 		app.Descr = "Teonet supper test application"
 		uuid, err := tre.app.Set(&app)
 		if err != nil {
@@ -113,23 +113,23 @@ func TestTeoregistry(t *testing.T) {
 		}
 		fmt.Printf("Application list was get from database: %v\n", listApp)
 		for _, a := range listApp {
-			if a.Uuid != uuid && a.Name == AppName {
-				tre.app.Remove(a.Uuid)
-				fmt.Printf("Application with uuid %s was removed from database\n", a.Uuid)
+			if a.UUID != uuid && a.Name == AppName {
+				tre.app.Remove(a.UUID)
+				fmt.Printf("Application with uuid %s was removed from database\n", a.UUID)
 			}
 		}
 	})
 
 	com = Command{
-		AppId:       uuid,
+		AppID:       uuid,
 		Cmd:         129,
 		Type:        0,
 		Descr:       "Command #129 (input)",
 		TxtF:        true,
 		TxtNum:      1,
 		TxtDescr:    "<number int>",
-		JsonF:       false,
-		Json:        "",
+		JSONF:       false,
+		JSON:        "",
 		BinaryF:     false,
 		BinaryDescr: "",
 	}
