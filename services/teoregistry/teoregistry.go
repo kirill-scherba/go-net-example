@@ -12,19 +12,17 @@
 /* Install:
    go get github.com/kirill-scherba/teonet-go/services/teoregistry
 */
-
+//
 // Data base organisation (we use ScyllaDB):
 //
 // Run Scylla in Docker: https://www.scylladb.com/download/open-source/#docker
 /* Before you execute the program running this services, Launch `cqlsh` and execute:
 //
 // Keyspace 'teoregistry'
-CREATE KEYSPACE teoregistry WITH replication = {
-	'class' : 'SimpleStrategy',
-	'replication_factor' : 3
-};
+CREATE KEYSPACE teoregistry WITH replication = { 'class': 'SimpleStrategy', 'replication_factor' : 3 };
 USE teoregistry;
 //
+// Tables
 // Table 'applications': Teonet applications (services) description
 CREATE TABLE applications(
   uuid        TIMEUUID,
@@ -118,18 +116,25 @@ type Command struct {
 	BinaryDescr string     `db:"binarydescr"`
 }
 
-// Connect to the cql cluster and create teoregistry receiver
+// Connect to the cql cluster and create teoregistry receiver.
+// First parameter is keyspace, next parameters is hosts name (usualy it should
+// be 3 hosts - 3 ScyllaDB nodes)
 func Connect(hosts ...string) (tre *Teoregistry, err error) {
 	tre = &Teoregistry{}
 	tre.app = &App{tre}
 	tre.com = &Com{tre}
+	var keyspace = "teoregistry"
 	cluster := gocql.NewCluster(func() (h []string) {
-		if h = hosts; len(h) == 0 {
+		if h = hosts; len(h) > 0 {
+			keyspace = h[0]
+			h = h[1:]
+		}
+		if len(h) == 0 {
 			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
 		}
 		return
 	}()...)
-	cluster.Keyspace = "teoregistry"
+	cluster.Keyspace = keyspace
 	cluster.Consistency = gocql.Quorum
 	tre.session, _ = cluster.CreateSession()
 	return

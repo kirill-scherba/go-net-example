@@ -1,3 +1,25 @@
+// Copyright 2019 teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet teoregistry test module
+
+// Data base organisation (we use ScyllaDB):
+//
+// Run Scylla in Docker: https://www.scylladb.com/download/open-source/#docker
+/* Before you execute this tests Launch `cqlsh` and execute:
+//
+// Keyspace 'teoregistry'
+// Atention: this test use another default keyspace than main package code. So
+// you need set this keyspace and tables again.
+//
+CREATE KEYSPACE teoregistry_test WITH replication = { 'class': 'SimpleStrategy', 'replication_factor' : 3 };
+USE teoregistry_test;
+//
+// And exequte 'Tables' from teoregistry.go (see line 25)
+//
+*/
+
 package teoregistry
 
 import (
@@ -17,7 +39,7 @@ func TestTeoregistry(t *testing.T) {
 	var err error
 
 	t.Run("Connect", func(t *testing.T) {
-		tre, err = Connect()
+		tre, err = Connect("teoregistry_test")
 		if err != nil {
 			t.Error(err)
 			return
