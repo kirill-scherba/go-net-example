@@ -2,9 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet teocdb api package
+// Teonet teocdb (teo-cdb: teonet database service) package
 //
 // Run Scylla in Docker: https://www.scylladb.com/download/open-source/#docker
+/* Before you execute the program, Launch `cqlsh` and execute:
+create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+create table teocdb.map(key text, data blob, PRIMARY KEY(key));
+*/
 //
 
 package teocdb
@@ -27,20 +31,25 @@ type JData struct {
 	Value interface{} `json:"value"`
 }
 
-func Connect() (tdb *Teocdb, err error) {
+// Connect to the cql cluster and return teocdb receiver
+func Connect(hosts ...string) (tdb *Teocdb, err error) {
 	tdb = &Teocdb{}
-	// Connect to the cql cluster
-	cluster := gocql.NewCluster("172.17.0.2", "172.17.0.3", "172.17.0.4")
+	cluster := gocql.NewCluster(func() (h []string) {
+		if h = hosts; len(h) == 0 {
+			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
+		}
+		return
+	}()...)
 	cluster.Keyspace = "teocdb"
 	cluster.Consistency = gocql.Quorum
 	tdb.Session, _ = cluster.CreateSession()
 
 	// Create keyspace and table
 	const mapSchema = `
-		create KEYSPACE IF NOT EXISTS teocdb WITH replication = {
-			'class' : 'SimpleStrategy',
-			'replication_factor' : 3
-		};
+		// create KEYSPACE IF NOT EXISTS teocdb WITH replication = {
+		// 	'class' : 'SimpleStrategy',
+		// 	'replication_factor' : 3
+		// };
 		create TABLE IF NOT EXISTS teocdb.map(
 			key text,
 			data blob,

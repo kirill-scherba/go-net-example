@@ -22,7 +22,7 @@ On CentOS and RHEL:
 
 Make sure $GOROOT and $GOPATH are set, and install:
 
-    go get https://github.com/kirill-scherba/teonet-go
+    go get github.com/kirill-scherba/teonet-go
 
 
 ## Running

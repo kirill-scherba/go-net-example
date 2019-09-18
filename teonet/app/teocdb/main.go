@@ -18,7 +18,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kirill-scherba/teonet-go/teocdb/teocdb"
+	"github.com/kirill-scherba/teonet-go/services/teocdb"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -47,7 +47,7 @@ func main() {
 	defer tdb.Close()
 
 	// Teonet connect and run
-	teo := teonet.Connect(param, []string{"teo-go"}, Version)
+	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version)
 	teo.Run(func(teo *teonet.Teonet) {
 		//fmt.Println("Teonet even loop started")
 		for ev := range teo.Event() {
