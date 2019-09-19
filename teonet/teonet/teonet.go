@@ -134,11 +134,11 @@ func (teo *Teonet) Run(proccess func(*Teonet)) {
 					//teolog.Error(MODULE, rd, err)
 					continue
 				}
-				teolog.DebugVf(MODULE,
-					"got packet: cmd %d from %s, data len: %d\n",
-					rd.Cmd(), rd.From(), len(rd.Data()),
-				)
-				teo.ev.send(EventReceived, rd.Packet())
+				// teolog.DebugVf(MODULE,
+				// 	"got packet: cmd %d from %s, data len: %d\n",
+				// 	rd.Cmd(), rd.From(), len(rd.Data()),
+				// )
+				// teo.ev.send(EventReceived, rd.Packet())
 			}
 			teo.ev.send(EventStoppedBefore, nil)
 			teo.wg.Done()

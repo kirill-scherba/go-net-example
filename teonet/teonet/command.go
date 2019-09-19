@@ -122,6 +122,15 @@ func (com *command) process(rec *receiveData) (processed bool) {
 		processed = false
 	}
 
+	// Send (not processed) command to user level
+	if !processed {
+		teolog.DebugVf(MODULE,
+			"got packet: cmd %d from %s, data len: %d\n",
+			rec.rd.Cmd(), rec.rd.From(), len(rec.rd.Data()),
+		)
+		com.teo.ev.send(EventReceived, rec.rd.Packet())
+	}
+
 	// Process waitFrom commands
 	com.teo.wcom.check(rec)
 
