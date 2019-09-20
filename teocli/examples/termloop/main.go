@@ -45,13 +45,8 @@ type Player struct {
 	tg    *Teogame
 }
 
-func (player *Player) MarshalBinary() (data []byte, err error) {
-	buf := new(bytes.Buffer)
-	x, y := player.Position()
-	err = binary.Write(buf, binary.LittleEndian, int64(x))
-	err = binary.Write(buf, binary.LittleEndian, int64(y))
-	data = buf.Bytes()
-	return
+type Hero struct {
+	Player
 }
 
 // main parse aplication parameters and connect to Teonet. When teonet connected
@@ -190,28 +185,30 @@ func (tg *Teogame) game() {
 	game := tl.NewGame()
 	game.Screen().SetFps(30)
 	level := tl.NewBaseLevel(tl.Cell{
-		Bg: tl.ColorGreen,
-		Fg: tl.ColorBlack,
-		Ch: 'H',
+		Bg: tl.ColorBlack,
+		Fg: tl.ColorWhite,
+		Ch: ' ',
 	})
 	level.AddEntity(tl.NewRectangle(10, 10, 50, 20, tl.ColorBlue))
 
-	player := Player{
+	// Hero
+	player := Hero{Player{
 		Entity: tl.NewEntity(1, 1, 1, 1),
 		level:  level,
 		tg:     tg,
-	}
+	}}
 	// Set the character at position (0, 0) on the entity.
-	player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorRed, Ch: '옷'})
+	player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorGreen, Ch: 'Ω'})
 	level.AddEntity(&player)
 
+	// Players
 	player2 := Player{
-		Entity: tl.NewEntity(1, 1, 1, 1),
+		Entity: tl.NewEntity(2, 2, 1, 1),
 		level:  level,
 		tg:     tg,
 	}
 	// Set the character at position (0, 0) on the entity.
-	player2.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: '옷'})
+	player2.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: '∩'})
 	level.AddEntity(&player2)
 
 	game.Screen().SetLevel(level)
@@ -229,10 +226,20 @@ func (tg *Teogame) game() {
 // 	player.Entity.Draw(screen)
 // }
 
-func (player *Player) Tick(event tl.Event) {
-	changed := false
+func (player *Hero) Tick(event tl.Event) {
 	if event.Type == tl.EventKey { // Is it a keyboard event?
-		player.prevX, player.prevY = player.Position()
+
+		// Check position changed and send to Teonet if so
+		x, y := player.Position()
+		if x != player.prevX || y != player.prevY {
+			err := player.tg.com.sendData(player)
+			if err != nil {
+				panic(err)
+			}
+		}
+		player.prevX, player.prevY = x, y
+
+		// Save previouse position and set to new position
 		switch event.Key { // If so, switch on the pressed key.
 		case tl.KeyArrowRight:
 			player.SetPosition(player.prevX+1, player.prevY)
@@ -243,22 +250,36 @@ func (player *Player) Tick(event tl.Event) {
 		case tl.KeyArrowDown:
 			player.SetPosition(player.prevX, player.prevY+1)
 		}
-		//if x, y := player.Position(); x != player.prevX && y != player.prevY {
-		changed = true
-		//}
-	}
-	// Send position to teonet
-	if changed {
-		err := player.tg.com.sendData(player)
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
-func (player *Player) Collide(collision tl.Physical) {
+func (player *Hero) Collide(collision tl.Physical) {
 	// Check if it's a Rectangle we're colliding with
 	if _, ok := collision.(*tl.Rectangle); ok {
 		player.SetPosition(player.prevX, player.prevY)
 	}
+}
+
+func (player *Player) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	x, y := player.Position()
+	err = binary.Write(buf, binary.LittleEndian, int64(x))
+	err = binary.Write(buf, binary.LittleEndian, int64(y))
+	data = buf.Bytes()
+	return
+}
+
+func (player *Player) UnmarshalBinary(data []byte) (err error) {
+	var x, y int64
+	buf := bytes.NewReader(data)
+	err = binary.Read(buf, binary.LittleEndian, &x)
+	if err != nil {
+		return
+	}
+	err = binary.Read(buf, binary.LittleEndian, &y)
+	if err != nil {
+		return
+	}
+	player.SetPosition(int(x), int(y))
+	return
 }
