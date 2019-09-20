@@ -53,7 +53,7 @@ func main() {
 		}
 		// Send peers command
 		fmt.Printf("send peers request\n")
-		teo.Send(teocli.CmdLPeers, peer, nil)
+		teo.SendTo(peer, teocli.CmdLPeers, nil)
 		// Sender (send echo in loop)
 		go func() {
 			for i := 0; running; i++ {
@@ -62,14 +62,14 @@ func main() {
 				// Send peers command
 				case i%9 == 1:
 					fmt.Printf("send peers request (%d,%d)\n", i, i%9)
-					teo.Send(teocli.CmdLPeers, peer, nil)
+					teo.SendTo(peer, teocli.CmdLPeers, nil)
 
 				// Send large data packet with cmd 129
 				case i%19 == 1:
 					data := append([]byte(strings.Repeat("Q", 2000)), 0)
 					fmt.Printf("send large data packet with cmd 129, data_len: %d (%d,%d)\n",
 						len(data), i, i%19)
-					teo.Send(129, peer, data)
+					teo.SendTo(peer, 129, data)
 
 				// Send echo
 				default:

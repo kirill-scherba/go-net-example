@@ -14,17 +14,6 @@ import (
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
-// Room controller commands
-const (
-	// ComRoomRequest [in,out] #129 Room request or Room request answer
-	// [in]  Room request
-	// [out] Room request anwser
-	ComRoomRequest = 129
-
-	// ComRoomData [in,out] #130 Data transfer
-	ComRoomData = 130
-)
-
 func main() {
 
 	// Version this teonet application version
@@ -75,18 +64,19 @@ func main() {
 			// When received command from teonet peer or client
 			case teonet.EventReceived:
 				pac := ev.Data
-				fmt.Printf("Event Received from: %s, cmd: %d, data: %s\n",
+				fmt.Printf("Event Received from: %s, cmd: %d, data: %v\n",
 					pac.From(), pac.Cmd(), pac.Data())
 
 				// Commands processing
 				switch pac.Cmd() {
 
 				// Command #129: [in,out] Room request
-				case 129:
-					teo.SendToClient("teo-l0", pac.From(), pac.Cmd(), pac.Data())
+				case teoroom.ComRoomRequest:
+					teo.SendToClient("teo-l0", pac.From(), teoroom.ComRoomRequestAnswer,
+						pac.Data())
 
 				// Command #130: [in,out] Data transfer
-				case 130:
+				case teoroom.ComRoomData:
 				}
 			}
 		}
