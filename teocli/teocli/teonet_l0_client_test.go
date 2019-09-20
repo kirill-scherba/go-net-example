@@ -76,7 +76,7 @@ func TestPacketSend(t *testing.T) {
 	})
 
 	t.Run("packetSend", func(t *testing.T) {
-		_, err := teocli.Send(cmd, peer, data)
+		_, err := teocli.SendTo(peer, cmd, data)
 		if err != nil {
 			t.Errorf("can't send packet, error: %s", err)
 		}

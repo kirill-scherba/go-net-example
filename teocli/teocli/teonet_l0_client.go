@@ -232,7 +232,7 @@ func (teocli *TeoLNull) sendEchoAnswer(packet []byte) (length int, err error) {
 		if C.packetGetCommand(packetPtr) == C.CMD_L_ECHO {
 			peerC := C.packetGetPeerName(packetPtr)
 			data := teocli.packetGetData(packet)
-			teocli.Send(C.CMD_L_ECHO_ANSWER, C.GoString(peerC), data)
+			teocli.SendTo(C.GoString(peerC), C.CMD_L_ECHO_ANSWER, data)
 		}
 	}
 	return
@@ -272,7 +272,7 @@ func (teocli *TeoLNull) Disconnect() {
 }
 
 // Send send data to L0 server
-func (teocli *TeoLNull) Send(command uint8, peer string, data []byte) (int, error) {
+func (teocli *TeoLNull) SendTo(peer string, command byte, data []byte) (int, error) {
 	packet, err := teocli.PacketCreate(command, peer, data)
 	if err != nil {
 		return 0, err
