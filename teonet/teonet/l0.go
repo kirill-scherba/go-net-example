@@ -453,26 +453,25 @@ func (l0 *l0Conn) sendToPeer(peer string, client string, cmd byte, data []byte) 
 }
 
 // sendToL0 (send from peer to L0 server) send packet from peer to client
-func (l0 *l0Conn) sendToL0(peer string, client string, cmd byte, data []byte) {
+func (l0 *l0Conn) sendToL0(peer string, client string, cmd byte, data []byte) (length int, err error) {
 	teolog.DebugVf(MODULE,
 		"send cmd: %d, %d bytes data packet to l0 %s, from client: %s",
 		cmd, len(data), peer, client,
 	)
-	l0.teo.SendTo(peer, CmdL0To, l0.packetCreate(client, cmd, data)) // Send to L0
+	return l0.teo.SendTo(peer, CmdL0To, l0.packetCreate(client, cmd, data)) // Send to L0
 }
 
 // sendTo send command from peer or client to L0 client connected to this server
-func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) {
+func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) (length int, err error) {
 
 	// Get client data from name map
 	l0.mux.Lock()
 	client, ok := l0.mn[toClient]
 	l0.mux.Unlock()
 	if !ok {
-		teolog.Errorf(MODULE,
-			"send to client: can't find client '%s' in clients map\n",
-			toClient,
-		)
+		err = fmt.Errorf("send to client: can't find client '%s' in clients map",
+			toClient)
+		teolog.Error(MODULE, err.Error())
 		return
 	}
 
@@ -491,7 +490,7 @@ func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) {
 		cmd, len(data), l0.network(client), client.name)
 
 	l0.stat.send(client, packet)
-	client.conn.Write(packet)
+	return client.conn.Write(packet)
 }
 
 // network return network type of conn: 'tcp' or' trudp' (in string)

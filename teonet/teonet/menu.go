@@ -141,7 +141,7 @@ func (teo *Teonet) createMenu() {
 				answerCmd = readInt(in, "cmd(answer): ")
 
 				// Send to Teonet peer
-				if err := teo.SendTo(to, byte(cmd), data); err != nil {
+				if _, err := teo.SendTo(to, byte(cmd), data); err != nil {
 					fmt.Printf("error: %s\n", err.Error())
 					return
 				}
