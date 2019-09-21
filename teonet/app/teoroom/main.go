@@ -72,11 +72,29 @@ func main() {
 
 				// Command #129: [in,out] Room request
 				case teoroom.ComRoomRequest:
+					if err := tr.RoomRequest(pac.From()); err != nil {
+						fmt.Printf("Client %s is already connected\n", pac.From())
+						break
+					}
 					teo.SendToClient("teo-l0", pac.From(), teoroom.ComRoomRequestAnswer,
 						pac.Data())
 
 				// Command #130: [in,out] Data transfer
 				case teoroom.ComRoomData:
+					tr.GotData(pac.From(), pac.Data(), func(l0, client string, data []byte) {
+						if data == nil {
+							data = pac.Data()
+						}
+						//teoroom.SendData(teo, client, pac.From(), data)
+						teo.SendToClient("teo-l0", client, teoroom.ComRoomData, append(data, []byte(pac.From())...))
+					})
+
+				// Command #131 [in] Disconnect (exit) from room
+				case teoroom.ComDisconnect:
+					if err := tr.Disconnect(pac.From()); err != nil {
+						fmt.Printf("Client %s is already connected\n", pac.From())
+						break
+					}
 				}
 			}
 		}

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unsafe"
 
 	tl "github.com/JoelOtter/termloop"
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
@@ -24,11 +25,14 @@ const Version = "0.0.1"
 
 // Teogame this game data structure
 type Teogame struct {
-	teo       *teocli.TeoLNull // teonet connetor
-	com       *Commands        // teonet commands
-	peer      string           // teonet room controller peer name
-	connected bool             // is connected to teonet
-	started   bool             // is game started
+	teo       *teocli.TeoLNull   // Teonet connetor
+	game      *tl.Game           // Game
+	level     *tl.BaseLevel      // Game BaseLevel
+	peer      string             // Teonet room controller peer name
+	connected bool               // Is connected to teonet
+	started   bool               // Is game started
+	com       *Commands          // Teonet commands
+	mp        map[string]*Player // Players map
 }
 
 // Commands this game teonet commands receiver
@@ -36,7 +40,7 @@ type Commands struct {
 	tg *Teogame
 }
 
-// Player data stucture
+// Player stucture of player
 type Player struct {
 	*tl.Entity
 	prevX int
@@ -45,6 +49,7 @@ type Player struct {
 	tg    *Teogame
 }
 
+// Hero struct of hero
 type Hero struct {
 	Player
 }
@@ -73,18 +78,15 @@ func main() {
 	flag.Parse()
 
 	// Run teonet (connect to teonet and process received commands)
-	var tg *Teogame
-	tg = &Teogame{peer: peer, com: &Commands{}}
-	tg.com.tg = tg
-	tg.connect(name, raddr, rport, tcp, 5*time.Second)
+	runTeogame(name, peer, raddr, rport, tcp, 5*time.Second)
 }
 
-// network return string with type of network
-func (tg *Teogame) network(tcp bool) string {
-	if tcp {
-		return "TCP"
-	}
-	return "TRUDP"
+// Run Teonet game
+func runTeogame(name, peer, raddr string, rport int, tcp bool, reconnectAfter time.Duration) (tg *Teogame) {
+	tg = &Teogame{peer: peer, com: &Commands{}, mp: make(map[string]*Player)}
+	tg.com.tg = tg
+	tg.run(name, raddr, rport, tcp, 5*time.Second)
+	return
 }
 
 // roomRequest [out] send RoomRequest command to room controller
@@ -93,11 +95,15 @@ func (com *Commands) roomRequest() {
 	teoroom.RoomRequest(com.tg.teo, com.tg.peer, nil)
 }
 
+func (com *Commands) disconnect() {
+	teoroom.Disconnect(com.tg.teo, com.tg.peer, nil)
+}
+
 // roomRequestAnswer [in] process RoomRequestAnswer command received from room
 // controller
 func (com *Commands) roomRequestAnswer(packet *teocli.Packet) {
 	if !com.tg.started {
-		go com.tg.game()
+		go com.tg.runGame()
 		com.tg.started = true
 	}
 }
@@ -110,10 +116,35 @@ func (com *Commands) sendData(i ...interface{}) error {
 // gotData [out] process data command received from room controller
 func (com *Commands) gotData(packet *teocli.Packet) {
 
+	var x uint64
+	namePtr := unsafe.Sizeof(x)
+	client := string(packet.Data()[namePtr*2:])
+	//fmt.Printf("got data from %s, client %s, %v\n", packet.From(), client, packet.Data())
+	if player, ok := com.tg.mp[client]; !ok {
+		player = &Player{
+			Entity: tl.NewEntity(2, 2, 1, 1),
+			level:  com.tg.level,
+			tg:     com.tg,
+		}
+		// Set the character at position (0, 0) on the entity.
+		player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: '∩'})
+		com.tg.level.AddEntity(player)
+		com.tg.mp[client] = player
+	} else {
+		player.UnmarshalBinary(packet.Data())
+	}
+}
+
+// network return string with type of network
+func (tg *Teogame) network(tcp bool) string {
+	if tcp {
+		return "TCP"
+	}
+	return "TRUDP"
 }
 
 // connect Connect to Teonet and process received commands
-func (tg *Teogame) connect(name, raddr string, rport int, tcp bool, reconnectAfter time.Duration) {
+func (tg *Teogame) run(name, raddr string, rport int, tcp bool, reconnectAfter time.Duration) {
 
 	var err error
 
@@ -149,14 +180,18 @@ func (tg *Teogame) connect(name, raddr string, rport int, tcp bool, reconnectAft
 				fmt.Println(err)
 				break
 			}
-			fmt.Printf("got cmd %d from %s, data len: %d, data: %v\n",
-				packet.Command(), packet.From(), len(packet.Data()), packet.Data())
+			// fmt.Printf("got cmd %d from %s, data len: %d, data: %v\n",
+			// 	packet.Command(), packet.From(), len(packet.Data()), packet.Data())
 
 			switch packet.Command() {
 
 			// RoomRequestAnswer
 			case teoroom.ComRoomRequestAnswer:
 				tg.com.roomRequestAnswer(packet)
+
+			// RoomData
+			case teoroom.ComRoomData:
+				tg.com.gotData(packet)
 
 			// Echo answer
 			case teocli.CmdLEchoAnswer:
@@ -181,14 +216,19 @@ func (tg *Teogame) connect(name, raddr string, rport int, tcp bool, reconnectAft
 }
 
 // Run game
-func (tg *Teogame) game() {
-	game := tl.NewGame()
-	game.Screen().SetFps(30)
+func (tg *Teogame) runGame() {
+	tg.game = tl.NewGame()
+	tg.game.Screen().SetFps(30)
+
+	// Base
 	level := tl.NewBaseLevel(tl.Cell{
 		Bg: tl.ColorBlack,
 		Fg: tl.ColorWhite,
 		Ch: ' ',
 	})
+	tg.level = level
+
+	// Lake
 	level.AddEntity(tl.NewRectangle(10, 10, 50, 20, tl.ColorBlue))
 
 	// Hero
@@ -201,20 +241,21 @@ func (tg *Teogame) game() {
 	player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorGreen, Ch: 'Ω'})
 	level.AddEntity(&player)
 
-	// Players
-	player2 := Player{
-		Entity: tl.NewEntity(2, 2, 1, 1),
-		level:  level,
-		tg:     tg,
-	}
-	// Set the character at position (0, 0) on the entity.
-	player2.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: '∩'})
-	level.AddEntity(&player2)
+	// // Players
+	// player2 := Player{
+	// 	Entity: tl.NewEntity(2, 2, 1, 1),
+	// 	level:  level,
+	// 	tg:     tg,
+	// }
+	// // Set the character at position (0, 0) on the entity.
+	// player2.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: '∩'})
+	// level.AddEntity(&player2)
 
-	game.Screen().SetLevel(level)
-	game.Start()
+	tg.game.Screen().SetLevel(level)
+	tg.game.Start()
 	fmt.Printf("game stopped\n")
 	tg.started = false
+	tg.com.disconnect()
 	//tg.teo.Disconnect()
 }
 
@@ -226,18 +267,11 @@ func (tg *Teogame) game() {
 // 	player.Entity.Draw(screen)
 // }
 
+// Tick frame tick
 func (player *Hero) Tick(event tl.Event) {
 	if event.Type == tl.EventKey { // Is it a keyboard event?
 
-		// Check position changed and send to Teonet if so
-		x, y := player.Position()
-		if x != player.prevX || y != player.prevY {
-			err := player.tg.com.sendData(player)
-			if err != nil {
-				panic(err)
-			}
-		}
-		player.prevX, player.prevY = x, y
+		player.prevX, player.prevY = player.Position()
 
 		// Save previouse position and set to new position
 		switch event.Key { // If so, switch on the pressed key.
@@ -250,16 +284,31 @@ func (player *Hero) Tick(event tl.Event) {
 		case tl.KeyArrowDown:
 			player.SetPosition(player.prevX, player.prevY+1)
 		}
+
+		// Check position changed and send to Teonet if so
+		x, y := player.Position()
+		if x != player.prevX || y != player.prevY {
+			err := player.tg.com.sendData(player)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 }
 
+// Collide check colliding
 func (player *Hero) Collide(collision tl.Physical) {
 	// Check if it's a Rectangle we're colliding with
 	if _, ok := collision.(*tl.Rectangle); ok {
 		player.SetPosition(player.prevX, player.prevY)
+		err := player.tg.com.sendData(player)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
+// MarshalBinary marshal send data
 func (player *Player) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	x, y := player.Position()
@@ -269,6 +318,7 @@ func (player *Player) MarshalBinary() (data []byte, err error) {
 	return
 }
 
+// UnmarshalBinary unmarshal received data
 func (player *Player) UnmarshalBinary(data []byte) (err error) {
 	var x, y int64
 	buf := bytes.NewReader(data)

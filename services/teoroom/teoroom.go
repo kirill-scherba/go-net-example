@@ -29,35 +29,60 @@ const (
 	// ComRoomData [in,out] #130 Data transfer
 	// [input or output] command for room controller
 	ComRoomData = 130
+
+	// ComDisconnect [in] #131 Disconnect from room controller (from room)
+	// [input] command for room controller
+	ComDisconnect = 131
 )
 
+// Teoroom teonet room controller data
 type Teoroom struct {
 	m map[string]*Client
 }
 
+// Client data
 type Client struct {
 	name string
 }
 
 // Init initialize room controller
-func Init() (troom *Teoroom, err error) {
-	troom = &Teoroom{}
-	troom.m = make(map[string]*Client)
+func Init() (tr *Teoroom, err error) {
+	tr = &Teoroom{}
+	tr.m = make(map[string]*Client)
 	return
 }
 
 // Destroy close room controller
-func (troom *Teoroom) Destroy() {
+func (tr *Teoroom) Destroy() {
 
 }
 
-// Connect connects client to room
-func Connect() (err error) {
+// RoomRequest request connect client to room
+func (tr *Teoroom) RoomRequest(client string) (err error) {
+	if _, ok := tr.m[client]; ok {
+		err = errors.New("client already in room")
+		return
+	}
+	tr.m[client] = &Client{}
 	return
 }
 
+// GotData receive data from client
+func (tr *Teoroom) GotData(client string, data []byte, f func(l0, client string, data []byte)) {
+	for key := range tr.m {
+		if key != client {
+			f("", key, nil)
+		}
+	}
+}
+
 // Disconnec disconnects client from room
-func Disconnec() (err error) {
+func (tr *Teoroom) Disconnect(client string) (err error) {
+	if _, ok := tr.m[client]; !ok {
+		err = errors.New("client not in room")
+		return
+	}
+	delete(tr.m, client)
 	return
 }
 
@@ -77,12 +102,25 @@ func RoomRequest(con TeoConnector, peer string, i interface{}) {
 	case []byte:
 		con.SendTo(peer, ComRoomRequest, data)
 	default:
-		err := errors.New(fmt.Sprintf("Invalid type %T in SendTo function", data))
+		err := fmt.Errorf("Invalid type %T in SendTo function", data)
 		panic(err)
 	}
 }
 
-// SendData exchange data beatvean room member
+// Disconnect send disconnect command
+func Disconnect(con TeoConnector, peer string, i interface{}) {
+	switch data := i.(type) {
+	case nil:
+		con.SendTo(peer, ComDisconnect, nil)
+	case []byte:
+		con.SendTo(peer, ComDisconnect, data)
+	default:
+		err := fmt.Errorf("Invalid type %T in SendTo function", data)
+		panic(err)
+	}
+}
+
+// SendData send data from client
 func SendData(con TeoConnector, peer string, data ...interface{}) (err error) {
 	buf := new(bytes.Buffer)
 	for _, i := range data {
@@ -92,15 +130,16 @@ func SendData(con TeoConnector, peer string, data ...interface{}) (err error) {
 		case []byte:
 			err = binary.Write(buf, binary.LittleEndian, what)
 		case encoding.BinaryMarshaler:
-			d, err := what.MarshalBinary()
+			var d []byte
+			d, err = what.MarshalBinary()
 			if err != nil {
-				panic(err)
+				return
 			}
 			err = binary.Write(buf, binary.LittleEndian, d)
 		case int:
 			err = binary.Write(buf, binary.LittleEndian, uint64(what))
 		default:
-			err = errors.New(fmt.Sprintf("Invalid type %T in SendTo function", data))
+			err = fmt.Errorf("Invalid type %T in SendTo function", data)
 		}
 		if err != nil {
 			return

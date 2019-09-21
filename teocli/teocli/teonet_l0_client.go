@@ -323,7 +323,7 @@ FOR:
 				break FOR
 			}
 			packet = packet[:length]
-			fmt.Printf("got %d bytes packet\n", len(packet))
+			//fmt.Printf("got %d bytes packet\n", len(packet))
 			if pac = packetCheck(packet); pac != nil {
 				break FOR
 			}
@@ -338,7 +338,7 @@ FOR:
 				err = errors.New("need to reconnect")
 				break FOR
 			case trudp.GOT_DATA:
-				fmt.Printf("got %d bytes packet\n", len(packet))
+				//fmt.Printf("got %d bytes packet\n", len(packet))
 				if pac = packetCheck(packet); pac != nil {
 					break FOR
 				}
