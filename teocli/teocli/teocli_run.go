@@ -17,12 +17,11 @@ type Command interface {
 }
 
 // Run cnnect and run
-func Run(peer, name, raddr string, rport int, tcp bool, reconnectAfter time.Duration,
+func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 	startCommand StartCommand, commands ...Command) {
 
 	var err error
 	var teo *TeoLNull
-	//var connected bool
 
 	network := func(tcp bool) string {
 		if tcp {
@@ -31,15 +30,14 @@ func Run(peer, name, raddr string, rport int, tcp bool, reconnectAfter time.Dura
 		return "TRUDP"
 	}
 
-	// Reconnect loop, reconnect if disconnected afer reconnectAfter time (in sec)
+	// Reconnect loop, reconnect if disconnected afer timeout time (in sec)
 	for {
 		// Connect to L0 server
-		//connected = false
 		fmt.Printf("try %s connecting to %s:%d ...\n", network(tcp), raddr, rport)
 		teo, err = Connect(raddr, rport, tcp)
 		if err != nil {
 			fmt.Println(err)
-			time.Sleep(reconnectAfter)
+			time.Sleep(timeout)
 			continue
 		}
 		//connected = true
@@ -50,11 +48,7 @@ func Run(peer, name, raddr string, rport int, tcp bool, reconnectAfter time.Dura
 			panic(err)
 		}
 
-		// Send peers command (just for test, it may be removed)
-		fmt.Printf("send peers request\n")
-		teo.SendTo(peer, CmdLPeers, nil)
-
-		// Send Start game request to the teo-room
+		// Execute start command
 		startCommand.Command(teo)
 
 		// Reader (receive data and process it)
@@ -75,7 +69,6 @@ func Run(peer, name, raddr string, rport int, tcp bool, reconnectAfter time.Dura
 		}
 		// Disconnect
 		teo.Disconnect()
-		//connected = false
-		time.Sleep(reconnectAfter)
+		time.Sleep(timeout)
 	}
 }
