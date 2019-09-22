@@ -43,6 +43,7 @@ type Teoroom struct {
 // Client data
 type Client struct {
 	name string
+	data []byte
 }
 
 // Init initialize room controller
@@ -67,8 +68,9 @@ func (tr *Teoroom) RoomRequest(client string) (err error) {
 	return
 }
 
-// GotData receive data from client
+// GotData receive data from client and resend if to all connected
 func (tr *Teoroom) GotData(client string, data []byte, f func(l0, client string, data []byte)) {
+	tr.m[client].data = data
 	for key := range tr.m {
 		if key != client {
 			f("", key, nil)
@@ -76,7 +78,16 @@ func (tr *Teoroom) GotData(client string, data []byte, f func(l0, client string,
 	}
 }
 
-// Disconnec disconnects client from room
+// NewClient send data of all connected clients to new client
+func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byte)) {
+	for key, c := range tr.m {
+		if key != client {
+			f("", key, c.data)
+		}
+	}
+}
+
+// Disconnect disconnects client from room
 func (tr *Teoroom) Disconnect(client string) (err error) {
 	if _, ok := tr.m[client]; !ok {
 		err = errors.New("client not in room")
@@ -121,32 +132,25 @@ func Disconnect(con TeoConnector, peer string, i interface{}) {
 }
 
 // SendData send data from client
-func SendData(con TeoConnector, peer string, data ...interface{}) (err error) {
+func SendData(con TeoConnector, peer string, ii ...interface{}) (num int, err error) {
 	buf := new(bytes.Buffer)
-	for _, i := range data {
-		switch what := i.(type) {
+	for _, i := range ii {
+		switch d := i.(type) {
 		case nil:
 			err = binary.Write(buf, binary.LittleEndian, "nil")
-		case []byte:
-			err = binary.Write(buf, binary.LittleEndian, what)
 		case encoding.BinaryMarshaler:
-			var d []byte
-			d, err = what.MarshalBinary()
-			if err != nil {
-				return
+			var dd []byte
+			if dd, err = d.MarshalBinary(); err == nil {
+				err = binary.Write(buf, binary.LittleEndian, dd)
 			}
-			err = binary.Write(buf, binary.LittleEndian, d)
 		case int:
-			err = binary.Write(buf, binary.LittleEndian, uint64(what))
+			err = binary.Write(buf, binary.LittleEndian, uint64(d))
 		default:
-			err = fmt.Errorf("Invalid type %T in SendTo function", data)
+			err = binary.Write(buf, binary.LittleEndian, d)
 		}
 		if err != nil {
 			return
 		}
 	}
-	d := buf.Bytes()
-	con.SendTo(peer, ComRoomData, d)
-
-	return
+	return con.SendTo(peer, ComRoomData, buf.Bytes())
 }
