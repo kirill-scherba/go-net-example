@@ -44,7 +44,7 @@ func (wcom *waitCommand) add(from string, cmd byte, ch ChanWaitFromData) (wfr *w
 }
 
 // exists checks if waitFromRequest exists
-func (wcom *waitCommand) exists(wfr *waitFromRequest, b ...bool) (found bool) {
+func (wcom *waitCommand) exists(wfr *waitFromRequest, remove ...bool) (found bool) {
 	key := wcom.makeKey(wfr.from, wfr.cmd)
 	wcomRequestAr, ok := wcom.m[key]
 	if !ok {
@@ -53,7 +53,7 @@ func (wcom *waitCommand) exists(wfr *waitFromRequest, b ...bool) (found bool) {
 	for idx, w := range wcomRequestAr {
 		if w == wfr {
 			// remove element if secod parameter of this function == true
-			if len(b) == 1 && b[0] {
+			if len(remove) == 1 && remove[0] {
 				wcomRequestAr = append(wcomRequestAr[:idx], wcomRequestAr[idx+1:]...)
 				if len(wcomRequestAr) == 0 {
 					delete(wcom.m, key)
