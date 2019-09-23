@@ -78,20 +78,6 @@ func main() {
 					}
 					// Send roomDataCommand
 					teo.SendToClient("teo-l0", pac.From(), teoroom.ComRoomRequestAnswer, pac.Data())
-					// Send all connected clients data to this new
-					// \TODO replace sleep for normal protocol exchange:
-					// - send in room request his number (position) in room
-					// - wait while loadded and send his position
-					// - and than send him position of already loadded users
-					// go func() {
-					// 	time.Sleep(500 * time.Millisecond)
-					// 	tr.NewClient(pac.From(), func(l0, client string, data []byte) {
-					// 		//teoroom.SendData(teo, client, pac.From(), data)
-					// 		d := append(data, []byte(client)...)
-					// 		fmt.Printf("send to %s data: %v\n", pac.From(), d)
-					// 		teo.SendToClient("teo-l0", pac.From(), teoroom.ComRoomData, d)
-					// 	})
-					// }()
 
 				// Command #130: [in,out] Data transfer
 				case teoroom.ComRoomData:

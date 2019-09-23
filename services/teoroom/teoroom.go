@@ -68,20 +68,38 @@ func (tr *Teoroom) RoomRequest(client string) (err error) {
 	return
 }
 
-// GotData receive data from client and resend if to all connected
+// GotData process data received from client and resend if to all connected
 func (tr *Teoroom) GotData(client string, data []byte, f func(l0, client string, data []byte)) {
+
+	// If client does not exists in map - create it
+	if _, ok := tr.m[client]; !ok {
+		tr.m[client] = &Client{}
+	}
+
+	// If client send first data than it looaded and ready to play - send him "NewClient Data"
+	if tr.m[client].data == nil {
+		fmt.Printf("New client %s loaded\n", client)
+		tr.NewClient(client, func(l0, cli string, data []byte) {
+			d := append(data, []byte(cli)...)
+			f("", client, d)
+		})
+	}
+
+	// Save data
 	tr.m[client].data = data
-	for key := range tr.m {
-		if key != client {
+
+	// Send data to all (connected and ladded) clients except himself
+	for key, c := range tr.m {
+		if key != client && c.data != nil {
 			f("", key, nil)
 		}
 	}
 }
 
-// NewClient send data of all connected clients to new client
+// NewClient send data of all connected and loaded clients to new client
 func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byte)) {
 	for key, c := range tr.m {
-		if key != client {
+		if key != client && c.data != nil {
 			f("", key, c.data)
 		}
 	}
