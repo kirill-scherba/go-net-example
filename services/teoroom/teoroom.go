@@ -68,8 +68,8 @@ func (tr *Teoroom) RoomRequest(client string) (err error) {
 	return
 }
 
-// GotData process data received from client and resend if to all connected
-func (tr *Teoroom) GotData(client string, data []byte, f func(l0, client string, data []byte)) {
+// ResendData process data received from client and resend it to all connected
+func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client string, data []byte)) {
 
 	// If client does not exists in map - create it
 	if _, ok := tr.m[client]; !ok {

@@ -22,6 +22,7 @@ type echoAnswerCommand struct{}
 type peerAnswerCommand struct{}
 type roomRequestAnswerCommand struct{ tg *Teogame }
 type roomDataCommand struct{ tg *Teogame }
+type clientDisconnecCommand struct{ tg *Teogame }
 
 // inputCommands combine input commands to slice
 func inputCommands(tg *Teogame) (com []teocli.Command) {
@@ -30,6 +31,7 @@ func inputCommands(tg *Teogame) (com []teocli.Command) {
 		peerAnswerCommand{},
 		roomRequestAnswerCommand{tg},
 		roomDataCommand{tg},
+		clientDisconnecCommand{tg},
 	)
 	return
 }
@@ -68,6 +70,20 @@ func (p roomDataCommand) Cmd() byte { return teoroom.ComRoomData }
 func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 	name := string(packet.Data()[2*unsafe.Sizeof(int64(0)):])
 	p.tg.addPlayer(name).UnmarshalBinary(packet.Data())
+	return true
+}
+
+// disconnec (exit from room) command methods
+func (p clientDisconnecCommand) Cmd() byte { return teoroom.ComDisconnect }
+func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
+	if packet.Data() == nil || len(packet.Data()) == 0 {
+		return true
+	}
+	name := string(packet.Data())
+	if player, ok := p.tg.player[name]; ok {
+		p.tg.level.RemoveEntity(player)
+		delete(p.tg.player, name)
+	}
 	return true
 }
 
