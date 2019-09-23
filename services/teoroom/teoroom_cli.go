@@ -35,6 +35,8 @@ func Disconnect(con TeoConnector, peer string, i interface{}) {
 		con.SendTo(peer, ComDisconnect, nil)
 	case []byte:
 		con.SendTo(peer, ComDisconnect, data)
+	case byte:
+		con.SendTo(peer, ComDisconnect, append([]byte{}, data))
 	default:
 		err := fmt.Errorf("Invalid type %T in SendTo function", data)
 		panic(err)
