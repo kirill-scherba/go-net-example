@@ -95,7 +95,7 @@ func (tg *Teogame) startGame(rra roomRequestAnswerData) {
 	level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
 
 	// Hero
-	tg.hero = tg.addHero(rra.x, rra.y)
+	tg.hero = tg.addHero(int(rra.clientID)*3, 0)
 
 	// Start and run
 	tg.game.Screen().SetLevel(level)
