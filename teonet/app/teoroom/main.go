@@ -83,10 +83,10 @@ func main() {
 				case teoroom.ComRoomData:
 					tr.GotData(pac.From(), pac.Data(), func(l0, client string, data []byte) {
 						if data == nil {
-							data = pac.Data()
+							data = append(pac.Data(), []byte(pac.From())...)
 						}
 						//teoroom.SendData(teo, client, pac.From(), data)
-						teo.SendToClient("teo-l0", client, teoroom.ComRoomData, append(data, []byte(pac.From())...))
+						teo.SendToClient("teo-l0", client, teoroom.ComRoomData, data)
 					})
 
 				// Command #131 [in] Disconnect (exit) from room

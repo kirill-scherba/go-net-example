@@ -138,6 +138,7 @@ func (tg *Teogame) addPlayer(name string) (player *Player) {
 		player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: 'Ö'})
 		tg.level.AddEntity(player)
 		tg.player[name] = player
+		//fmt.Printf("player %s added\n", name)
 	}
 	return
 }

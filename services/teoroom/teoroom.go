@@ -79,10 +79,7 @@ func (tr *Teoroom) GotData(client string, data []byte, f func(l0, client string,
 	// If client send first data than it looaded and ready to play - send him "NewClient Data"
 	if tr.m[client].data == nil {
 		fmt.Printf("New client %s loaded\n", client)
-		tr.NewClient(client, func(l0, cli string, data []byte) {
-			d := append(data, []byte(cli)...)
-			f("", client, d)
-		})
+		tr.NewClient(client, f)
 	}
 
 	// Save data
@@ -100,7 +97,7 @@ func (tr *Teoroom) GotData(client string, data []byte, f func(l0, client string,
 func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byte)) {
 	for key, c := range tr.m {
 		if key != client && c.data != nil {
-			f("", key, c.data)
+			f("", client, append(c.data, []byte(key)...))
 		}
 	}
 }
