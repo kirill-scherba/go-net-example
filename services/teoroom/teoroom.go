@@ -95,13 +95,12 @@ func (tr *Teoroom) RoomRequest(client string) (roomID, cliID int, err error) {
 // ResendData process data received from client and resend it to all connected
 func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client string, data []byte)) {
 
-	// If client does not exists in map - create it
-	// \TODO it shoud be deprecated: we can't create new user without roomRequest
+	// If client does not exists in map - skip this request
 	if _, ok := tr.mcli[client]; !ok {
-		tr.clientNew(client)
+		return
 	}
 
-	roomID, cliID, _ := tr.mcli[client].getRoomClientId()
+	roomID, cliID, _ := tr.mcli[client].getRoomClientID()
 
 	// If client send first data than it looaded and ready to play - send him "NewClient Data"
 	if tr.mcli[client].data == nil {
@@ -114,19 +113,23 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client stri
 	tr.mcli[client].data = data
 
 	// Send data to all (connected and loaded) clients except himself
-	for key, c := range tr.mcli {
-		if key != client && c.data != nil {
-			f("", key, nil)
+	for id, cli := range tr.mroom[roomID].client {
+		if id != cliID && cli != nil {
+			f("", cli.name, data)
 		}
 	}
 }
 
 // NewClient send data of all connected and loaded clients to new client
 func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byte)) {
-	for key, c := range tr.mcli {
-		if key != client && c.data != nil {
-			_, cliID, _ := c.getRoomClientId()
-			f("", client, append(c.data, byte(cliID)))
+	c, ok := tr.mcli[client]
+	if !ok {
+		return
+	}
+	roomID, cliID, _ := c.getRoomClientID()
+	for id, cli := range tr.mroom[roomID].client {
+		if id != cliID && cli != nil {
+			f("", client, append(c.data, byte(id)))
 		}
 	}
 }
@@ -138,7 +141,7 @@ func (tr *Teoroom) Disconnect(client string) (err error) {
 		err = errors.New("client not in room")
 		return
 	}
-	if roomID, cliID, err := cli.getRoomClientId(); err == nil {
+	if roomID, cliID, err := cli.getRoomClientID(); err == nil {
 		tr.mroom[roomID].client[cliID] = nil
 	}
 	delete(tr.mcli, client)
@@ -172,8 +175,8 @@ func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 	return r.id, r.addClient(cli), nil
 }
 
-// getRoomClientId find client in rooms and return clients id
-func (cli *Client) getRoomClientId() (roomID, cliID int, err error) {
+// getRoomClientID find client in rooms and return clients id
+func (cli *Client) getRoomClientID() (roomID, cliID int, err error) {
 	var r *Room
 	for roomID, r = range cli.tr.mroom {
 		for id, c := range r.client {
