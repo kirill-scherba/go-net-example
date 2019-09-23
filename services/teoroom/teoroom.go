@@ -125,7 +125,8 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client stri
 func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byte)) {
 	for key, c := range tr.mcli {
 		if key != client && c.data != nil {
-			f("", client, append(c.data, []byte(key)...))
+			_, cliID, _ := c.getRoomClientId()
+			f("", client, append(c.data, byte(cliID)))
 		}
 	}
 }
