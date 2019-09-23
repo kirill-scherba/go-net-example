@@ -22,13 +22,14 @@ const Version = "0.0.1"
 
 // Teogame this game data structure
 type Teogame struct {
-	game   *tl.Game           // Game
-	level  *tl.BaseLevel      // Game BaseLevel
-	hero   *Hero              // Game Hero
-	player map[string]*Player // Game Players map
-	teo    *teocli.TeoLNull   // Teonet connetor
-	peer   string             // Teonet room controller peer name
-	com    *outputCommands    // Teonet output commands receiver
+	game   *tl.Game               // Game
+	level  *tl.BaseLevel          // Game BaseLevel
+	hero   *Hero                  // Game Hero
+	player map[byte]*Player       // Game Players map
+	teo    *teocli.TeoLNull       // Teonet connetor
+	peer   string                 // Teonet room controller peer name
+	com    *outputCommands        // Teonet output commands receiver
+	rra    *roomRequestAnswerData // Room request answer data
 }
 
 // Player stucture of player
@@ -73,15 +74,16 @@ func main() {
 
 // Run connect to teonet, start game and process received commands
 func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration) (tg *Teogame) {
-	tg = &Teogame{peer: peer, player: make(map[string]*Player)}
+	tg = &Teogame{peer: peer, player: make(map[byte]*Player)}
 	teocli.Run(name, raddr, rport, tcp, timeout, startCommand(tg), inputCommands(tg)...)
 	return
 }
 
 // startGame initialize and start game
-func (tg *Teogame) startGame(rra roomRequestAnswerData) {
+func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	tg.game = tl.NewGame()
 	tg.game.Screen().SetFps(30)
+	tg.rra = rra
 
 	// Base level
 	level := tl.NewBaseLevel(tl.Cell{
@@ -126,8 +128,8 @@ func (tg *Teogame) addHero(x, y int) (hero *Hero) {
 }
 
 // addPlayer add new Player to game or return existing if already exist
-func (tg *Teogame) addPlayer(name string) (player *Player) {
-	player, ok := tg.player[name]
+func (tg *Teogame) addPlayer(id byte) (player *Player) {
+	player, ok := tg.player[id]
 	if !ok {
 		player = &Player{
 			Entity: tl.NewEntity(2, 2, 1, 1),
@@ -137,8 +139,8 @@ func (tg *Teogame) addPlayer(name string) (player *Player) {
 		// Set the character at position (0, 0) on the entity.
 		player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: 'Ö'})
 		tg.level.AddEntity(player)
-		tg.player[name] = player
-		//fmt.Printf("player %s added\n", name)
+		tg.player[id] = player
+		//fmt.Printf("addPlayer, id: %d\n", id)
 	}
 	return
 }
@@ -196,6 +198,7 @@ func (player *Player) Collide(collision tl.Physical) {
 func (player *Player) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	x, y := player.Position()
+	binary.Write(buf, binary.LittleEndian, player.tg.rra.clientID)
 	err = binary.Write(buf, binary.LittleEndian, int64(x))
 	err = binary.Write(buf, binary.LittleEndian, int64(y))
 	data = buf.Bytes()
@@ -204,16 +207,18 @@ func (player *Player) MarshalBinary() (data []byte, err error) {
 
 // UnmarshalBinary unmarshal binary data and sen it yo player
 func (player *Player) UnmarshalBinary(data []byte) (err error) {
+	var cliID byte
 	var x, y int64
 	buf := bytes.NewReader(data)
+	err = binary.Read(buf, binary.LittleEndian, &cliID)
 	err = binary.Read(buf, binary.LittleEndian, &x)
-	if err != nil {
-		return
-	}
+	// if err != nil {
+	// 	return
+	// }
 	err = binary.Read(buf, binary.LittleEndian, &y)
-	if err != nil {
-		return
-	}
+	// if err != nil {
+	// 	return
+	// }
 	player.SetPosition(int(x), int(y))
 	return
 }

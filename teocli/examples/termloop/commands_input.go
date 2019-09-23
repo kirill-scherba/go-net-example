@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
@@ -61,15 +60,15 @@ func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 	rra := roomRequestAnswerData{}
 	rra.UnmarshalBinary(packet.Data())
 	fmt.Printf("roomRequestAnswerData.UnmarshalBinary after: %v\n", rra)
-	go p.tg.startGame(rra)
+	go p.tg.startGame(&rra)
 	return true
 }
 
 // roomData command methods
 func (p roomDataCommand) Cmd() byte { return teoroom.ComRoomData }
 func (p roomDataCommand) Command(packet *teocli.Packet) bool {
-	name := string(packet.Data()[2*unsafe.Sizeof(int64(0)):])
-	p.tg.addPlayer(name).UnmarshalBinary(packet.Data())
+	id := packet.Data()[0] // [2*unsafe.Sizeof(int64(0))]
+	p.tg.addPlayer(id).UnmarshalBinary(packet.Data())
 	return true
 }
 
@@ -79,10 +78,10 @@ func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
 		return true
 	}
-	name := string(packet.Data())
-	if player, ok := p.tg.player[name]; ok {
+	id := packet.Data()[0]
+	if player, ok := p.tg.player[id]; ok {
 		p.tg.level.RemoveEntity(player)
-		delete(p.tg.player, name)
+		delete(p.tg.player, id)
 	}
 	return true
 }
