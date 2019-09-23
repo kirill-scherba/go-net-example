@@ -1,13 +1,21 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 	"unsafe"
 
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 )
+
+func init() {
+	rand.Seed(int64(time.Now().Nanosecond()))
+}
 
 // inputCommand receivers
 type echoAnswerCommand struct{}
@@ -48,7 +56,10 @@ func (p peerAnswerCommand) Command(packet *teocli.Packet) bool {
 // roomRequestAnswer command methods
 func (p roomRequestAnswerCommand) Cmd() byte { return teoroom.ComRoomRequestAnswer }
 func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
-	go p.tg.startGame()
+	rra := roomRequestAnswerData{}
+	rra.UnmarshalBinary(packet.Data())
+	fmt.Printf("roomRequestAnswerData.UnmarshalBinary after: %v\n", rra)
+	go p.tg.startGame(rra)
 	return true
 }
 
@@ -58,4 +69,37 @@ func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 	name := string(packet.Data()[2*unsafe.Sizeof(int64(0)):])
 	p.tg.addPlayer(name).UnmarshalBinary(packet.Data())
 	return true
+}
+
+type roomRequestAnswerData struct {
+	x, y int
+}
+
+func (rra *roomRequestAnswerData) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	err = binary.Write(buf, binary.LittleEndian, int64(rra.x))
+	err = binary.Write(buf, binary.LittleEndian, int64(rra.y))
+	data = buf.Bytes()
+	return
+}
+func (rra *roomRequestAnswerData) UnmarshalBinary(data []byte) (err error) {
+	fmt.Printf("roomRequestAnswerData.UnmarshalBinary data: %v\n", data)
+	if data == nil || len(data) == 0 {
+		rra.x, rra.y = rand.Intn(20), 0
+		fmt.Printf("roomRequestAnswerData.UnmarshalBinary set: %v\n", rra)
+		return
+	}
+	var x, y int64
+	buf := bytes.NewReader(data)
+	err = binary.Read(buf, binary.LittleEndian, &x)
+	if err != nil {
+		return
+	}
+	err = binary.Read(buf, binary.LittleEndian, &y)
+	if err != nil {
+		return
+	}
+	rra.x = int(x)
+	rra.y = int(y)
+	return
 }

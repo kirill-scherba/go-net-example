@@ -79,7 +79,7 @@ func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration) (
 }
 
 // startGame initialize and start game
-func (tg *Teogame) startGame() {
+func (tg *Teogame) startGame(rra roomRequestAnswerData) {
 	tg.game = tl.NewGame()
 	tg.game.Screen().SetFps(30)
 
@@ -95,10 +95,14 @@ func (tg *Teogame) startGame() {
 	level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
 
 	// Hero
-	tg.hero = tg.addHero()
+	tg.hero = tg.addHero(rra.x, rra.y)
 
 	// Start and run
 	tg.game.Screen().SetLevel(level)
+	_, err := tg.com.sendData(tg.hero)
+	if err != nil {
+		panic(err)
+	}
 	tg.game.Start()
 
 	// When stopped (press exit from game or Ctrl+C)
@@ -108,7 +112,7 @@ func (tg *Teogame) startGame() {
 }
 
 // addHero add new Player to game
-func (tg *Teogame) addHero() (hero *Hero) {
+func (tg *Teogame) addHero(x, y int) (hero *Hero) {
 	hero = &Hero{Player{
 		Entity: tl.NewEntity(1, 1, 1, 1),
 		level:  tg.level,
@@ -116,6 +120,7 @@ func (tg *Teogame) addHero() (hero *Hero) {
 	}}
 	// Set the character at position (0, 0) on the entity.
 	hero.SetCell(0, 0, &tl.Cell{Fg: tl.ColorGreen, Ch: 'Ω'})
+	hero.SetPosition(x, y)
 	tg.level.AddEntity(hero)
 	return
 }
