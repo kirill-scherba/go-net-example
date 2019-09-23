@@ -92,7 +92,7 @@ func (tg *Teogame) startGame() {
 	tg.level = level
 
 	// Lake
-	level.AddEntity(tl.NewRectangle(10, 10, 50, 20, tl.ColorBlue))
+	level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
 
 	// Hero
 	tg.hero = tg.addHero()
