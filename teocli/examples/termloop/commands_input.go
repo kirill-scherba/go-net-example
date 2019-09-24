@@ -86,16 +86,22 @@ func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	return true
 }
 
+// roomRequestAnswerData room request answer data structure
 type roomRequestAnswerData struct {
 	clientID byte
 }
 
+// MarshalBinary marshal roomRequestAnswerData to binary
 func (rra *roomRequestAnswerData) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
-	err = binary.Write(buf, binary.LittleEndian, rra.clientID)
+	if err = binary.Write(buf, binary.LittleEndian, rra.clientID); err != nil {
+		return
+	}
 	data = buf.Bytes()
 	return
 }
+
+// UnmarshalBinary unmarshal roomRequestAnswerData from binary
 func (rra *roomRequestAnswerData) UnmarshalBinary(data []byte) (err error) {
 	fmt.Printf("roomRequestAnswerData.UnmarshalBinary data: %v\n", data)
 	if data == nil || len(data) == 0 {
@@ -105,7 +111,9 @@ func (rra *roomRequestAnswerData) UnmarshalBinary(data []byte) (err error) {
 	}
 	var x byte
 	buf := bytes.NewReader(data)
-	err = binary.Read(buf, binary.LittleEndian, &x)
+	if err = binary.Read(buf, binary.LittleEndian, &x); err != nil {
+		return
+	}
 	rra.clientID = x
 	return
 }

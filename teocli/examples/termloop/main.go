@@ -49,7 +49,7 @@ type Hero struct {
 }
 
 // MovingText of text
-type MovingText struct {
+type Text struct {
 	*tl.Text
 	i int
 }
@@ -105,7 +105,7 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
 
 	// Text
-	level.AddEntity(&MovingText{tl.NewText(0, 0, os.Args[0], tl.ColorWhite, tl.ColorBlue), 0})
+	level.AddEntity(&Text{tl.NewText(0, 0, os.Args[0], tl.ColorBlack, tl.ColorBlue), 0})
 
 	// Hero
 	tg.hero = tg.addHero(int(rra.clientID)*3, 2)
@@ -209,8 +209,11 @@ func (player *Player) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	x, y := player.Position()
 	binary.Write(buf, binary.LittleEndian, player.tg.rra.clientID)
-	err = binary.Write(buf, binary.LittleEndian, int64(x))
-	err = binary.Write(buf, binary.LittleEndian, int64(y))
+	if err = binary.Write(buf, binary.LittleEndian, int64(x)); err != nil {
+		return
+	} else if err = binary.Write(buf, binary.LittleEndian, int64(y)); err != nil {
+		return
+	}
 	data = buf.Bytes()
 	return
 }
@@ -220,21 +223,19 @@ func (player *Player) UnmarshalBinary(data []byte) (err error) {
 	var cliID byte
 	var x, y int64
 	buf := bytes.NewReader(data)
-	err = binary.Read(buf, binary.LittleEndian, &cliID)
-	err = binary.Read(buf, binary.LittleEndian, &x)
-	// if err != nil {
-	// 	return
-	// }
-	err = binary.Read(buf, binary.LittleEndian, &y)
-	// if err != nil {
-	// 	return
-	// }
+	if err = binary.Read(buf, binary.LittleEndian, &cliID); err != nil {
+		return
+	} else if err = binary.Read(buf, binary.LittleEndian, &x); err != nil {
+		return
+	} else if err = binary.Read(buf, binary.LittleEndian, &y); err != nil {
+		return
+	}
 	player.SetPosition(int(x), int(y))
 	return
 }
 
 // Tick frame tick
-func (m *MovingText) Tick(ev tl.Event) {
+func (m *Text) Tick(ev tl.Event) {
 	m.i++
-	m.Text.SetText(os.Args[0] + " " + strconv.Itoa(m.i))
+	m.Text.SetText(os.Args[0] + ", frame: " + strconv.Itoa(m.i))
 }

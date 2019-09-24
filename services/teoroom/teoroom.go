@@ -37,26 +37,28 @@ const (
 	maxClientsInRoom = 10
 )
 
-// Teoroom teonet room controller data
+// Teoroom is room controller data
 type Teoroom struct {
 	roomID   int                // Next room id
-	creating []int              // Creating rooms: slice with creating rooms id
+	creating []int              // Creating rooms slice with creating rooms id
 	mroom    map[int]*Room      // Rooms map contain created rooms
 	mcli     map[string]*Client // Clients map contain clients connected to room controller
 }
 
 // Room Data
 type Room struct {
-	tr     *Teoroom  // Pointer to Teoroom receiver
-	id     int       // Room id
-	state  int       // Room state: 0 - creating; 1 - running; 2 - closed
-	client []*Client // List of clients in room
+	tr     *Teoroom           // Pointer to Teoroom receiver
+	id     int                // Room id
+	state  int                // Room state: 0 - creating; 1 - running; 2 - closed
+	client []*Client          // List of clients in room by position: client[0] - position 1 ... client[0] - position 10
+	cliwas map[string]*Client // Map of clients which was in room (included clients connected now)
 }
 
 // addClient adds client to room
 func (r *Room) addClient(cli *Client) (clientID int) {
 	r.client = append(r.client, cli)
 	clientID = len(r.client) - 1
+	r.cliwas[cli.name] = cli
 	fmt.Printf("Client name: %s, id in room: %d, added to room id %d\n",
 		cli.name, clientID, r.id)
 	return
@@ -66,7 +68,7 @@ func (r *Room) addClient(cli *Client) (clientID int) {
 type Client struct {
 	tr   *Teoroom // Pointer to Teoroom receiver
 	name string   // Client name
-	data []byte   // Client data (which sends to new room clients)
+	data [][]byte // Client data (which sends to new room clients)
 }
 
 // Init initialize room controller
@@ -74,7 +76,6 @@ func Init() (tr *Teoroom, err error) {
 	tr = &Teoroom{}
 	tr.mcli = make(map[string]*Client)
 	tr.mroom = make(map[int]*Room)
-	//maxClientsInRoom
 	return
 }
 
@@ -110,7 +111,10 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client stri
 	}
 
 	// Save data
-	tr.mcli[client].data = data
+	if len(tr.mcli[client].data) == 0 {
+		tr.mcli[client].data = append(tr.mcli[client].data, []byte{})
+	}
+	tr.mcli[client].data[0] = data
 
 	// Send data to all (connected and loaded) clients except himself
 	for id, cli := range tr.mroom[roomID].client {
@@ -129,7 +133,9 @@ func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byt
 	roomID, cliID, _ := c.getRoomClientID()
 	for id, cli := range tr.mroom[roomID].client {
 		if id != cliID && cli != nil {
-			f("", client, cli.data)
+			for _, d := range cli.data {
+				f("", client, d)
+			}
 		}
 	}
 }
@@ -148,9 +154,9 @@ func (tr *Teoroom) Disconnect(client string) (err error) {
 	return
 }
 
-// clientNew create new client
+// clientNew create new room
 func (tr *Teoroom) roomNew() (r *Room) {
-	r = &Room{tr: tr, id: tr.roomID}
+	r = &Room{tr: tr, id: tr.roomID, cliwas: make(map[string]*Client)}
 	tr.creating = append(tr.creating, r.id)
 	tr.mroom[r.id] = r
 	tr.roomID++
@@ -164,10 +170,12 @@ func (tr *Teoroom) clientNew(client string) (cli *Client) {
 	return
 }
 
-// roomRequest finds room for client or create new
+// roomRequest finds room for client or create new and add client to room
 func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 	for _, rid := range cli.tr.creating {
-		if r, ok := cli.tr.mroom[rid]; ok && len(r.client) < maxClientsInRoom {
+		if r, ok := cli.tr.mroom[rid]; ok &&
+			func() bool { _, ok := r.cliwas[cli.name]; return !ok }() &&
+			len(r.client) < maxClientsInRoom {
 			return r.id, r.addClient(cli), nil
 		}
 	}
