@@ -11,6 +11,8 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	tl "github.com/JoelOtter/termloop"
@@ -44,6 +46,12 @@ type Player struct {
 // Hero struct of hero
 type Hero struct {
 	Player
+}
+
+// MovingText of text
+type MovingText struct {
+	*tl.Text
+	i int
 }
 
 // main parse aplication parameters and connect to Teonet. When teonet connected
@@ -96,8 +104,11 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	// Lake
 	level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
 
+	// Text
+	level.AddEntity(&MovingText{tl.NewText(0, 0, os.Args[0], tl.ColorWhite, tl.ColorBlue), 0})
+
 	// Hero
-	tg.hero = tg.addHero(int(rra.clientID)*3, 0)
+	tg.hero = tg.addHero(int(rra.clientID)*3, 2)
 
 	// Start and run
 	tg.game.Screen().SetLevel(level)
@@ -140,7 +151,6 @@ func (tg *Teogame) addPlayer(id byte) (player *Player) {
 		player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: 'Ö'})
 		tg.level.AddEntity(player)
 		tg.player[id] = player
-		//fmt.Printf("addPlayer, id: %d\n", id)
 	}
 	return
 }
@@ -221,4 +231,10 @@ func (player *Player) UnmarshalBinary(data []byte) (err error) {
 	// }
 	player.SetPosition(int(x), int(y))
 	return
+}
+
+// Tick frame tick
+func (m *MovingText) Tick(ev tl.Event) {
+	m.i++
+	m.Text.SetText(os.Args[0] + " " + strconv.Itoa(m.i))
 }
