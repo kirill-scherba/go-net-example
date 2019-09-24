@@ -67,7 +67,7 @@ func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 // roomData command methods
 func (p roomDataCommand) Cmd() byte { return teoroom.ComRoomData }
 func (p roomDataCommand) Command(packet *teocli.Packet) bool {
-	id := packet.Data()[0] // [2*unsafe.Sizeof(int64(0))]
+	id := packet.Data()[0]
 	p.tg.addPlayer(id).UnmarshalBinary(packet.Data())
 	return true
 }

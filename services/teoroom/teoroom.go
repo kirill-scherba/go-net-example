@@ -129,7 +129,7 @@ func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byt
 	roomID, cliID, _ := c.getRoomClientID()
 	for id, cli := range tr.mroom[roomID].client {
 		if id != cliID && cli != nil {
-			f("", client, append(c.data, byte(id)))
+			f("", client, cli.data)
 		}
 	}
 }
