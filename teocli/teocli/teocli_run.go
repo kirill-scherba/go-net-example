@@ -8,6 +8,8 @@ import (
 // StartCommand teocli first command interface
 type StartCommand interface {
 	Command(teo *TeoLNull)
+	Running() bool
+	Stop()
 }
 
 // Command teocli input command interface
@@ -16,7 +18,7 @@ type Command interface {
 	Command(pac *Packet) bool
 }
 
-// Run cnnect and run
+// Run conect and run
 func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 	startCommand StartCommand, commands ...Command) {
 
@@ -40,7 +42,6 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 			time.Sleep(timeout)
 			continue
 		}
-		//connected = true
 
 		// Send Teonet L0 login (requered after connect)
 		fmt.Printf("send login\n")
@@ -66,6 +67,10 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 					}
 				}
 			}
+		}
+		// Stop running if game over
+		if !startCommand.Running() {
+			break
 		}
 		// Disconnect
 		teo.Disconnect()

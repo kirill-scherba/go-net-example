@@ -80,7 +80,7 @@ type Hero struct {
 	Player
 }
 
-// MovingText of text
+// Text of text
 type Text struct {
 	*tl.Text
 	i int
@@ -142,8 +142,15 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	// Hero
 	tg.hero = tg.addHero(int(rra.clientID)*3, 2)
 
+	// Level 2
+	level2 := tl.NewBaseLevel(tl.Cell{
+		Bg: tl.ColorBlack,
+		Fg: tl.ColorWhite,
+		Ch: '*',
+	})
+
 	// Start and run
-	tg.game.Screen().SetLevel(level)
+	tg.game.Screen().SetLevel(level1)
 	_, err := tg.com.sendData(tg.hero)
 	if err != nil {
 		panic(err)
@@ -153,7 +160,7 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	// When stopped (press exit from game or Ctrl+C)
 	fmt.Printf("game stopped\n")
 	tg.com.disconnect()
-	//tg.teo.Disconnect()
+	tg.com.stop()
 }
 
 // addHero add new Player to game

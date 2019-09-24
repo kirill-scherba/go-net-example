@@ -19,7 +19,7 @@ type channelStat struct {
 	lastTripTimeReceived time.Time   // Time when last packet with triptime was received
 }
 
-// realTimeSpeed type to calculate real time speed
+// RealTimeSpeed type to calculate real time speed
 type RealTimeSpeed struct {
 	secArr      [10][2]int // Secondes array
 	lastIDX     int        // Last secundes array index
@@ -29,7 +29,7 @@ type RealTimeSpeed struct {
 
 var line = "\033[2K" + strings.Repeat("-", 190) + "\n"
 
-// calculate function calculate real time packets speed in pac/sec and mb/sec
+// Calculate function calculate real time packets speed in pac/sec and mb/sec
 func (realTime *RealTimeSpeed) Calculate(length int) {
 	now := time.Now()
 	nsec := now.UnixNano()

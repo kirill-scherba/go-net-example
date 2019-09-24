@@ -13,6 +13,8 @@ import (
 	"syscall"
 )
 
+// USESYSCALL flag select udp libray or syscall (may be syscall will be
+// deprekated bekause library wotk good)
 const USESYSCALL = false
 
 type udp struct {

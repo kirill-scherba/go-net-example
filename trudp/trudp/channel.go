@@ -93,7 +93,7 @@ func (tcd *ChannelData) getID() (id uint32) {
 	return
 }
 
-// SendTestMsg set sendTestMsgF flag to send test message by interval
+// AllowSendTestMsg set sendTestMsgF flag to send test message by interval
 func (tcd *ChannelData) AllowSendTestMsg(sendTestMsgF bool) {
 	tcd.sendTestMsgF = sendTestMsgF
 }

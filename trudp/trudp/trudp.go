@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Trudp is the Teonet relable udp processing package.
+// Package trudp is the Teonet relable udp processing package.
+//
 package trudp
 
 import (

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teocli is the Teonet client package
+// Package teocli is the Teonet client package
 //
 package teocli
 
@@ -273,7 +273,7 @@ func (teocli *TeoLNull) Disconnect() {
 	}
 }
 
-// Send send data to L0 server
+// SendTo sends data to L0 server
 func (teocli *TeoLNull) SendTo(peer string, command byte, data []byte) (int, error) {
 	packet, err := teocli.PacketCreate(command, peer, data)
 	if err != nil {
