@@ -11,6 +11,9 @@ package teoroom
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Room controller commands
@@ -32,13 +35,19 @@ const (
 	ComDisconnect = 131
 )
 
-// Room controller rooms constant
+// Rooms constant
 const (
-	maxClientsInRoom = 10
+	maxClientsInRoom  = 10     // Maximum lients in room
+	minClientsToStart = 2      // Minimum clients to start room
+	waitForMinClients = 30000  // Wait for minimum clients connected
+	waitForMaxClients = 10000  // Wait for maximum clients connected after minimum clients connected
+	gameTime          = 120000 // Game time in millisecond = 2 min * 60 sec * 1000
+	gameClosedAfter   = 30000  // Game closed after (does not add new clients)
 )
 
 // Teoroom is room controller data
 type Teoroom struct {
+	teo      *teonet.Teonet     // Pointer to teonet
 	roomID   int                // Next room id
 	creating []int              // Creating rooms slice with creating rooms id
 	mroom    map[int]*Room      // Rooms map contain created rooms
@@ -47,21 +56,73 @@ type Teoroom struct {
 
 // Room Data
 type Room struct {
-	tr     *Teoroom           // Pointer to Teoroom receiver
-	id     int                // Room id
-	state  int                // Room state: 0 - creating; 1 - running; 2 - closed
-	client []*Client          // List of clients in room by position: client[0] - position 1 ... client[0] - position 10
-	cliwas map[string]*Client // Map of clients which was in room (included clients connected now)
+	tr     *Teoroom                 // Pointer to Teoroom receiver
+	id     int                      // Room id
+	state  int                      // Room state: 0 - creating; 1 - running; 2 - closed; 3 - stopped
+	client []*Client                // List of clients in room by position: client[0] - position 1 ... client[0] - position 10
+	cliwas map[string]*ClientInRoom // Map of clients which was in room (included clients connected now)
+}
+
+// Room Data
+type ClientInRoom struct {
+	*Client
+	state int // 1 - started
 }
 
 // addClient adds client to room
 func (r *Room) addClient(cli *Client) (clientID int) {
 	r.client = append(r.client, cli)
 	clientID = len(r.client) - 1
-	r.cliwas[cli.name] = cli
+	r.cliwas[cli.name] = &ClientInRoom{cli, RoomCreating}
 	fmt.Printf("Client name: %s, id in room: %d, added to room id %d\n",
 		cli.name, clientID, r.id)
 	return
+}
+
+// Room state
+const (
+	RoomCreating = iota // Creating room state
+	RoomRunning         // Running room state
+	RoomClosed          // Closed room state: running but adding clients is prohibited
+	RoomStopped         // Stopped room state (game over)
+)
+
+// clientReady calls when client loaded, send his position and ready to run
+func (r *Room) clientReady(cliID int) {
+	client := r.client[cliID]
+	r.cliwas[client.name].state = RoomRunning
+	var numReady int
+	for _, cli := range r.cliwas {
+		if cli.state == RoomRunning {
+			numReady++
+			if numReady >= minClientsToStart {
+				r.startRoom()
+			}
+		}
+	}
+}
+
+// startRoom calls when room started
+func (r *Room) startRoom() {
+	r.state = RoomRunning
+	fmt.Printf("Room id %d started\n", r.id)
+	// \TODO send something to rooms clients
+	go func() {
+		<-time.After(time.Duration(gameTime) * time.Millisecond)
+		r.state = RoomStopped
+		fmt.Printf("Room id %d closed\n", r.id)
+		// \TODO send something to rooms clients
+		for _, cli := range r.client {
+			if cli != nil {
+				f := func(l0, client string, data []byte) {
+					r.tr.teo.SendToClient("teo-l0", client, ComDisconnect, nil)
+					r.tr.Disconnect(client)
+				}
+				r.tr.ResendData(cli.name, nil, f)
+				f("", cli.name, nil)
+			}
+		}
+	}()
 }
 
 // Client data
@@ -69,11 +130,12 @@ type Client struct {
 	tr   *Teoroom // Pointer to Teoroom receiver
 	name string   // Client name
 	data [][]byte // Client data (which sends to new room clients)
+	//	state int      // State in current room
 }
 
 // Init initialize room controller
-func Init() (tr *Teoroom, err error) {
-	tr = &Teoroom{}
+func Init(teo *teonet.Teonet) (tr *Teoroom, err error) {
+	tr = &Teoroom{teo: teo}
 	tr.mcli = make(map[string]*Client)
 	tr.mroom = make(map[int]*Room)
 	return
@@ -109,6 +171,7 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client stri
 		fmt.Printf("Client %s loaded and ready to play, roomID: %d, client id: %d\n",
 			client, roomID, cliID)
 		tr.newClient(client, f)
+		tr.mroom[roomID].clientReady(cliID)
 	}
 
 	// Save data
@@ -157,7 +220,12 @@ func (tr *Teoroom) Disconnect(client string) (err error) {
 
 // clientNew create new room
 func (tr *Teoroom) roomNew() (r *Room) {
-	r = &Room{tr: tr, id: tr.roomID, cliwas: make(map[string]*Client)}
+	r = &Room{
+		tr:     tr,
+		id:     tr.roomID,
+		cliwas: make(map[string]*ClientInRoom),
+		state:  RoomCreating,
+	}
 	tr.creating = append(tr.creating, r.id)
 	tr.mroom[r.id] = r
 	tr.roomID++
@@ -175,6 +243,7 @@ func (tr *Teoroom) clientNew(client string) (cli *Client) {
 func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 	for _, rid := range cli.tr.creating {
 		if r, ok := cli.tr.mroom[rid]; ok &&
+			r.state != RoomClosed && r.state != RoomStopped &&
 			func() bool { _, ok := r.cliwas[cli.name]; return !ok }() &&
 			len(r.client) < maxClientsInRoom {
 			return r.id, r.addClient(cli), nil

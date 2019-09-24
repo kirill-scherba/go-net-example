@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -76,6 +77,9 @@ func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 func (p clientDisconnecCommand) Cmd() byte { return teoroom.ComDisconnect }
 func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
+		// Game over
+		fmt.Printf("Game over!\n")
+		os.Exit(0)
 		return true
 	}
 	id := packet.Data()[0]

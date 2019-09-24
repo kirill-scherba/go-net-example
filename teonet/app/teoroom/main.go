@@ -30,15 +30,13 @@ func main() {
 	// Show host and network name
 	fmt.Printf("\nhost: %s\nnetwork: %s\n", param.Name, param.Network)
 
-	// Start room controller
-	tr, err := teoroom.Init()
+	// Teonet connect, init room controller package and run teonet
+	teo := teonet.Connect(param, []string{"teo-go", "teo-room"}, Version)
+	tr, err := teoroom.Init(teo)
 	if err != nil {
 		panic(err)
 	}
 	defer tr.Destroy()
-
-	// Teonet connect and run
-	teo := teonet.Connect(param, []string{"teo-go", "teo-room"}, Version)
 	teo.Run(func(teo *teonet.Teonet) {
 		for ev := range teo.Event() {
 
