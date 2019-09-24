@@ -2,17 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet teoregistry (teo-registry: teonet registry service) package
-//
-// The teonet registry story teonet applications(services) and its command api
-// definition.
-// This package contain registry database schemas, service and clients functions
-//
-//
-/* Install:
-   go get github.com/kirill-scherba/teonet-go/services/teoregistry
-*/
-//
 // Data base organisation (we use ScyllaDB):
 //
 // Run Scylla in Docker: https://www.scylladb.com/download/open-source/#docker
@@ -55,6 +44,16 @@ CREATE TABLE IF NOT EXISTS commands(
 
 */
 
+// Teoregistry (teo-registry) is the Teonet registry service package
+
+// It story teonet applications(services) and its command api definition. This
+// package contain registry database schemas, service and clients functions.
+//
+// Install:
+/*
+   go get github.com/kirill-scherba/teonet-go/services/teoregistry
+*/
+//
 package teoregistry
 
 import (

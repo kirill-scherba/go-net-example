@@ -10,7 +10,7 @@ import (
 // Clients commands (commands executet in client) -----------------------------
 
 // TeoConnector is teonet connector interface. It may be servers (*Teonet) or
-// clients (*TeoLNull) connector
+// clients (*TeoLNull) connector and must conain SendTo method.
 type TeoConnector interface {
 	SendTo(peer string, cmd byte, data []byte) (int, error)
 }
@@ -43,7 +43,7 @@ func Disconnect(con TeoConnector, peer string, i interface{}) {
 	}
 }
 
-// SendData send data from client
+// SendData sends data using TeoConnector
 func SendData(con TeoConnector, peer string, ii ...interface{}) (num int, err error) {
 	buf := new(bytes.Buffer)
 	for _, i := range ii {

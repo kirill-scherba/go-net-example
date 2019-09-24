@@ -1,3 +1,5 @@
+// This example shows how to create dynamic library using go and use it in C
+// application.
 package main
 
 import "C"

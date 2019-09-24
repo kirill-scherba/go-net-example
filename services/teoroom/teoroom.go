@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet teoroom (teo-room: teonet room controller service) package
-//
-// Teoroom unites users to room and send commands between it
+// Teoroom (teo-room) is the Teonet room controller service package
 
+// It unites users to rooms and send commands between it.
+//
 package teoroom
 
 import (
@@ -84,7 +84,7 @@ func (tr *Teoroom) Destroy() {
 
 }
 
-// RoomRequest request connect client to room
+// RoomRequest requests client connection to room controller and enterint to room
 func (tr *Teoroom) RoomRequest(client string) (roomID, cliID int, err error) {
 	if _, ok := tr.mcli[client]; ok {
 		err = fmt.Errorf("Client %s is already in room", client)
@@ -93,7 +93,8 @@ func (tr *Teoroom) RoomRequest(client string) (roomID, cliID int, err error) {
 	return tr.clientNew(client).roomRequest()
 }
 
-// ResendData process data received from client and resend it to all connected
+// ResendData process data received from client and resend it to all clients
+// connected to room with this client
 func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client string, data []byte)) {
 
 	// If client does not exists in map - skip this request
@@ -107,7 +108,7 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client stri
 	if tr.mcli[client].data == nil {
 		fmt.Printf("Client %s loaded and ready to play, roomID: %d, client id: %d\n",
 			client, roomID, cliID)
-		tr.NewClient(client, f)
+		tr.newClient(client, f)
 	}
 
 	// Save data
@@ -124,8 +125,8 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0, client stri
 	}
 }
 
-// NewClient send data of all connected and loaded clients to new client
-func (tr *Teoroom) NewClient(client string, f func(l0, client string, data []byte)) {
+// newClient sends data of all connected and loaded clients to selected new client
+func (tr *Teoroom) newClient(client string, f func(l0, client string, data []byte)) {
 	c, ok := tr.mcli[client]
 	if !ok {
 		return

@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet room controller application.
-// Teo room unites users to room and send commands between it
-
+// Teonet room controller (teo-room) application
+//
+// Teoroom unites users to room and send commands between it.
+//
 package main
 
 import (

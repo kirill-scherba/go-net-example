@@ -2,15 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet teocdb (teo-cdb: teonet database service) package
+// Teocdb (teo-cdb) is the Teonet database service package
+//
+// This service uses ScyllaDB. If you install this service manually you need
+// install ScyllaDB:
 //
 // Run Scylla in Docker: https://www.scylladb.com/download/open-source/#docker
-/* Before you execute the program, Launch `cqlsh` and execute:
-create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
-create table teocdb.map(key text, data blob, PRIMARY KEY(key));
+//
+// Before you execute the program, Launch `cqlsh` and execute:
+/*
+	create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+	create table teocdb.map(key text, data blob, PRIMARY KEY(key));
 */
 //
-
 package teocdb
 
 import (

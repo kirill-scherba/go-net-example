@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet cdb(cassandra database) application
+// Teonet cdb (teo-cdb) database service application
 //
-/* Before you execute the program, Launch `cqlsh` and execute:
-create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
-create table teocdb.map(key text, data blob, PRIMARY KEY(key));
+// Before you execute the program, Launch `cqlsh` and execute:
+/*
+  create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+  create table teocdb.map(key text, data blob, PRIMARY KEY(key));
 */
-
 package main
 
 import (

@@ -2,8 +2,40 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet client using termloop game engine
-
+// Teonet client using linux terminal game engine
+//
+// This is simple terminal game with teonet client connected to teonet l0
+// server and teonet room controller. This application connect to l0 server
+// first and than request room in room controller. When room controller answer
+// with room request answer this game application can send its hero position and
+// show position of other players entered to the same room.
+//
+// Install client and server:
+//
+//  go get github.com/kirill-scherba/teonet-go/teocli/examples/teocli-termloop
+//  go get github.com/kirill-scherba/teonet-go/teonet
+//
+// Run server applications:
+//
+//  # run teonet l0 server
+//  cd $GOPATH/src/github.com/kirill-scherba/teonet-go/teonet
+//  go run . -p 7050 -l0-allow teo-l0
+//
+//  # run teonet room controller
+//  cd $GOPATH/src/github.com/kirill-scherba/teonet-go/teonet/app/teoroom
+//  go run . -r 7050 teo-room
+//
+// Run this game client application:
+//
+//  cd $GOPATH/src/github.com/kirill-scherba/teonet-go/teocli/examples/teocli-termloop
+//  go run . -r 7050 -peer teo-room -n game-01
+//
+//  cd $GOPATH/src/github.com/kirill-scherba/teonet-go/teocli/examples/teocli-termloop
+//  go run . -r 7050 -peer teo-room -n game-02
+//
+// To exit from this game type Ctrl+C twice. When you start play next time
+// you'll be connected to another room.
+//
 package main
 
 import (

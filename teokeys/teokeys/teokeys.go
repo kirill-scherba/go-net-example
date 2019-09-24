@@ -2,6 +2,9 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Teokeys is the Teonet terminal hotkeys menu, cursor position and colors
+// processing package
+//
 package teokeys
 
 // CLI cursor position, colors and hotkeys processing module

@@ -1,3 +1,5 @@
+// Main teonet sample application
+//
 package main
 
 import (

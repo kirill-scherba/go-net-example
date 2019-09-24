@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet teoreg (teo-reg: teonet registrar service) package
+// Teoreg (teo-reg) is the Teonet registrar service package
 //
-// Dependences (communicate):
+// Dependences (communicate with):
 //
-// - teousers (teo-cdb with users package)
+// - teousers: teo-cdb with users package
 //
-
 package teoreg

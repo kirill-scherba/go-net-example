@@ -1,3 +1,22 @@
+// Copyright 2019 teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// This is main Teonet clietnt (teocli) sample application.
+//
+// To use this application install Teonet client and Teonet server:
+//
+//  go get github.com/kirill-scherba/teonet-go/teocli/
+//  go get github.com/kirill-scherba/teonet-go/teonet/
+//
+// Run server application:
+//
+//  \todo
+//
+// Run this client application:
+//
+//  \todo
+//
 package main
 
 import (
