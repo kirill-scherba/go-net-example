@@ -148,9 +148,10 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 		Fg: tl.ColorWhite,
 		Ch: '*',
 	})
+	tg.game.Screen().SetLevel(level2)
 
 	// Start and run
-	tg.game.Screen().SetLevel(level1)
+	tg.game.Screen().SetLevel(level)
 	_, err := tg.com.sendData(tg.hero)
 	if err != nil {
 		panic(err)
