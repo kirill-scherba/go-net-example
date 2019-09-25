@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/rand"
-	"os"
 	"strings"
 	"time"
 
@@ -79,7 +78,7 @@ func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
 		// Game over
 		fmt.Printf("Game over!\n")
-		os.Exit(0)
+		p.tg.com.stcom.Stop()
 		return true
 	}
 	id := packet.Data()[0]

@@ -31,7 +31,12 @@ func (p *startCommandD) Command(teo *teocli.TeoLNull) {
 func (p *startCommandD) Running() bool { return p.running }
 
 // Stop used to stop teocli.Run() and set running flag to false
-func (p *startCommandD) Stop() { p.running = false; p.tg.teo.Disconnect() }
+func (p *startCommandD) Stop() {
+	// Sleep to get time disconnect from room controller packet go out and
+	<-time.After(50 * time.Millisecond)
+	p.running = false
+	p.tg.teo.Disconnect()
+}
 
 // startCommand return start command receiver
 func startCommand(tg *Teogame) teocli.StartCommand {
@@ -58,8 +63,5 @@ func (com *outputCommands) sendData(i ...interface{}) (num int, err error) {
 
 // stop teocli.Run()
 func (com *outputCommands) stop() {
-	// Sleep to get time disconnect from room controller packet go out and
-	// than disconnet from teonet
-	<-time.After(50 * time.Millisecond)
 	com.stcom.Stop()
 }
