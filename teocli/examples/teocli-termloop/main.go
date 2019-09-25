@@ -57,7 +57,7 @@ const Version = "0.0.1"
 // Teogame this game data structure
 type Teogame struct {
 	game   *tl.Game               // Game
-	level  *tl.BaseLevel          // Game BaseLevel
+	level  []*tl.BaseLevel        // Game levels
 	hero   *Hero                  // Game Hero
 	player map[byte]*Player       // Game Players map
 	teo    *teocli.TeoLNull       // Teonet connetor
@@ -131,7 +131,7 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 		Fg: tl.ColorWhite,
 		Ch: ' ',
 	})
-	tg.level = level
+	tg.level = append(tg.level, level) // Level 0: Game
 
 	// Lake
 	level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
@@ -142,16 +142,19 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	// Hero
 	tg.hero = tg.addHero(int(rra.clientID)*3, 2)
 
-	// Level 2
-	level2 := tl.NewBaseLevel(tl.Cell{
-		Bg: tl.ColorBlack,
-		Fg: tl.ColorWhite,
-		Ch: '*',
-	})
-	tg.game.Screen().SetLevel(level2)
+	// Level 1: Game over
+	tg.level = append(tg.level, func() (level *tl.BaseLevel) {
+		level = tl.NewBaseLevel(tl.Cell{
+			Bg: tl.ColorBlack,
+			Fg: tl.ColorWhite,
+			Ch: '*',
+		})
+		level.AddEntity(newGameOverText(tg))
+		return
+	}())
 
 	// Start and run
-	tg.game.Screen().SetLevel(level)
+	tg.game.Screen().SetLevel(tg.level[0])
 	_, err := tg.com.sendData(tg.hero)
 	if err != nil {
 		panic(err)
@@ -164,17 +167,40 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	tg.com.stop()
 }
 
-// addHero add new Player to game
+// gameOver switch to 'game over' screen
+func (tg *Teogame) gameOver() {
+	fmt.Printf("Game over!\n")
+	tg.game.Screen().SetLevel(tg.level[1])
+}
+
+// startGame reset game, request new game and switch to 'game' screen
+func (tg *Teogame) startNewGame() {
+	//tg.resetGame()
+	tg.com.stcom.Command(tg.teo, nil)
+	fmt.Printf("Start new game!\n")
+	//tg.game.Screen().SetLevel(tg.level[0])
+}
+
+// resetGame reset game to it default values
+func (tg *Teogame) resetGame() {
+	for _, p := range tg.player {
+		tg.level[0].RemoveEntity(p)
+	}
+	tg.player = make(map[byte]*Player)
+	tg.game.Screen().SetLevel(tg.level[0])
+}
+
+// addHero add Hero to game
 func (tg *Teogame) addHero(x, y int) (hero *Hero) {
 	hero = &Hero{Player{
 		Entity: tl.NewEntity(1, 1, 1, 1),
-		level:  tg.level,
+		level:  tg.level[0],
 		tg:     tg,
 	}}
 	// Set the character at position (0, 0) on the entity.
 	hero.SetCell(0, 0, &tl.Cell{Fg: tl.ColorGreen, Ch: 'Ω'})
 	hero.SetPosition(x, y)
-	tg.level.AddEntity(hero)
+	tg.level[0].AddEntity(hero)
 	return
 }
 
@@ -184,12 +210,12 @@ func (tg *Teogame) addPlayer(id byte) (player *Player) {
 	if !ok {
 		player = &Player{
 			Entity: tl.NewEntity(2, 2, 1, 1),
-			level:  tg.level,
+			level:  tg.level[0],
 			tg:     tg,
 		}
 		// Set the character at position (0, 0) on the entity.
 		player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: 'Ö'})
-		tg.level.AddEntity(player)
+		tg.level[0].AddEntity(player)
 		tg.player[id] = player
 	}
 	return
@@ -206,7 +232,6 @@ func (tg *Teogame) addPlayer(id byte) (player *Player) {
 // Tick frame tick
 func (player *Hero) Tick(event tl.Event) {
 	if event.Type == tl.EventKey { // Is it a keyboard event?
-
 		player.prevX, player.prevY = player.Position()
 
 		// Save previouse position and set to new position
@@ -274,8 +299,44 @@ func (player *Player) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// Tick frame tick
+// Tick of Text object
 func (m *Text) Tick(ev tl.Event) {
 	m.i++
 	m.Text.SetText(os.Args[0] + ", frame: " + strconv.Itoa(m.i))
+}
+
+// newGameOverText create GameOverText object
+func newGameOverText(tg *Teogame) (text *GameOverText) {
+	t := []*tl.Text{}
+	t = append(t, tl.NewText(0, 0, " Game over! ", tl.ColorBlack, tl.ColorBlue))
+	t = append(t, tl.NewText(0, 0, " press any key to continue ",
+		tl.ColorDefault, tl.ColorDefault))
+	text = &GameOverText{t, tg}
+	return
+}
+
+// GameOverText is type of text
+type GameOverText struct {
+	t  []*tl.Text
+	tg *Teogame
+}
+
+// Draw game over text
+func (got *GameOverText) Draw(screen *tl.Screen) {
+	screenWidth, screenHeight := screen.Size()
+	for i, t := range got.t {
+		width, height := t.Size()
+		t.SetPosition((screenWidth-width)/2, i*2+(screenHeight-height)/2)
+		t.Draw(screen)
+	}
+}
+
+// Tick check key pressed and start new game or quit
+func (got *GameOverText) Tick(event tl.Event) {
+	if event.Type == tl.EventKey { // Is it a keyboard event?
+		// switch event.Ch { // If so, switch on the pressed key.
+		// case 'p':
+		got.tg.startNewGame()
+		// }
+	}
 }

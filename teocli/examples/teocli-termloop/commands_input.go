@@ -12,18 +12,20 @@ import (
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 )
 
+// init runs when packet main initialize (before main calls).It set seed to
+// random module to use unical random values
 func init() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 }
 
-// inputCommand receivers
+// Input command receivers
 type echoAnswerCommand struct{}
 type peerAnswerCommand struct{}
 type roomRequestAnswerCommand struct{ tg *Teogame }
 type roomDataCommand struct{ tg *Teogame }
 type clientDisconnecCommand struct{ tg *Teogame }
 
-// inputCommands combine input commands to slice
+// inputCommands combine input commands to slice (to use in teocli.Run() function)
 func inputCommands(tg *Teogame) (com []teocli.Command) {
 	com = append(com,
 		echoAnswerCommand{},
@@ -35,7 +37,7 @@ func inputCommands(tg *Teogame) (com []teocli.Command) {
 	return
 }
 
-// echoAnswer command methods
+// Echo answer command methods
 func (p echoAnswerCommand) Cmd() byte { return teocli.CmdLEchoAnswer }
 func (p echoAnswerCommand) Command(packet *teocli.Packet) bool {
 	if t, err := packet.TripTime(); err != nil {
@@ -46,7 +48,7 @@ func (p echoAnswerCommand) Command(packet *teocli.Packet) bool {
 	return true
 }
 
-// peerAnswer command methods
+// Peer answer command methods
 func (p peerAnswerCommand) Cmd() byte { return teocli.CmdLPeersAnswer }
 func (p peerAnswerCommand) Command(packet *teocli.Packet) bool {
 	ln := strings.Repeat("-", 59)
@@ -54,17 +56,21 @@ func (p peerAnswerCommand) Command(packet *teocli.Packet) bool {
 	return true
 }
 
-// roomRequestAnswer command methods
+// Room request answer command methods
 func (p roomRequestAnswerCommand) Cmd() byte { return teoroom.ComRoomRequestAnswer }
 func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 	rra := roomRequestAnswerData{}
 	rra.UnmarshalBinary(packet.Data())
 	fmt.Printf("roomRequestAnswerData.UnmarshalBinary after: %v\n", rra)
-	go p.tg.startGame(&rra)
+	if p.tg.game == nil {
+		go p.tg.startGame(&rra)
+	} else {
+		p.tg.resetGame()
+	}
 	return true
 }
 
-// roomData command methods
+// Room data command methods
 func (p roomDataCommand) Cmd() byte { return teoroom.ComRoomData }
 func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 	id := packet.Data()[0]
@@ -72,18 +78,16 @@ func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 	return true
 }
 
-// disconnec (exit from room) command methods
+// Disconnec (exit from room, game over) command methods
 func (p clientDisconnecCommand) Cmd() byte { return teoroom.ComDisconnect }
 func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
-		// Game over
-		fmt.Printf("Game over!\n")
-		p.tg.com.stcom.Stop()
+		p.tg.gameOver()
 		return true
 	}
 	id := packet.Data()[0]
 	if player, ok := p.tg.player[id]; ok {
-		p.tg.level.RemoveEntity(player)
+		p.tg.level[0].RemoveEntity(player)
 		delete(p.tg.player, id)
 	}
 	return true

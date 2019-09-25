@@ -15,7 +15,7 @@ type startCommandD struct {
 }
 
 // startCommand command methods
-func (p *startCommandD) Command(teo *teocli.TeoLNull) {
+func (p *startCommandD) Command(teo *teocli.TeoLNull, pac *teocli.Packet) {
 	p.tg.teo = teo
 
 	// Send peers command (just for test, it may be removed)

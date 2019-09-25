@@ -1,10 +1,11 @@
-// Copyright 2019 teonet-go authors.  All rights reserved.
+// Copyright 2019 Teonet-go authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teoroom (teo-room) is the Teonet room controller service package
-
-// It unites users to rooms and send commands between it.
+// Package teoroom (teo-room) is the Teonet room controller service package
+//
+// Room controller used to connect users to rooms and send commands between it.
+// This package used in server and client applications.
 //
 package teoroom
 
@@ -37,12 +38,12 @@ const (
 
 // Rooms constant
 const (
-	maxClientsInRoom  = 10     // Maximum lients in room
-	minClientsToStart = 2      // Minimum clients to start room
-	waitForMinClients = 30000  // Wait for minimum clients connected
-	waitForMaxClients = 10000  // Wait for maximum clients connected after minimum clients connected
-	gameTime          = 120000 // Game time in millisecond = 2 min * 60 sec * 1000
-	gameClosedAfter   = 30000  // Game closed after (does not add new clients)
+	maxClientsInRoom  = 10    // Maximum lients in room
+	minClientsToStart = 2     // Minimum clients to start room
+	waitForMinClients = 30000 // Wait for minimum clients connected
+	waitForMaxClients = 10000 // Wait for maximum clients connected after minimum clients connected
+	gameTime          = 12000 // Game time in millisecond = 2 min * 60 sec * 1000
+	gameClosedAfter   = 30000 // Game closed after (does not add new clients)
 )
 
 // Teoroom is room controller data
@@ -63,7 +64,7 @@ type Room struct {
 	cliwas map[string]*ClientInRoom // Map of clients which was in room (included clients connected now)
 }
 
-// Room Data
+// ClientInRoom Data
 type ClientInRoom struct {
 	*Client
 	state int // 1 - started

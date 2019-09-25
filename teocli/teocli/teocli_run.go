@@ -7,7 +7,7 @@ import (
 
 // StartCommand teocli first command interface
 type StartCommand interface {
-	Command(teo *TeoLNull)
+	Command(teo *TeoLNull, pac *Packet)
 	Running() bool
 	Stop()
 }
@@ -50,7 +50,7 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 		}
 
 		// Execute start command
-		startCommand.Command(teo)
+		startCommand.Command(teo, nil)
 
 		// Reader (receive data and process it)
 		for {
