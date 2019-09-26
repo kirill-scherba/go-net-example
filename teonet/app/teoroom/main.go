@@ -32,7 +32,7 @@ func main() {
 
 	// Teonet connect, init room controller package and run teonet
 	teo := teonet.Connect(param, []string{"teo-go", "teo-room"}, Version)
-	tr, err := teoroom.Init(teo)
+	tr, err := teoroom.New(teo)
 	if err != nil {
 		panic(err)
 	}
@@ -77,23 +77,29 @@ func main() {
 						break
 					}
 					// Send roomDataCommand
-					teo.SendToClient("teo-l0", pac.From(), teoroom.ComRoomRequestAnswer,
+					teo.SendToClient("teo-l0", pac.From(),
+						teoroom.ComRoomRequestAnswer,
 						append([]byte{}, byte(clientID)))
 
 				// Command #130: [in,out] Data transfer
 				case teoroom.ComRoomData:
-					tr.ResendData(pac.From(), pac.Data(), func(l0, client string, data []byte) {
+					tr.ResendData(pac.From(), pac.Data(), func(l0, client string,
+						data []byte) {
 						//teoroom.SendData(teo, client, pac.From(), data)
-						teo.SendToClient("teo-l0", client, teoroom.ComRoomData, data)
+						teo.SendToClient("teo-l0", client, teoroom.ComRoomData,
+							data)
 					})
 
 				// Command #131 [in] Disconnect (exit) from room
 				case teoroom.ComDisconnect:
-					tr.ResendData(pac.From(), pac.Data(), func(l0, client string, data []byte) {
-						teo.SendToClient("teo-l0", client, teoroom.ComDisconnect, data)
+					tr.ResendData(pac.From(), pac.Data(), func(l0, client string,
+						data []byte) {
+						teo.SendToClient("teo-l0", client, teoroom.ComDisconnect,
+							data)
 					})
 					if err := tr.Disconnect(pac.From()); err != nil {
-						fmt.Printf("Client %s is already disconnected\n", pac.From())
+						fmt.Printf("Client %s is already disconnected\n",
+							pac.From())
 						break
 					}
 				}
