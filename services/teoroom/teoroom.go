@@ -10,8 +10,11 @@
 package teoroom
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
@@ -36,7 +39,7 @@ const (
 	ComDisconnect = 131
 )
 
-// Rooms constant
+// Rooms constant default
 const (
 	maxClientsInRoom  = 10    // Maximum lients in room
 	minClientsToStart = 2     // Minimum clients to start room
@@ -45,6 +48,92 @@ const (
 	gameTime          = 12000 // Game time in millisecond = 2 min * 60 sec * 1000
 	gameClosedAfter   = 30000 // Game closed after (does not add new clients)
 )
+
+// GameParameters holds game parameters running in room
+type GameParameters struct {
+	Name              string `json:"name,omitempty"`                 // Name of game
+	GameTime          int    `json:"game_time,omitempty"`            // Game time in millisecond = 2 min * 60 sec * 1000
+	GameClosedAfter   int    `json:"game_closed_after,omitempty"`    // Game closed after (does not add new clients)
+	MaxClientsInRoom  int    `json:"max_clients_in_room,omitempty"`  // Maximum lients in room
+	MinClientsToStart int    `json:"min_clients_to_start,omitempty"` // Minimum clients to start room
+	WaitForMinClients int    `json:"wait_for_min_clients,omitempty"` // Wait for minimum clients connected
+	WaitForMaxClients int    `json:"wait_for_max_clients,omitempty"` // Wait for maximum clients connected after minimum clients connected
+}
+
+// NewGameParameters create new GameParameters and sets default parameters
+func (r *Room) newGameParameters(name string) (gparam *GameParameters) {
+	gparam = &GameParameters{
+		Name:              name,
+		GameTime:          gameTime,
+		GameClosedAfter:   gameClosedAfter,
+		MaxClientsInRoom:  maxClientsInRoom,
+		MinClientsToStart: minClientsToStart,
+		WaitForMinClients: waitForMinClients,
+		WaitForMaxClients: waitForMaxClients,
+	}
+	if err := gparam.readConfig(); err != nil {
+		fmt.Printf("Read game config error: %s\n", err)
+	}
+	r.gparam = gparam
+	return
+}
+
+// configDir return configuration files folder
+func (gparam *GameParameters) configDir() string {
+	home := os.Getenv("HOME")
+	return home + "/.config/teoroom/"
+}
+
+// readConfig read game parameters from config file and replace current
+// parameters
+func (gparam *GameParameters) readConfig() (err error) {
+	fileName := gparam.Name
+	confDir := gparam.configDir()
+	f, err := os.Open(confDir + fileName + ".json")
+	if err != nil {
+		return
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		return
+	}
+	data := make([]byte, fi.Size())
+	if _, err = f.Read(data); err != nil {
+		return
+	}
+
+	// Declared an empty interface
+	var result map[string]interface{}
+	if err = json.Unmarshal(data, &result); err != nil {
+		return
+	}
+	fmt.Printf("GameParameters config: %v\n", result)
+	fmt.Println()
+	var level = 0
+	var fun func(result map[string]interface{})
+	fun = func(result map[string]interface{}) {
+		level++
+		for k, v := range result {
+			switch val := v.(type) {
+			case map[string]interface{}:
+				fmt.Printf(strings.Repeat(" ", 2*level)+"  %s:\n", k)
+				fun(val)
+			default:
+				fmt.Printf(strings.Repeat(" ", 2*level)+"  %s: %v (%T)\n", k, v, v)
+			}
+		}
+		level--
+	}
+	fun(result)
+	fmt.Println()
+
+	if err = json.Unmarshal(data, gparam); err != nil {
+		return
+	}
+	fmt.Println("gparam: ", gparam)
+
+	return
+}
 
 // Teoroom is room controller data
 type Teoroom struct {
@@ -62,6 +151,7 @@ type Room struct {
 	state  int                      // Room state: 0 - creating; 1 - running; 2 - closed; 3 - stopped
 	client []*Client                // List of clients in room by position: client[0] - position 1 ... client[0] - position 10
 	cliwas map[string]*ClientInRoom // Map of clients which was in room (included clients connected now)
+	gparam *GameParameters          // Game parameters
 }
 
 // Client data
@@ -85,7 +175,7 @@ const (
 	RoomStopped         // Stopped room state (game over)
 )
 
-// New create new teonet room controller
+// New teonet room controller
 func New(teo *teonet.Teonet) (tr *Teoroom, err error) {
 	return &Teoroom{teo: teo, mcli: make(map[string]*Client),
 		mroom: make(map[int]*Room)}, nil
@@ -220,16 +310,17 @@ func (tr *Teoroom) Disconnect(client string) (err error) {
 	return
 }
 
-// clientNew create new room
-func (tr *Teoroom) roomNew() (r *Room) {
-	r = &Room{
+// newRoom create new room
+func (tr *Teoroom) newRoom() (room *Room) {
+	room = &Room{
 		tr:     tr,
 		id:     tr.roomID,
 		cliwas: make(map[string]*ClientInRoom),
 		state:  RoomCreating,
 	}
-	tr.creating = append(tr.creating, r.id)
-	tr.mroom[r.id] = r
+	room.newGameParameters("g001")
+	tr.creating = append(tr.creating, room.id)
+	tr.mroom[room.id] = room
 	tr.roomID++
 	return
 }
@@ -251,7 +342,7 @@ func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 			return r.id, r.addClient(cli), nil
 		}
 	}
-	r := cli.tr.roomNew()
+	r := cli.tr.newRoom()
 	return r.id, r.addClient(cli), nil
 }
 
