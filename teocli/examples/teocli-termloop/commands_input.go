@@ -65,7 +65,7 @@ func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 	if p.tg.game == nil {
 		go p.tg.startGame(&rra)
 	} else {
-		p.tg.resetGame()
+		p.tg.resetGame(&rra)
 	}
 	return true
 }

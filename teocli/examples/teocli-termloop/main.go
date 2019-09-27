@@ -182,12 +182,16 @@ func (tg *Teogame) startNewGame() {
 }
 
 // resetGame reset game to it default values
-func (tg *Teogame) resetGame() {
+func (tg *Teogame) resetGame(rra *roomRequestAnswerData) {
 	for _, p := range tg.player {
 		tg.level[0].RemoveEntity(p)
 	}
 	tg.player = make(map[byte]*Player)
+	tg.hero.SetPosition(int(rra.clientID)*3, 2)
+	tg.rra = rra
+
 	tg.game.Screen().SetLevel(tg.level[0])
+	tg.com.sendData(tg.hero)
 }
 
 // addHero add Hero to game
