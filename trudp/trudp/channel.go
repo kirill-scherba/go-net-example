@@ -53,7 +53,7 @@ func (tcd *ChannelData) reset() {
 	tcd.expectedID = firstPacketID
 	// \TODO reset trudp channel statistic
 	// Send event "RESET was applied" to user level
-	tcd.trudp.sendEvent(tcd, RESET_LOCAL, nil)
+	tcd.trudp.sendEvent(tcd, EvResetLocal, nil)
 }
 
 // destroy close and destroy trudp channel
@@ -82,7 +82,7 @@ func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 	// Remove trudp channel from channels map
 	delete(tcd.trudp.tcdmap, tcd.key)
 	teolog.Log(teolog.CONNECT, MODULE, "channel with key", tcd.key, "disconnected")
-	tcd.trudp.sendEvent(tcd, DISCONNECTED, []byte(tcd.key))
+	tcd.trudp.sendEvent(tcd, EvDisconnected, []byte(tcd.key))
 
 	return
 }
@@ -160,7 +160,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate bool) (t
 	trudp.tcdmap[key] = tcd
 
 	teolog.Log(teolog.CONNECT, MODULE, "channel", key, "connected")
-	tcd.trudp.sendEvent(tcd, CONNECTED, []byte(key))
+	tcd.trudp.sendEvent(tcd, EvConnected, []byte(key))
 
 	return
 }

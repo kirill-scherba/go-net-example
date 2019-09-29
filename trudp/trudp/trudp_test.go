@@ -63,16 +63,16 @@ func TestTRUDP(t *testing.T) {
 						}
 					}()
 
-				case DESTROY:
+				case EvDestroy:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) DESTROY", string(ev.Data))
 
-				case CONNECTED:
+				case EvConnected:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) CONNECTED", string(ev.Data))
 
-				case DISCONNECTED:
+				case EvDisconnected:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED", string(ev.Data))
 
-				case GOT_DATA:
+				case EvGotData:
 					// Receive data
 					data := string(ev.Data)
 					if data == makeHello(idx) {

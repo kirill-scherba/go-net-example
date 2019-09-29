@@ -109,7 +109,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 
 		// Send event to user level
 		if tcd.trudp.allowEvents > 0 { // \TODO use GOT_ACK_PING to check allow this event
-			tcd.trudp.sendEvent(tcd, GOT_ACK_PING, nil) // []byte(fmt.Sprintf("%.3f", triptime)))
+			tcd.trudp.sendEvent(tcd, EvGotAckPing, nil) // []byte(fmt.Sprintf("%.3f", triptime)))
 		}
 
 	// UNKNOWN packet received
@@ -135,10 +135,10 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 			fmt.Sprintf("received valid packet id: %d, channel: %s",
 				int(id), tcd.GetKey())))
 		// Send received packet data to user level
-		tcd.trudp.sendEvent(tcd, GOT_DATA, pac.getData())
+		tcd.trudp.sendEvent(tcd, EvGotData, pac.getData())
 		// Check valid packets in received queue and send it data to user level
 		tcd.receiveQueueProcess(func(data []byte) {
-			tcd.trudp.sendEvent(tcd, GOT_DATA, data)
+			tcd.trudp.sendEvent(tcd, EvGotData, data)
 		})
 
 	// Invalid packet (with id = 0)
@@ -156,7 +156,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 				"send reset to remote host", id, tcd.expectedID, tcd.GetKey())))
 		pac.resetCreateNew().writeTo(tcd) // Send reset
 		// Send event "RESET was sent" to user level
-		tcd.trudp.sendEvent(tcd, SEND_RESET, nil)
+		tcd.trudp.sendEvent(tcd, EvSendReset, nil)
 
 	// Already processed packet (id < expectedID)
 	case id < tcd.expectedID:

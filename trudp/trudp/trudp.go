@@ -95,7 +95,7 @@ type EventData struct {
 	Data  []byte
 }
 
-// Enumeration of TRUDP events
+// Enumeration of Trudp events
 const (
 
 	/**
@@ -108,7 +108,7 @@ const (
 	 * Destroy TR-UDP event
 	 * @param td Pointer to trudpData
 	 */
-	DESTROY
+	EvDestroy
 
 	/**
 	 * TR-UDP channel disconnected event
@@ -116,7 +116,7 @@ const (
 	 * @param data_length 0
 	 * @param user_data NULL
 	 */
-	CONNECTED
+	EvConnected
 
 	/**
 	 * TR-UDP channel disconnected event
@@ -124,7 +124,7 @@ const (
 	 * @param data_length 0
 	 * @param user_data NULL
 	 */
-	DISCONNECTED
+	EvDisconnected
 
 	/**
 	 * Got TR-UDP reset packet
@@ -132,7 +132,7 @@ const (
 	 * @param data_length 0
 	 * @param user_data NULL
 	 */
-	GOT_RESET
+	EvGotReset
 
 	/**
 	 * Send TR-UDP reset packet
@@ -140,7 +140,7 @@ const (
 	 * @param data_length Size of uint32_t or 0
 	 * @param user_data NULL
 	 */
-	SEND_RESET
+	EvSendReset
 
 	/**
 	 * Got ACK to reset command
@@ -148,7 +148,7 @@ const (
 	 * @param data_length 0
 	 * @param user_data NULL
 	 */
-	GOT_ACK_RESET
+	EvGotAckReset
 
 	/**
 	 * Got ACK to ping command
@@ -156,7 +156,7 @@ const (
 	 * @param data_length Length of data
 	 * @param user_data NULL
 	 */
-	GOT_ACK_PING
+	EvGotAckPing
 
 	/**
 	 * Got PING command
@@ -164,7 +164,7 @@ const (
 	 * @param data_length Length of data
 	 * @param user_data NULL
 	 */
-	GOT_PING
+	EvGotPing
 
 	/**
 	 * Got ACK command
@@ -172,7 +172,7 @@ const (
 	 * @param data_length Length of data
 	 * @param user_data NULL
 	 */
-	GOT_ACK
+	EvGotAck
 
 	/**
 	 * Got DATA
@@ -180,8 +180,8 @@ const (
 	 * @param data_length Length of data
 	 * @param user_data NULL
 	 */
-	GOT_DATA
-	GOT_DATA_NOTRUDP
+	EvGotData
+	EvGotDataNotrudp
 
 	/**
 	 * Process received data
@@ -190,7 +190,7 @@ const (
 	 * @param data_length Receive buffer length
 	 * @param user_data NULL
 	 */
-	PROCESS_RECEIVE
+	EvProcessReceived
 
 	/** Process received not TR-UDP data
 	 * @param tcd Pointer to trudpData
@@ -198,7 +198,7 @@ const (
 	 * @param data_length Receive buffer length
 	 * @param user_data NULL
 	 */
-	PROCESS_RECEIVE_NO_TRUDP
+	EvProcessReceivedNoTrudp
 
 	/** Process send data
 	 * @param data Pointer to send data
@@ -207,7 +207,7 @@ const (
 	 */
 	//SEND_DATA
 
-	RESET_LOCAL
+	EvResetLocal
 )
 
 // Init start trudp connection
@@ -321,7 +321,7 @@ func (trudp *TRUDP) Run() {
 				"bytes from:", addr)
 			// Send received packet data to user level
 			tcd, _, _ := trudp.newChannelData(addr, 0, true)
-			tcd.trudp.sendEvent(tcd, GOT_DATA_NOTRUDP, buffer[:nRead])
+			tcd.trudp.sendEvent(tcd, EvGotDataNotrudp, buffer[:nRead])
 		}
 	}
 }

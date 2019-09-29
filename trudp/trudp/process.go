@@ -85,7 +85,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 
 			// Close trudp channels, send DESTROY event and close event channel
 			trudp.closeChannels()
-			trudp.sendEvent(nil, DESTROY, []byte(trudp.udp.localAddr()))
+			trudp.sendEvent(nil, EvDestroy, []byte(trudp.udp.localAddr()))
 			close(trudp.chanEvent)
 			proc.chanKernelF = true
 			close(proc.chanKernel)
