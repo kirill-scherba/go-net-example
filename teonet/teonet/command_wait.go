@@ -70,18 +70,17 @@ func (wcom *waitCommand) remove(wfr *waitFromRequest) {
 	wcom.exists(wfr, true)
 }
 
-// check cheks if wait command from request exists in map and send receiving
-// data if so
+// check if wait command for received command exists in wait command map and
+// send receiving data to wait command channel if so
 func (wcom *waitCommand) check(rec *receiveData) (processed int) {
 	key := wcom.makeKey(rec.rd.From(), rec.rd.Cmd())
-	wc, ok := wcom.m[key]
+	wcar, ok := wcom.m[key]
 	if !ok {
 		return
 	}
-	for l := len(wc); l > 0; l = len(wc) {
-		wc[l-1].ch <- &WaitFromData{rec.rd.Data(), nil}
-		close(wc[l-1].ch)
-		wc = wc[1:]
+	for _, w := range wcar {
+		w.ch <- &WaitFromData{rec.rd.Data(), nil}
+		close(w.ch)
 		processed++
 	}
 	delete(wcom.m, key)
