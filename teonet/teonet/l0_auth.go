@@ -39,7 +39,7 @@ func (auth *l0AuthCom) cmdAuth(rec *receiveData) {
 		Data    interface{} `json:"data"`
 		Headers string      `json:"headers"`
 		Method  string      `json:"method"`
-		Url     string      `json:"url"`
+		URL     string      `json:"url"`
 	}
 
 	type authDataOut struct {
@@ -56,7 +56,7 @@ func (auth *l0AuthCom) cmdAuth(rec *receiveData) {
 	req, _ := http.NewRequest(
 		jauth.Method,
 		// \TODO: add teonet l0 authentication server url to parameters (defaults and configuration)
-		"http://teomac.ksproject.org:1234/api/auth/"+jauth.Url,
+		"http://teomac.ksproject.org:1234/api/auth/"+jauth.URL,
 		bytes.NewBuffer(jdata),
 	)
 	if jauth.Headers != "" {
@@ -107,16 +107,16 @@ func (auth *l0AuthCom) cmdL0Auth(rec *receiveData) {
 	var user map[string]interface{}
 	userJSON, _ := json.Marshal(j.User)
 	json.Unmarshal([]byte(userJSON), &user)
-	userId := user["userId"]
-	clientId := user["clientId"]
+	userID := user["userId"]
+	clientID := user["clientId"]
 	teolog.Debugf(MODULE,
 		"got access token from auth: d: %s, accessToken: %s, userId: %s, clientId: %s\n",
-		string(rec.rd.Data()), j.AccessToken, userId, clientId)
+		string(rec.rd.Data()), j.AccessToken, userID, clientID)
 
 	// Define new name for this client
 	var name string
-	if userId != nil && clientId != nil {
-		name = userId.(string) + ":" + clientId.(string)
+	if userID != nil && clientID != nil {
+		name = userID.(string) + ":" + clientID.(string)
 	} else {
 		name = j.AccessToken
 	}

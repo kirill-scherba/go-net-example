@@ -371,12 +371,9 @@ func (l0 *l0Conn) process() {
 					l0.add(pac.client)
 
 					// \TODO: Send to auth
-					TEO_AUTH := "teo-auth"
-					teolog.DebugVf(MODULE, "login command, send to auth: %s, data: %v\n", TEO_AUTH, d)
-					l0.teo.SendTo(TEO_AUTH, CmdUser, d)
-
-					// (kev->kc, TEO_AUTH, CMD_USER,
-					// 				kld->name, kld->name_length);
+					teoAuth := "teo-auth"
+					teolog.DebugVf(MODULE, "login command, send to auth: %s, data: %v\n", teoAuth, d)
+					l0.teo.SendTo(teoAuth, CmdUser, d)
 
 				} else {
 					teolog.Errorf(MODULE,
