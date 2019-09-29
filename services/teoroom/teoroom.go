@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
@@ -60,7 +59,8 @@ type GameParameters struct {
 	WaitForMaxClients int    `json:"wait_for_max_clients,omitempty"` // Wait for maximum clients connected after minimum clients connected
 }
 
-// NewGameParameters create new GameParameters and sets default parameters
+// newGameParameters create new GameParameters, sets default parameters and read
+// parameters from config file
 func (r *Room) newGameParameters(name string) (gparam *GameParameters) {
 	gparam = &GameParameters{
 		Name:              name,
@@ -81,7 +81,7 @@ func (r *Room) newGameParameters(name string) (gparam *GameParameters) {
 // configDir return configuration files folder
 func (gparam *GameParameters) configDir() string {
 	home := os.Getenv("HOME")
-	return home + "/.config/teoroom/"
+	return home + "/.config/teonet/teoroom/"
 }
 
 // readConfig read game parameters from config file and replace current
@@ -102,31 +102,7 @@ func (gparam *GameParameters) readConfig() (err error) {
 		return
 	}
 
-	// Declared an empty interface
-	var result map[string]interface{}
-	if err = json.Unmarshal(data, &result); err != nil {
-		return
-	}
-	fmt.Printf("GameParameters config: %v\n", result)
-	fmt.Println()
-	var level = 0
-	var fun func(result map[string]interface{})
-	fun = func(result map[string]interface{}) {
-		level++
-		for k, v := range result {
-			switch val := v.(type) {
-			case map[string]interface{}:
-				fmt.Printf(strings.Repeat(" ", 2*level)+"  %s:\n", k)
-				fun(val)
-			default:
-				fmt.Printf(strings.Repeat(" ", 2*level)+"  %s: %v (%T)\n", k, v, v)
-			}
-		}
-		level--
-	}
-	fun(result)
-	fmt.Println()
-
+	// Unmarsha json to the GameParameters structure
 	if err = json.Unmarshal(data, gparam); err != nil {
 		return
 	}
