@@ -63,11 +63,10 @@ func (p roomRequestAnswerCommand) Cmd() byte { return teoroom.ComRoomRequestAnsw
 func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 	rra := roomRequestAnswerData{}
 	rra.UnmarshalBinary(packet.Data())
-	//fmt.Printf("roomRequestAnswerData.UnmarshalBinary after: %v\n", rra)
 	if p.tg.game == nil {
-		go p.tg.newGame(&rra)
+		go p.tg.start(&rra)
 	} else {
-		p.tg.resetGame(&rra)
+		p.tg.reset(&rra)
 	}
 	return true
 }
@@ -84,7 +83,7 @@ func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 func (p clientDisconnecCommand) Cmd() byte { return teoroom.ComDisconnect }
 func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
-		p.tg.gameMenu()
+		p.tg.setLevel(Menu)
 		return true
 	}
 	id := packet.Data()[0]

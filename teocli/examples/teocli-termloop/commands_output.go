@@ -13,6 +13,13 @@ type startCommandD struct {
 	running bool
 }
 
+// startCommand return start command receiver
+func startCommand(tg *Teogame) teocli.StartCommand {
+	start := &startCommandD{tg, true}
+	tg.com = &outputCommands{tg: tg, start: start}
+	return start
+}
+
 // startCommand command methods
 func (p *startCommandD) Command(teo *teocli.TeoLNull, pac *teocli.Packet) {
 	p.tg.teo = teo
@@ -28,13 +35,6 @@ func (p *startCommandD) Stop() {
 	<-time.After(50 * time.Millisecond)
 	p.running = false
 	p.tg.teo.Disconnect()
-}
-
-// startCommand return start command receiver
-func startCommand(tg *Teogame) teocli.StartCommand {
-	start := &startCommandD{tg, true}
-	tg.com = &outputCommands{tg: tg, start: start}
-	return start
 }
 
 // outputCommands teonet output commands receiver
