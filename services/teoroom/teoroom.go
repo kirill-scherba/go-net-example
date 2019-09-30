@@ -36,6 +36,10 @@ const (
 	// ComDisconnect [in] #131 Disconnect from room controller (from room)
 	// [input] command for room controller
 	ComDisconnect = 131
+
+	// ComStart [in] #132 Room started (got from room controller)
+	// [input] command for room controller
+	ComStart = 132
 )
 
 // Rooms constant default
@@ -160,6 +164,16 @@ func New(teo *teonet.Teonet) (tr *Teoroom, err error) {
 // Destroy close room controller
 func (tr *Teoroom) Destroy() {}
 
+// numClients return number of clients in room
+func (r *Room) numClients() (num int) {
+	for _, cli := range r.client {
+		if cli != nil {
+			num++
+		}
+	}
+	return
+}
+
 // addClient adds client to room
 func (r *Room) addClient(cli *Client) (clientID int) {
 	r.client = append(r.client, cli)
@@ -178,7 +192,7 @@ func (r *Room) clientReady(cliID int) {
 	for _, cli := range r.cliwas {
 		if cli.state == RoomRunning {
 			numReady++
-			if numReady >= minClientsToStart {
+			if numReady >= r.gparam.MinClientsToStart {
 				r.startRoom()
 			}
 		}
@@ -188,24 +202,34 @@ func (r *Room) clientReady(cliID int) {
 // startRoom calls when room started
 func (r *Room) startRoom() {
 	r.state = RoomRunning
-	fmt.Printf("Room id %d started\n", r.id)
-	// TODO: send something to rooms clients
+	fmt.Printf("Room id %d started (time: %d)\n", r.id, r.gparam.GameTime)
+	r.sendToClients(ComStart, nil)
+	// send disconnect to rooms clients after GameTime
 	go func() {
-		<-time.After(time.Duration(gameTime) * time.Millisecond)
+		<-time.After(time.Duration(r.gparam.GameTime) * time.Millisecond)
 		r.state = RoomStopped
 		fmt.Printf("Room id %d closed\n", r.id)
-		// TODO: send something to rooms clients
-		for _, cli := range r.client {
-			if cli != nil {
-				f := func(l0, client string, data []byte) {
-					r.tr.teo.SendToClient("teo-l0", client, ComDisconnect, nil)
-					r.tr.Disconnect(client)
-				}
-				r.tr.ResendData(cli.name, nil, f)
-				f("", cli.name, nil)
-			}
-		}
+		r.funcToClients(nil, func(l0, client string, data []byte) {
+			r.tr.teo.SendToClient("teo-l0", client, ComDisconnect, data)
+			r.tr.Disconnect(client)
+		})
 	}()
+}
+
+// funcToClients calls function for all room clients
+func (r *Room) funcToClients(data []byte, f func(l0, client string, data []byte)) {
+	for _, cli := range r.client {
+		if cli != nil {
+			f("", cli.name, data)
+		}
+	}
+}
+
+// sendToClients send command with data to all room clients
+func (r *Room) sendToClients(cmd int, data []byte) {
+	r.funcToClients(data, func(l0, client string, data []byte) {
+		r.tr.teo.SendToClient("teo-l0", client, byte(cmd), data)
+	})
 }
 
 // RoomRequest requests client connection to room controller and enterint to room
@@ -319,6 +343,18 @@ func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 		}
 	}
 	r := cli.tr.newRoom()
+	// send disconnect to rooms clients if can't find clients during WaitForMinClients
+	go func() {
+		<-time.After(time.Duration(r.gparam.WaitForMinClients) * time.Millisecond)
+		if r.numClients() < r.gparam.MinClientsToStart {
+			r.state = RoomStopped
+			fmt.Printf("Room id %d closed\n", r.id)
+			r.funcToClients(nil, func(l0, client string, data []byte) {
+				r.tr.teo.SendToClient("teo-l0", client, ComDisconnect, data)
+				r.tr.Disconnect(client)
+			})
+		}
+	}()
 	return r.id, r.addClient(cli), nil
 }
 

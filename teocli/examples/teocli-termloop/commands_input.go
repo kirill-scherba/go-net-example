@@ -23,6 +23,7 @@ type echoAnswerCommand struct{}
 type peerAnswerCommand struct{}
 type roomRequestAnswerCommand struct{ tg *Teogame }
 type roomDataCommand struct{ tg *Teogame }
+type roomStartCommand struct{ tg *Teogame }
 type clientDisconnecCommand struct{ tg *Teogame }
 
 // inputCommands combine input commands to slice (to use in teocli.Run() function)
@@ -32,6 +33,7 @@ func inputCommands(tg *Teogame) (com []teocli.Command) {
 		peerAnswerCommand{},
 		roomRequestAnswerCommand{tg},
 		roomDataCommand{tg},
+		roomStartCommand{tg},
 		clientDisconnecCommand{tg},
 	)
 	return
@@ -61,9 +63,9 @@ func (p roomRequestAnswerCommand) Cmd() byte { return teoroom.ComRoomRequestAnsw
 func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 	rra := roomRequestAnswerData{}
 	rra.UnmarshalBinary(packet.Data())
-	fmt.Printf("roomRequestAnswerData.UnmarshalBinary after: %v\n", rra)
+	//fmt.Printf("roomRequestAnswerData.UnmarshalBinary after: %v\n", rra)
 	if p.tg.game == nil {
-		go p.tg.startGame(&rra)
+		go p.tg.newGame(&rra)
 	} else {
 		p.tg.resetGame(&rra)
 	}
@@ -74,7 +76,7 @@ func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 func (p roomDataCommand) Cmd() byte { return teoroom.ComRoomData }
 func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 	id := packet.Data()[0]
-	p.tg.addPlayer(id).UnmarshalBinary(packet.Data())
+	p.tg.addPlayer(p.tg.level[Game], id).UnmarshalBinary(packet.Data())
 	return true
 }
 
@@ -82,7 +84,7 @@ func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 func (p clientDisconnecCommand) Cmd() byte { return teoroom.ComDisconnect }
 func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
-		p.tg.gameOver()
+		p.tg.gameMenu()
 		return true
 	}
 	id := packet.Data()[0]
@@ -90,6 +92,13 @@ func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 		p.tg.level[0].RemoveEntity(player)
 		delete(p.tg.player, id)
 	}
+	return true
+}
+
+// roomStartCommand start game command methods
+func (p roomStartCommand) Cmd() byte { return teoroom.ComStart }
+func (p roomStartCommand) Command(packet *teocli.Packet) bool {
+	p.tg.state.setRunning()
 	return true
 }
 
@@ -110,10 +119,8 @@ func (rra *roomRequestAnswerData) MarshalBinary() (data []byte, err error) {
 
 // UnmarshalBinary unmarshal roomRequestAnswerData from binary
 func (rra *roomRequestAnswerData) UnmarshalBinary(data []byte) (err error) {
-	fmt.Printf("roomRequestAnswerData.UnmarshalBinary data: %v\n", data)
 	if data == nil || len(data) == 0 {
 		rra.clientID = byte(rand.Intn(20))
-		fmt.Printf("roomRequestAnswerData.UnmarshalBinary set: %v\n", rra)
 		return
 	}
 	var x byte
