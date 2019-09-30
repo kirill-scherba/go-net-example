@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
@@ -17,13 +16,6 @@ type startCommandD struct {
 // startCommand command methods
 func (p *startCommandD) Command(teo *teocli.TeoLNull, pac *teocli.Packet) {
 	p.tg.teo = teo
-
-	// Send peers command (just for test, it may be removed)
-	fmt.Printf("send peers request\n")
-	teo.SendTo(p.tg.peer, teocli.CmdLPeers, nil)
-
-	// Send room request
-	fmt.Printf("Send room request\n")
 	teoroom.RoomRequest(p.tg.teo, p.tg.peer, nil)
 }
 
@@ -40,15 +32,15 @@ func (p *startCommandD) Stop() {
 
 // startCommand return start command receiver
 func startCommand(tg *Teogame) teocli.StartCommand {
-	stcom := &startCommandD{tg, true}
-	tg.com = &outputCommands{tg: tg, stcom: stcom}
-	return stcom
+	start := &startCommandD{tg, true}
+	tg.com = &outputCommands{tg: tg, start: start}
+	return start
 }
 
 // outputCommands teonet output commands receiver
 type outputCommands struct {
 	tg    *Teogame
-	stcom teocli.StartCommand
+	start teocli.StartCommand
 }
 
 // disconnect [out] send disconnect (exit from room) command to room controller
@@ -63,5 +55,5 @@ func (com *outputCommands) sendData(i ...interface{}) (num int, err error) {
 
 // stop teocli.Run()
 func (com *outputCommands) stop() {
-	com.stcom.Stop()
+	com.start.Stop()
 }
