@@ -230,10 +230,10 @@ FOR:
 			// Process trudp events
 			switch ev.Event {
 
-			case trudp.CONNECTED:
+			case trudp.EvConnected:
 				teolog.Connect(MODULE, "got CONNECTED event, channel key: "+string(packet))
 
-			case trudp.DISCONNECTED:
+			case trudp.EvDisconnected:
 				teolog.Connect(MODULE, "got DISCONNECTED event, channel key: "+string(packet))
 				// Reconnect to r-host
 				teo.rhost.reconnect(ev.Tcd)
@@ -244,13 +244,13 @@ FOR:
 					teo.l0.close(client)
 				}
 
-			case trudp.RESET_LOCAL:
+			case trudp.EvResetLocal:
 				err = errors.New("got RESET_LOCAL event, channel key: " + ev.Tcd.GetKey())
 				teolog.Connect(MODULE, err.Error())
 				//ev.Tcd.CloseChannel()
 				//break FOR
 
-			case trudp.GOT_DATA, trudp.GOT_DATA_NOTRUDP:
+			case trudp.EvGotData, trudp.EvGotDataNotrudp:
 				teolog.DebugVvf(MODULE, "got %d bytes packet, channel key: %s\n",
 					len(packet), ev.Tcd.GetKey())
 				packet, err = teo.cry.decrypt(packet, ev.Tcd.GetKey())
@@ -276,7 +276,7 @@ FOR:
 					rd = nil
 				}
 
-			case trudp.GOT_ACK_PING:
+			case trudp.EvGotAckPing:
 				// triptime, _ := ev.Tcd.GetTriptime()
 				// teolog.DebugVv(MODULE, "got GOT_ACK_PING, key:", ev.Tcd.GetKey(), "triptime:", triptime, "ms")
 				teo.arp.print()

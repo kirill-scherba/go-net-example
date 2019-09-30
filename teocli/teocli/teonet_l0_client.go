@@ -333,13 +333,13 @@ FOR:
 			ev := <-teocli.td.ChanEvent()
 			packet := ev.Data
 			switch ev.Event {
-			case trudp.DISCONNECTED:
+			case trudp.EvDisconnected:
 				err = errors.New("channel with key " + string(packet) + " disconnected")
 				break FOR
-			case trudp.RESET_LOCAL:
+			case trudp.EvResetLocal:
 				err = errors.New("need to reconnect")
 				break FOR
-			case trudp.GOT_DATA:
+			case trudp.EvGotData:
 				//fmt.Printf("got %d bytes packet\n", len(packet))
 				if pac = packetCheck(packet); pac != nil {
 					break FOR
