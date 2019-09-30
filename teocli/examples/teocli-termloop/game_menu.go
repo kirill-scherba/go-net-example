@@ -10,8 +10,8 @@ type GameMenu struct {
 
 // newGameMenu create GameOverText object
 func (tg *Teogame) newGameMenu(level *tl.BaseLevel, txt string) (menu *GameMenu) {
-	t := []*tl.Text{}
-	t = append(t,
+	textAr := []*tl.Text{}
+	textAr = append(textAr,
 		tl.NewText(0, 0, txt, tl.ColorBlack, tl.ColorBlue),
 		tl.NewText(0, 0, "", tl.ColorBlack, tl.ColorBlue),
 		tl.NewText(0, 0, " 'g' - start new game ", tl.ColorDefault, tl.ColorBlack),
@@ -19,7 +19,7 @@ func (tg *Teogame) newGameMenu(level *tl.BaseLevel, txt string) (menu *GameMenu)
 		tl.NewText(0, 0, "   ----------------   ", tl.ColorDefault, tl.ColorBlack),
 		tl.NewText(0, 0, " press Ctrl+C to quit ", tl.ColorDefault, tl.ColorBlack),
 	)
-	menu = &GameMenu{t, tg}
+	menu = &GameMenu{textAr, tg}
 	level.AddEntity(menu)
 	return
 }
