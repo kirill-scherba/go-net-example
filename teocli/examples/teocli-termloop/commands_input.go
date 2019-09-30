@@ -83,6 +83,7 @@ func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 func (p clientDisconnecCommand) Cmd() byte { return teoroom.ComDisconnect }
 func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
+		p.tg.menu.SetText(" Game Over! ")
 		p.tg.setLevel(Menu)
 		return true
 	}

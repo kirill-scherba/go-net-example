@@ -24,6 +24,12 @@ func (tg *Teogame) newGameMenu(level *tl.BaseLevel, txt string) (menu *GameMenu)
 	return
 }
 
+// SetText for menu name (first entry)
+func (menu *GameMenu) SetText(text string) {
+	menu.t[0].SetText(text)
+	menu.t[0].Draw(menu.tg.game.Screen())
+}
+
 // Draw game over text
 func (menu *GameMenu) Draw(screen *tl.Screen) {
 	screenWidth, screenHeight := screen.Size()
