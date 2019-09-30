@@ -43,8 +43,6 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	tl "github.com/JoelOtter/termloop"
@@ -54,12 +52,20 @@ import (
 // Version this teonet application version
 const Version = "0.0.1"
 
+// Game levels
+const (
+	Game int = iota
+	gameMenu
+	Meta
+)
+
 // Teogame this game data structure
 type Teogame struct {
 	game   *tl.Game               // Game
 	level  []*tl.BaseLevel        // Game levels
 	hero   *Hero                  // Game Hero
 	player map[byte]*Player       // Game Players map
+	state  *GameState             // Game state
 	teo    *teocli.TeoLNull       // Teonet connetor
 	peer   string                 // Teonet room controller peer name
 	com    *outputCommands        // Teonet output commands receiver
@@ -78,12 +84,6 @@ type Player struct {
 // Hero struct of hero
 type Hero struct {
 	Player
-}
-
-// Text of text
-type Text struct {
-	*tl.Text
-	i int
 }
 
 // main parse aplication parameters and connect to Teonet. When teonet connected
@@ -119,42 +119,46 @@ func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration) (
 	return
 }
 
-// startGame initialize and start game
-func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
+// newGame create, initialize and start game
+func (tg *Teogame) newGame(rra *roomRequestAnswerData) {
 	tg.game = tl.NewGame()
 	tg.game.Screen().SetFps(30)
 	tg.rra = rra
 
-	// Base level
-	level := tl.NewBaseLevel(tl.Cell{
-		Bg: tl.ColorBlack,
-		Fg: tl.ColorWhite,
-		Ch: ' ',
-	})
-	tg.level = append(tg.level, level) // Level 0: Game
+	// Level 0: Game
+	tg.level = append(tg.level, func() (level *tl.BaseLevel) {
+		level = tl.NewBaseLevel(tl.Cell{
+			Bg: tl.ColorBlack,
+			Fg: tl.ColorWhite,
+			Ch: ' ',
+		})
+		// Lake
+		level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
 
-	// Lake
-	level.AddEntity(tl.NewRectangle(10, 5, 10, 5, tl.ColorWhite|tl.ColorBlack))
+		// Text entry
+		tg.state = &GameState{tl.NewText(0, 0, "time: ", tl.ColorBlack, tl.ColorBlue), Loaded, 0}
+		level.AddEntity(tg.state)
 
-	// Text
-	level.AddEntity(&Text{tl.NewText(0, 0, os.Args[0], tl.ColorBlack, tl.ColorBlue), 0})
+		// Hero
+		tg.hero = tg.addHero(level, int(rra.clientID)*3, 2)
 
-	// Hero
-	tg.hero = tg.addHero(int(rra.clientID)*3, 2)
+		return
+	}())
 
 	// Level 1: Game over
 	tg.level = append(tg.level, func() (level *tl.BaseLevel) {
 		level = tl.NewBaseLevel(tl.Cell{
 			Bg: tl.ColorBlack,
 			Fg: tl.ColorWhite,
-			Ch: '*',
+			Ch: ' ',
 		})
-		level.AddEntity(newGameOverText(tg))
+		level.AddEntity(tg.newGameMenu(" Game Over! "))
 		return
 	}())
 
 	// Start and run
-	tg.game.Screen().SetLevel(tg.level[0])
+	gameLevel := Game
+	tg.game.Screen().SetLevel(tg.level[gameLevel])
 	_, err := tg.com.sendData(tg.hero)
 	if err != nil {
 		panic(err)
@@ -167,59 +171,56 @@ func (tg *Teogame) startGame(rra *roomRequestAnswerData) {
 	tg.com.stop()
 }
 
-// gameOver switch to 'game over' screen
-func (tg *Teogame) gameOver() {
-	fmt.Printf("Game over!\n")
-	tg.game.Screen().SetLevel(tg.level[1])
+// gameMenu switch to 'game over' screen
+func (tg *Teogame) gameMenu() {
+	tg.game.Screen().SetLevel(tg.level[gameMenu])
 }
 
-// startGame reset game, request new game and switch to 'game' screen
-func (tg *Teogame) startNewGame() {
-	//tg.resetGame()
-	tg.com.stcom.Command(tg.teo, nil)
-	fmt.Printf("Start new game!\n")
-	//tg.game.Screen().SetLevel(tg.level[0])
+// roomRequest execute start command (as usual it send room request command)
+func (tg *Teogame) roomRequest() {
+	tg.com.start.Command(tg.teo, nil)
 }
 
 // resetGame reset game to it default values
 func (tg *Teogame) resetGame(rra *roomRequestAnswerData) {
 	for _, p := range tg.player {
-		tg.level[0].RemoveEntity(p)
+		tg.level[Game].RemoveEntity(p)
 	}
+	tg.rra = rra
 	tg.player = make(map[byte]*Player)
 	tg.hero.SetPosition(int(rra.clientID)*3, 2)
-	tg.rra = rra
-
-	tg.game.Screen().SetLevel(tg.level[0])
+	tg.game.Screen().SetLevel(tg.level[Game])
 	tg.com.sendData(tg.hero)
+
+	tg.state.setLoaded()
 }
 
 // addHero add Hero to game
-func (tg *Teogame) addHero(x, y int) (hero *Hero) {
+func (tg *Teogame) addHero(level *tl.BaseLevel, x, y int) (hero *Hero) {
 	hero = &Hero{Player{
 		Entity: tl.NewEntity(1, 1, 1, 1),
-		level:  tg.level[0],
+		level:  level,
 		tg:     tg,
 	}}
 	// Set the character at position (0, 0) on the entity.
 	hero.SetCell(0, 0, &tl.Cell{Fg: tl.ColorGreen, Ch: 'Ω'})
 	hero.SetPosition(x, y)
-	tg.level[0].AddEntity(hero)
+	level.AddEntity(hero)
 	return
 }
 
 // addPlayer add new Player to game or return existing if already exist
-func (tg *Teogame) addPlayer(id byte) (player *Player) {
+func (tg *Teogame) addPlayer(level *tl.BaseLevel, id byte) (player *Player) {
 	player, ok := tg.player[id]
 	if !ok {
 		player = &Player{
 			Entity: tl.NewEntity(2, 2, 1, 1),
-			level:  tg.level[0],
+			level:  level,
 			tg:     tg,
 		}
 		// Set the character at position (0, 0) on the entity.
 		player.SetCell(0, 0, &tl.Cell{Fg: tl.ColorBlue, Ch: 'Ö'})
-		tg.level[0].AddEntity(player)
+		level.AddEntity(player)
 		tg.player[id] = player
 	}
 	return
@@ -235,7 +236,7 @@ func (tg *Teogame) addPlayer(id byte) (player *Player) {
 
 // Tick frame tick
 func (player *Hero) Tick(event tl.Event) {
-	if event.Type == tl.EventKey { // Is it a keyboard event?
+	if player.tg.state.State() == Running && event.Type == tl.EventKey {
 		player.prevX, player.prevY = player.Position()
 
 		// Save previouse position and set to new position
@@ -303,44 +304,109 @@ func (player *Player) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// Tick of Text object
-func (m *Text) Tick(ev tl.Event) {
-	m.i++
-	m.Text.SetText(os.Args[0] + ", frame: " + strconv.Itoa(m.i))
+// Game states
+const (
+	Loaded int = iota
+	Running
+	Finished
+)
+
+// GameState hold game state and some text entrys
+type GameState struct {
+	*tl.Text     // Text entry
+	state    int // Game state
+	count    int // Frame counter
 }
 
-// newGameOverText create GameOverText object
-func newGameOverText(tg *Teogame) (text *GameOverText) {
-	t := []*tl.Text{}
-	t = append(t, tl.NewText(0, 0, " Game over! ", tl.ColorBlack, tl.ColorBlue))
-	t = append(t, tl.NewText(0, 0, " press any key to continue ",
-		tl.ColorDefault, tl.ColorDefault))
-	text = &GameOverText{t, tg}
-	return
+// State return game state
+func (state *GameState) State() int {
+	return state.state
 }
 
-// GameOverText is type of text
-type GameOverText struct {
+// String return string with state name
+func (state *GameState) String() string {
+	switch state.state {
+	case Loaded:
+		return "Loaded"
+	case Running:
+		return "Running"
+	default:
+		return "Undefined"
+	}
+}
+
+// setRunning set running state
+func (state *GameState) setRunning() {
+	state.count = 0
+	state.state = Running
+}
+
+// setLoaded set loaded state
+func (state *GameState) setLoaded() {
+	state.count = 0
+	state.state = Loaded
+}
+
+// Draw GameState object
+func (state *GameState) Draw(screen *tl.Screen) {
+	state.count++
+	state.Text.SetText(
+		fmt.Sprintf(
+			"state: %s, time: %.3f",
+			state.String(), float64(state.count)/30.0,
+		))
+	switch state.State() {
+	case Loaded:
+		state.Text.SetColor(tl.ColorBlack, tl.ColorYellow)
+	case Running:
+		state.Text.SetColor(tl.ColorBlack, tl.ColorGreen)
+	}
+	state.Text.Draw(screen)
+}
+
+// GameMenu is type of text
+type GameMenu struct {
 	t  []*tl.Text
 	tg *Teogame
 }
 
+// newGameMenu create GameOverText object
+func (tg *Teogame) newGameMenu(txt string) (text *GameMenu) {
+	t := []*tl.Text{}
+	t = append(t,
+		tl.NewText(0, 0, txt, tl.ColorBlack, tl.ColorBlue),
+		tl.NewText(0, 0, "", tl.ColorBlack, tl.ColorBlue),
+		tl.NewText(0, 0, " 'g' - start new game ", tl.ColorDefault, tl.ColorBlack),
+		tl.NewText(0, 0, " 'm' - meta ", tl.ColorDefault, tl.ColorBlack),
+		tl.NewText(0, 0, "   ----------------   ", tl.ColorDefault, tl.ColorBlack),
+		tl.NewText(0, 0, " press Ctrl+C to quit ", tl.ColorDefault, tl.ColorBlack),
+	)
+	text = &GameMenu{t, tg}
+	return
+}
+
 // Draw game over text
-func (got *GameOverText) Draw(screen *tl.Screen) {
+func (got *GameMenu) Draw(screen *tl.Screen) {
 	screenWidth, screenHeight := screen.Size()
+	var x, y int
 	for i, t := range got.t {
 		width, height := t.Size()
-		t.SetPosition((screenWidth-width)/2, i*2+(screenHeight-height)/2)
+		if i < 3 {
+			x, y = (screenWidth-width)/2, i+(screenHeight-height)/2
+		} else {
+			y++
+		}
+		t.SetPosition(x, y)
 		t.Draw(screen)
 	}
 }
 
 // Tick check key pressed and start new game or quit
-func (got *GameOverText) Tick(event tl.Event) {
+func (got *GameMenu) Tick(event tl.Event) {
 	if event.Type == tl.EventKey { // Is it a keyboard event?
-		// switch event.Ch { // If so, switch on the pressed key.
-		// case 'p':
-		got.tg.startNewGame()
-		// }
+		switch event.Ch { // If so, switch on the pressed key.
+		case 'g':
+			got.tg.roomRequest()
+		}
 	}
 }
