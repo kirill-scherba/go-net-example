@@ -102,7 +102,7 @@ const (
 	 * Initialize TR-UDP event
 	 * @param td Pointer to trudpData
 	 */
-	INITIALIZE = iota
+	EvInitialize = iota
 
 	/**
 	 * Destroy TR-UDP event
@@ -229,7 +229,7 @@ func Init(port *int) (trudp *TRUDP) {
 
 	localAddr := trudp.udp.localAddr()
 	teolog.Log(teolog.CONNECT, MODULE, "start listenning at", localAddr)
-	trudp.sendEvent(nil, INITIALIZE, []byte(localAddr))
+	trudp.sendEvent(nil, EvInitialize, []byte(localAddr))
 
 	return
 }

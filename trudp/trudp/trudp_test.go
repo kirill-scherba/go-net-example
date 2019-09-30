@@ -51,7 +51,7 @@ func TestTRUDP(t *testing.T) {
 
 				switch ev.Event {
 
-				case INITIALIZE:
+				case EvInitialize:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) INITIALIZE, listen at:", string(ev.Data))
 					// Send data
 					go func() {
