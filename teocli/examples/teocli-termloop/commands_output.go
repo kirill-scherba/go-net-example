@@ -22,7 +22,11 @@ func startCommand(tg *Teogame) teocli.StartCommand {
 
 // startCommand command methods
 func (p *startCommandD) Command(teo *teocli.TeoLNull, pac *teocli.Packet) {
-	p.tg.teo = teo
+	if p.tg.teo == nil {
+		p.tg.teo = teo
+		go p.tg.start(nil)
+		return
+	}
 	teoroom.RoomRequest(p.tg.teo, p.tg.peer, nil)
 }
 
