@@ -1,4 +1,4 @@
-// Copyright 2019 teonet-go authors.  All rights reserved.
+// Copyright 2019 Teonet-go authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -99,7 +99,7 @@ func main() {
 				// updateKeyValue Parse input parameters and update key value in database
 				updateKeyValue := func(data []byte) (key string, value []byte, err error) {
 					if teonet.DataIsJSON(data) {
-						var v teocdb.JData
+						var v teocdb.JSONData
 						json.Unmarshal(data, &v)
 						key = v.Key
 						value, _ = json.Marshal(v.Value)
@@ -118,7 +118,7 @@ func main() {
 
 				// readKeyValue Parse input parameters and read key value
 				readKeyValue := func(req []byte) (data []byte, jsonReqF bool, err error) {
-					var jsonData teocdb.JData
+					var jsonData teocdb.JSONData
 
 					// Unmarshal request
 					if jsonReqF = teonet.DataIsJSON(req); !jsonReqF {
@@ -145,7 +145,7 @@ func main() {
 
 				// readKeyList Parse input parameters and read list of keys
 				readKeyList := func(req []byte) (data []byte, jsonReqF bool, err error) {
-					var jsonData teocdb.JData
+					var jsonData teocdb.JSONData
 
 					// Unmarshal request
 					if jsonReqF = teonet.DataIsJSON(req); !jsonReqF {
@@ -176,16 +176,21 @@ func main() {
 				// Commands processing
 				switch pac.Cmd() {
 
-				// Set (insert or update) binary {key,value} to database
-				case 129:
-					key, value := teocdb.Unmarshal(pac.Data())
-					fmt.Println(key, value)
-					if err := tdb.Update(key, value); err != nil {
-						fmt.Printf("Insert Error: %s\n", err.Error())
+				// # 129: Set (insert or update) binary {key,value} to database
+				case teocdb.CmdSetB:
+					var kv teocdb.BinaryData
+					err := kv.UnmarshalBinary(pac.Data())
+					if err != nil {
+						fmt.Printf("Unmarshal Error: %s\n", err.Error())
+						break
+					}
+					fmt.Println(kv.Key, kv.Value)
+					if err := tdb.Update(kv.Key, kv.Value); err != nil {
+						fmt.Printf("Update Error: %s\n", err.Error())
 					}
 
-				// Insert(or Update) text or json "key,value" to database
-				case 130:
+				// # 130: Set (insert or update) text or json \"key,value\" to database
+				case teocdb.CmdSet:
 					key, value, err := updateKeyValue(pac.Data())
 					if err != nil {
 						fmt.Printf("Insert(or Update) Error: %s\n", err.Error())
@@ -193,8 +198,8 @@ func main() {
 					}
 					fmt.Println(key, value)
 
-				// Read key data and send answer with data in text or json format
-				case 131:
+				// # 131: Get key value and send answer with value in text or json format
+				case teocdb.CmdGet:
 					data, _, err := readKeyValue(pac.Data())
 					if err != nil {
 						fmt.Printf("Get Error: %s\n", err.Error())
@@ -202,8 +207,8 @@ func main() {
 					}
 					teo.SendTo(pac.From(), pac.Cmd(), data)
 
-				// Read list of keys and send answer with list array in text or json format
-				case 132:
+				// # 132: Get list of keys (by not complete key) and send answer with array of keys in text or json format
+				case teocdb.CmdList:
 					data, _, err := readKeyList(pac.Data())
 					if err != nil {
 						fmt.Printf("Read List Error: %s\n", err.Error())
@@ -213,6 +218,5 @@ func main() {
 				}
 			}
 		}
-		//fmt.Println("Teonet even loop stopped")
 	})
 }
