@@ -64,6 +64,7 @@ type Teogame struct {
 	hero   *Hero                  // Game Hero
 	player map[byte]*Player       // Game Players map
 	state  *GameState             // Game state
+	menu   *GameMenu              // Game menu
 	teo    *teocli.TeoLNull       // Teonet connetor
 	peer   string                 // Teonet room controller peer name
 	com    *outputCommands        // Teonet output commands receiver
@@ -125,7 +126,11 @@ func (tg *Teogame) start(rra *roomRequestAnswerData) {
 		tg.state = tg.newGameState(level)
 
 		// Hero
-		tg.hero = tg.addHero(level, int(rra.clientID)*3, 2)
+		var x = 0
+		if rra != nil {
+			x = int(rra.clientID) * 3
+		}
+		tg.hero = tg.addHero(level, x, 2)
 
 		return
 	}())
@@ -137,16 +142,19 @@ func (tg *Teogame) start(rra *roomRequestAnswerData) {
 			Fg: tl.ColorWhite,
 			Ch: ' ',
 		})
-		tg.newGameMenu(level, " Game Over! ")
+		tg.menu = tg.newGameMenu(level, " New Game! ")
 		return
 	}())
 
 	// Start and run
-	gameLevel := Game
-	tg.game.Screen().SetLevel(tg.level[gameLevel])
-	_, err := tg.com.sendData(tg.hero)
-	if err != nil {
-		panic(err)
+	if rra != nil {
+		tg.game.Screen().SetLevel(tg.level[Game])
+		_, err := tg.com.sendData(tg.hero)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		tg.game.Screen().SetLevel(tg.level[Menu])
 	}
 	tg.game.Start()
 
