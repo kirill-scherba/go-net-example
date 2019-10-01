@@ -1,10 +1,16 @@
-// Copyright 2019 teonet-go authors.  All rights reserved.
+// Copyright 2019 Teonet-go authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 // Teonet room controller (teo-room) application
 //
-// Teoroom unites users to room and send commands between it.
+// Teonet room controller combine users to room and send commands between it.
+//
+// Install this application:
+//   go get github.com/kirill-scherba/teonet-go/teonet/app/teoroom/
+//
+// Run this application:
+//   go run .
 //
 package main
 

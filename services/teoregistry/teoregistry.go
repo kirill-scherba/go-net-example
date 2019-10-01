@@ -1,57 +1,59 @@
-// Copyright 2019 teonet-go authors.  All rights reserved.
+// Copyright 2019 Teonet-go authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Data base organisation (we use ScyllaDB):
+// Package teoregistry (teo-registry) is the Teonet registry service package
 //
-// Run Scylla in Docker: https://www.scylladb.com/download/open-source/#docker
-/* Before you execute the program running this services, Launch `cqlsh` and execute:
+// Teoregistry store teonet applications(services) and its commands api
+// description in teonet database. This package contain teonet registry
+// database schemas, services and clients functions.
 //
-// Keyspace 'teoregistry'
-CREATE KEYSPACE teoregistry WITH replication = { 'class': 'SimpleStrategy', 'replication_factor' : 3 };
-USE teoregistry;
+// Install this go package:
+//   go get github.com/kirill-scherba/teonet-go/services/teoregistry
 //
-// Tables
-// Table 'applications': Teonet applications (services) description
-CREATE TABLE IF NOT EXISTS applications(
-  uuid        TIMEUUID,
-  name        TEXT,
-  descr       TEXT,
-  author      TEXT,
-  license     TEXT,
-  goget    		TEXT,
-  git      		TEXT,
-  PRIMARY KEY(uuid)
-);
-CREATE INDEX IF NOT EXISTS ON applications (name);
+// Data base organisation
 //
-// Table 'commands': Teonet applications commands description
-// - cmdType values:  0 - input; 1 - input/output (same parameters); 2 - output
-CREATE TABLE IF NOT EXISTS commands(
-  app_id       TIMEUUID,
-  cmd          INT,
-  type     		 TINYINT,
-	descr  	     TEXT,
-  txt_f        BOOLEAN,
-  txt_num      TINYINT,
-  txt_descr    TEXT,
-  jsonf        BOOLEAN,
-  json         TEXT,
-  binary_f     BOOLEAN,
-  binary_descr TEXT,
-  PRIMARY KEY(app_id, cmd, type)
-);
-
-*/
-
-// Teoregistry (teo-registry) is the Teonet registry service package
-
-// It story teonet applications(services) and its command api definition. This
-// package contain registry database schemas, service and clients functions.
+// To store database we use ScyllaDB. Run Scylla in Docker:
+//   https://www.scylladb.com/download/open-source/#docker
 //
-// Install:
+// Install database schemas. Before you execute application which used this
+// service, launch `cqlsh`:
+//   docker exec -it scylla cqlsh
+// and execute next commands:
 /*
-   go get github.com/kirill-scherba/teonet-go/services/teoregistry
+   // Keyspace 'teoregistry'
+   CREATE KEYSPACE teoregistry WITH replication = { 'class': 'SimpleStrategy', 'replication_factor' : 3 };
+   USE teoregistry;
+
+   // Table 'applications': Teonet applications (services) description
+   CREATE TABLE IF NOT EXISTS applications(
+   uuid        TIMEUUID,
+   name        TEXT,
+   descr       TEXT,
+   author      TEXT,
+   license     TEXT,
+   goget       TEXT,
+   git         TEXT,
+   PRIMARY KEY(uuid)
+   );
+   CREATE INDEX IF NOT EXISTS ON applications (name);
+
+   // Table 'commands': Teonet applications commands description
+   // - cmdType values:  0 - input; 1 - input/output (same parameters); 2 - output
+   CREATE TABLE IF NOT EXISTS commands(
+   app_id       TIMEUUID,
+   cmd          INT,
+   type         TINYINT,
+   descr        TEXT,
+   txt_f        BOOLEAN,
+   txt_num      TINYINT,
+   txt_descr    TEXT,
+   jsonf        BOOLEAN,
+   json         TEXT,
+   binary_f     BOOLEAN,
+   binary_descr TEXT,
+   PRIMARY KEY(app_id, cmd, type)
+   );
 */
 //
 package teoregistry
@@ -220,7 +222,7 @@ func (com *Com) Set(c *Command) (err error) {
 // Remove removes command
 func (com *Com) Remove(appid gocql.UUID, cmd int, cmdtype int) (err error) {
 	if err = com.tre.session.Query(`DELETE FROM commands
-		WHERE app_id= ?, cmd = ?, type = ?`,
+        WHERE app_id= ?, cmd = ?, type = ?`,
 		appid, cmd, cmdtype).Exec(); err != nil {
 		fmt.Printf("Remove Command Error: %s\n", err.Error())
 	}
