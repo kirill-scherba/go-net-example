@@ -20,6 +20,8 @@ import (
 	"strings"
 
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
+	"github.com/kirill-scherba/teonet-go/services/teoregistry"
+	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -31,9 +33,24 @@ func main() {
 	// Teonet logo
 	teonet.Logo("Teonet-go CQL Database service", Version)
 
+	// Applications teonet registy api description
+	api := teoapi.NewTeoapi(&teoregistry.Application{
+		Name:    "teocdb",
+		Version: Version,
+		Descr:   "Teonet-go CQL Database service",
+	}).Add(&teoregistry.Command{
+		Cmd: 129, Descr: "Set (insert or update) binary {key,value} to database",
+	}).Add(&teoregistry.Command{
+		Cmd: 130, Descr: "Set (insert or update) text or json \"key,value\" to database",
+	}).Add(&teoregistry.Command{
+		Cmd: 131, Descr: "Get key value and send answer with value in text or json format",
+	}).Add(&teoregistry.Command{
+		Cmd: 132, Descr: "Get list of keys (by not complete key) and send answer with array of keys in text or json format",
+	})
+
 	// Read Teonet parameters from configuration file and parse application
 	// flars and arguments
-	param := teonet.Params()
+	param := teonet.Params(api)
 
 	// Show host and network name
 	fmt.Printf("\nhost: %s\nnetwork: %s\n", param.Name, param.Network)
@@ -48,7 +65,7 @@ func main() {
 	defer tdb.Close()
 
 	// Teonet connect and run
-	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version)
+	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version, api)
 	teo.Run(func(teo *teonet.Teonet) {
 		//fmt.Println("Teonet even loop started")
 		for ev := range teo.Event() {
@@ -159,7 +176,7 @@ func main() {
 				// Commands processing
 				switch pac.Cmd() {
 
-				// Insert(or Update) binary {key,value} to database
+				// Set (insert or update) binary {key,value} to database
 				case 129:
 					key, value := teocdb.Unmarshal(pac.Data())
 					fmt.Println(key, value)

@@ -18,6 +18,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
+
 	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/trudp/trudp"
@@ -46,6 +48,7 @@ type Teonet struct {
 	rhost      *rhostData          // R-host module
 	split      *splitPacket        // Solitter module
 	l0         *l0Conn             // L0 server module
+	api        *teoapi.Teoapi      // Teonet registry api module
 	menu       *teokeys.HotkeyMenu // Hotkey menu
 	ticker     *time.Ticker        // Idle timer ticker (to use in hokeys)
 	chanKernel chan func()         // Channel to execute function on kernel level
@@ -69,7 +72,11 @@ func Logo(title, ver string) {
 }
 
 // Connect initialize Teonet
-func Connect(param *Parameters, appType []string, appVersion string) (teo *Teonet) {
+// Note: The forth parameter may be added to this function. There is value of
+// '*teoapi.Teoapi'. If this api parammeter is set than api menu item adding
+// to the hotkey menu. The api definition shoud be done before the
+// 'teonet.Params(api)' calls.
+func Connect(param *Parameters, appType []string, appVersion string, ii ...interface{}) (teo *Teonet) {
 
 	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
@@ -113,9 +120,24 @@ func Connect(param *Parameters, appType []string, appVersion string) (teo *Teone
 	teo.setType(appType)
 
 	// Set app version
-	teo.setVersion(appVersion)
+	teo.setAppVersion(appVersion)
+
+	// Teonet api registry
+	if len(ii) > 0 {
+		if v, ok := ii[0].(*teoapi.Teoapi); ok {
+			teo.api = v
+			teo.Menu().Add('a', "show teonet application api", func() {
+				fmt.Printf("\b%s\n", v.Sprint())
+			})
+		}
+	}
 
 	return
+}
+
+// Menu is Hotkey menu getter
+func (teo *Teonet) Menu() *teokeys.HotkeyMenu {
+	return teo.menu
 }
 
 // Reconnect reconnects Teonet
@@ -170,8 +192,8 @@ func (teo *Teonet) Run(proccess func(*Teonet)) {
 		// Reconnect
 		if teo.reconnect {
 			param := teo.param
-			appType := teo.GetType()
-			appVersion := teo.GetVersion()
+			appType := teo.Type()
+			appVersion := teo.AppVersion()
 			fmt.Println("reconnect...")
 			teo = nil
 			time.Sleep(1 * time.Second)
@@ -406,8 +428,8 @@ func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd byte, data []byte
 	return tcd.WriteToUnsafe(teo.cry.encrypt(pac.packet))
 }
 
-// GetType return this teonet application type (array of types)
-func (teo *Teonet) GetType() []string {
+// Type return this teonet application type (array of types)
+func (teo *Teonet) Type() []string {
 	// Select this host in arp table
 	peerArp, ok := teo.arp.m[teo.param.Name]
 	if !ok {
@@ -417,8 +439,8 @@ func (teo *Teonet) GetType() []string {
 	return peerArp.appType
 }
 
-// GetVersion return this teonet application version
-func (teo *Teonet) GetVersion() string {
+// AppVersion return this teonet application version
+func (teo *Teonet) AppVersion() string {
 	// Select this host in arp table
 	peerArp, ok := teo.arp.m[teo.param.Name]
 	if !ok {
@@ -447,7 +469,7 @@ func (teo *Teonet) setType(appType []string) (err error) {
 }
 
 // SetVersion set this teonet application version
-func (teo *Teonet) setVersion(appVersion string) (err error) {
+func (teo *Teonet) setAppVersion(appVersion string) (err error) {
 	// Select this host in arp table
 	peerArp, ok := teo.arp.m[teo.param.Name]
 	if !ok {

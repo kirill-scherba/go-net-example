@@ -29,6 +29,7 @@
    CREATE TABLE IF NOT EXISTS applications(
    uuid        TIMEUUID,
    name        TEXT,
+   version     TEXT,
    descr       TEXT,
    author      TEXT,
    license     TEXT,
@@ -55,7 +56,6 @@
    PRIMARY KEY(app_id, cmd, type)
    );
 */
-//
 package teoregistry
 
 import (
@@ -87,6 +87,7 @@ type Com struct {
 type Application struct {
 	UUID    gocql.UUID
 	Name    string
+	Version string
 	Descr   string
 	Author  string
 	License string

@@ -13,6 +13,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
 )
 
 // Parameters Teonet parameters
@@ -43,7 +45,7 @@ type Parameters struct {
 
 // Params read Teonet parameters from configuration file and parse application
 // flars and arguments
-func Params() (param *Parameters) {
+func Params(ii ...interface{}) (param *Parameters) {
 	// Teonet parameters and config
 	param = CreateParameters()
 	param.ReadConfig()
@@ -75,7 +77,26 @@ func Params() (param *Parameters) {
 	flag.BoolVar(&param.L0wsAllow, "l0-ws-allow", param.L0wsAllow, "allow l0 websocket server")
 	flag.IntVar(&param.L0wsPort, "l0-ws-port", param.L0wsPort, "l0 websocket server tcp port number")
 	flag.BoolVar(&param.DisallowEncrypt, "disable-encrypt", param.DisallowEncrypt, "disable teonet packets encryption")
+
+	// Teonet api flags
+	var showAPI bool
+	var trapi *teoapi.Teoapi
+	if len(ii) > 0 {
+		switch v := ii[0].(type) {
+		case *teoapi.Teoapi:
+			flag.BoolVar(&showAPI, "api", param.DisallowEncrypt, "show teonet application api")
+			trapi = v
+		}
+	}
+
+	// Parse flags
 	flag.Parse()
+
+	// Show teonet api if api flag is set
+	if showAPI {
+		fmt.Println(trapi.Sprint())
+		os.Exit(0)
+	}
 
 	// Teonet Arguments
 	args := flag.Args()
