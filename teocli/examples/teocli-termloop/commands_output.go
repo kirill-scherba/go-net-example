@@ -49,6 +49,9 @@ type outputCommands struct {
 
 // disconnect [out] send disconnect (exit from room) command to room controller
 func (com *outputCommands) disconnect() {
+	if com.tg.rra == nil {
+		return
+	}
 	teoroom.Disconnect(com.tg.teo, com.tg.peer, com.tg.rra.clientID)
 }
 
