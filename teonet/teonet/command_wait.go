@@ -8,8 +8,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
-// Wait command from peer module
-
+// waitCommand is wait command eeiver
 type waitCommand struct {
 	m map[string][]*waitFromRequest // 'wait command from' requests map
 }
@@ -19,22 +18,20 @@ type waitFromRequest struct {
 	from string           // waiting from
 	cmd  byte             // waiting comand
 	ch   ChanWaitFromData // return channel
+	f    checkDataFunc    // check data func
 }
 
-// WaitFromData data used in return of WaitFrom function
-type WaitFromData struct {
+// ChanWaitFromData 'wait command from' return channel
+type ChanWaitFromData chan *struct {
 	Data []byte
 	Err  error
 }
 
-// ChanWaitFromData 'wait command from' return channel
-type ChanWaitFromData chan *WaitFromData
-
 // add adds 'wait command from' request
-func (wcom *waitCommand) add(from string, cmd byte, ch ChanWaitFromData) (wfr *waitFromRequest) {
+func (wcom *waitCommand) add(from string, cmd byte, ch ChanWaitFromData, f checkDataFunc) (wfr *waitFromRequest) {
 	key := wcom.makeKey(from, cmd)
 	wcomRequestAr, ok := wcom.m[key]
-	wfr = &waitFromRequest{from, cmd, ch}
+	wfr = &waitFromRequest{from, cmd, ch, f}
 	if !ok {
 		wcom.m[key] = []*waitFromRequest{wfr}
 		return
@@ -52,7 +49,7 @@ func (wcom *waitCommand) exists(wfr *waitFromRequest, remove ...bool) (found boo
 	}
 	for idx, w := range wcomRequestAr {
 		if w == wfr {
-			// remove element if secod parameter of this function == true
+			// remove element if second parameter of this function == true
 			if len(remove) == 1 && remove[0] {
 				wcomRequestAr = append(wcomRequestAr[:idx], wcomRequestAr[idx+1:]...)
 				if len(wcomRequestAr) == 0 {
@@ -79,7 +76,15 @@ func (wcom *waitCommand) check(rec *receiveData) (processed int) {
 		return
 	}
 	for _, w := range wcar {
-		w.ch <- &WaitFromData{rec.rd.Data(), nil}
+		if w.f != nil {
+			if !w.f(rec.rd.Data()) {
+				continue
+			}
+		}
+		w.ch <- &struct {
+			Data []byte
+			Err  error
+		}{rec.rd.Data(), nil}
 		close(w.ch)
 		processed++
 	}
@@ -99,16 +104,24 @@ func (teo *Teonet) waitFromNew() (wcom *waitCommand) {
 	return
 }
 
-// WaitFrom wait receiving data from peer. Secont parameter of this function is
-// timeout. It may be omitted or contain time of timeout of time.Duration type.
-// If timeout parameter is omitted than default timeout value 2 sec sets.
-func (teo *Teonet) WaitFrom(from string, cmd byte, i ...interface{}) <-chan *WaitFromData {
+type checkDataFunc func([]byte) bool
+
+// WaitFrom wait receiving data from peer. The third function parameter is
+// timeout. It may be omitted or contain timeout time of time.Duration type.
+// If timeout parameter is omitted than default timeout value sets to 2 second.
+func (teo *Teonet) WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
+	Data []byte
+	Err  error
+} {
 	// Parameters definition
+	var f checkDataFunc
 	timeout := 2 * time.Second
-	if len(i) > 0 {
-		switch v := i[0].(type) {
+	for i := range ii { //if len(ii) > 0 {
+		switch v := ii[i].(type) {
 		case time.Duration:
 			timeout = v
+		case checkDataFunc:
+			f = v
 		}
 	}
 	// Create channel, add wait parameter and wait timeout
@@ -117,14 +130,17 @@ func (teo *Teonet) WaitFrom(from string, cmd byte, i ...interface{}) <-chan *Wai
 		teo.wg.Add(1)
 		defer teo.wg.Done()
 		var wfr *waitFromRequest
-		teo.kernel(func() { wfr = teo.wcom.add(from, cmd, ch) })
+		teo.kernel(func() { wfr = teo.wcom.add(from, cmd, ch, f) })
 		time.Sleep(timeout)
 		if !teo.running {
 			teolog.DebugVv(MODULE, "wait data from task finished...")
 			return
 		}
 		if teo.wcom.exists(wfr) {
-			ch <- &WaitFromData{nil, errors.New("timeout")}
+			ch <- &struct {
+				Data []byte
+				Err  error
+			}{nil, errors.New("timeout")}
 			teo.kernel(func() { teo.wcom.remove(wfr) })
 		}
 	}()

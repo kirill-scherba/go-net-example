@@ -33,7 +33,8 @@ import (
 
 // Teocdb is teocdb packet receiver
 type Teocdb struct {
-	Session *gocql.Session
+	session *gocql.Session
+	process *Process
 }
 
 // Connect to the cql cluster and return teocdb receiver
@@ -47,7 +48,7 @@ func Connect(hosts ...string) (tdb *Teocdb, err error) {
 	}()...)
 	cluster.Keyspace = "teocdb"
 	cluster.Consistency = gocql.Quorum
-	tdb.Session, _ = cluster.CreateSession()
+	tdb.session, _ = cluster.CreateSession()
 
 	// Create keyspace and table
 	const mapSchema = `
@@ -60,7 +61,7 @@ func Connect(hosts ...string) (tdb *Teocdb, err error) {
 			data blob,
 			PRIMARY KEY(key)
 		)`
-	if err = tdb.execStmt(tdb.Session, mapSchema); err != nil {
+	if err = tdb.execStmt(tdb.session, mapSchema); err != nil {
 		//t.Fatal("create table:", err)
 	}
 	return
@@ -75,12 +76,12 @@ func (tdb *Teocdb) execStmt(s *gocql.Session, stmt string) error {
 
 // Close teocdb connection
 func (tdb *Teocdb) Close() {
-	tdb.Session.Close()
+	tdb.session.Close()
 }
 
 // Update key value
 func (tdb *Teocdb) Update(key string, value []byte) (err error) {
-	if err = tdb.Session.Query(`UPDATE map SET data = ? WHERE key = ?`,
+	if err = tdb.session.Query(`UPDATE map SET data = ? WHERE key = ?`,
 		value, key).Exec(); err != nil {
 		fmt.Printf("Insert Error: %s\n", err.Error())
 	}
@@ -89,7 +90,7 @@ func (tdb *Teocdb) Update(key string, value []byte) (err error) {
 
 // Get value by key
 func (tdb *Teocdb) Get(key string) (data []byte, err error) {
-	if err := tdb.Session.Query(`SELECT data FROM map WHERE key = ? LIMIT 1`,
+	if err := tdb.session.Query(`SELECT data FROM map WHERE key = ? LIMIT 1`,
 		key).Consistency(gocql.One).Scan(&data); err != nil {
 		fmt.Printf("Get Error: %s\n", err.Error())
 	}
@@ -99,7 +100,7 @@ func (tdb *Teocdb) Get(key string) (data []byte, err error) {
 // List read and return array of all keys connected to selected key
 func (tdb *Teocdb) List(key string) (keyAr []string, err error) {
 	var keyOut string
-	iter := tdb.Session.Query(`
+	iter := tdb.session.Query(`
 		SELECT key FROM map WHERE key >= ? and key < ?
 		ALLOW FILTERING`,
 		key, key+"a").Iter()
@@ -108,4 +109,17 @@ func (tdb *Teocdb) List(key string) (keyAr []string, err error) {
 		keyAr = append(keyAr, keyOut)
 	}
 	return
+}
+
+// Process return Teocdb process receiver
+func (tdb *Teocdb) Process() *Process {
+	return tdb.process
+}
+
+// Process receiver to process teocdb commands
+type Process struct{}
+
+// CmdBinary process CmdBinary command
+func (proc *Process) CmdBinary() {
+	fmt.Printf("CmdBinary: \n")
 }

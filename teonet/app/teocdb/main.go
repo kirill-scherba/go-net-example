@@ -62,8 +62,8 @@ func main() {
 	// cluster.Consistency = gocql.Quorum
 	// session, _ := cluster.CreateSession()
 	// defer session.Close()
-	tdb, _ := teocdb.Connect()
-	defer tdb.Close()
+	tcdb, _ := teocdb.Connect()
+	defer tcdb.Close()
 
 	// Teonet connect and run
 	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version, api)
@@ -113,7 +113,7 @@ func main() {
 						key = d[0]
 						value = []byte(d[1])
 					}
-					err = tdb.Update(key, value)
+					err = tcdb.Update(key, value)
 					return
 				}
 
@@ -129,7 +129,7 @@ func main() {
 					}
 
 					// Get result from database
-					if data, err = tdb.Get(jsonData.Key); err != nil {
+					if data, err = tcdb.Get(jsonData.Key); err != nil {
 						return
 					}
 					fmt.Printf("Got from db: %v\n", data)
@@ -156,7 +156,7 @@ func main() {
 					}
 
 					// Read list
-					jdata, err := tdb.List(jsonData.Key)
+					jdata, err := tcdb.List(jsonData.Key)
 					if err != nil {
 						return
 					}
@@ -177,18 +177,26 @@ func main() {
 				// Commands processing
 				switch pac.Cmd() {
 
-				// # 129: Set (insert or update) binary {key,value} to database
-				case cdb.CmdSetB:
-					var kv cdb.BinaryData
-					err := kv.UnmarshalBinary(pac.Data())
+				// # 129: Binary command execute all cammands Set, Get and GetList in binary format
+				case cdb.CmdBinary:
+					tcdb.Process().CmdBinary()
+
+					fmt.Printf("Got cdb.CmdBinary\n")
+					var request, responce cdb.BinaryData
+					err := request.UnmarshalBinary(pac.Data())
 					if err != nil {
 						fmt.Printf("Unmarshal Error: %s\n", err.Error())
 						break
 					}
-					fmt.Println(kv.Key, kv.Value)
-					if err := tdb.Update(kv.Key, kv.Value); err != nil {
+					fmt.Println(request.Key, request.Value)
+					if err := tcdb.Update(request.Key, request.Value); err != nil {
 						fmt.Printf("Update Error: %s\n", err.Error())
+						break
 					}
+					responce = request
+					responce.Value = nil
+					data, err := responce.MarshalBinary()
+					teo.SendTo(pac.From(), pac.Cmd(), data)
 
 				// # 130: Set (insert or update) text or json \"key,value\" to database
 				case cdb.CmdSet:
