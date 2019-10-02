@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
+	cdb "github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
@@ -99,7 +100,7 @@ func main() {
 				// updateKeyValue Parse input parameters and update key value in database
 				updateKeyValue := func(data []byte) (key string, value []byte, err error) {
 					if teonet.DataIsJSON(data) {
-						var v teocdb.JSONData
+						var v cdb.JSONData
 						json.Unmarshal(data, &v)
 						key = v.Key
 						value, _ = json.Marshal(v.Value)
@@ -118,7 +119,7 @@ func main() {
 
 				// readKeyValue Parse input parameters and read key value
 				readKeyValue := func(req []byte) (data []byte, jsonReqF bool, err error) {
-					var jsonData teocdb.JSONData
+					var jsonData cdb.JSONData
 
 					// Unmarshal request
 					if jsonReqF = teonet.DataIsJSON(req); !jsonReqF {
@@ -145,7 +146,7 @@ func main() {
 
 				// readKeyList Parse input parameters and read list of keys
 				readKeyList := func(req []byte) (data []byte, jsonReqF bool, err error) {
-					var jsonData teocdb.JSONData
+					var jsonData cdb.JSONData
 
 					// Unmarshal request
 					if jsonReqF = teonet.DataIsJSON(req); !jsonReqF {
@@ -177,8 +178,8 @@ func main() {
 				switch pac.Cmd() {
 
 				// # 129: Set (insert or update) binary {key,value} to database
-				case teocdb.CmdSetB:
-					var kv teocdb.BinaryData
+				case cdb.CmdSetB:
+					var kv cdb.BinaryData
 					err := kv.UnmarshalBinary(pac.Data())
 					if err != nil {
 						fmt.Printf("Unmarshal Error: %s\n", err.Error())
@@ -190,7 +191,7 @@ func main() {
 					}
 
 				// # 130: Set (insert or update) text or json \"key,value\" to database
-				case teocdb.CmdSet:
+				case cdb.CmdSet:
 					key, value, err := updateKeyValue(pac.Data())
 					if err != nil {
 						fmt.Printf("Insert(or Update) Error: %s\n", err.Error())
@@ -199,7 +200,7 @@ func main() {
 					fmt.Println(key, value)
 
 				// # 131: Get key value and send answer with value in text or json format
-				case teocdb.CmdGet:
+				case cdb.CmdGet:
 					data, _, err := readKeyValue(pac.Data())
 					if err != nil {
 						fmt.Printf("Get Error: %s\n", err.Error())
@@ -208,7 +209,7 @@ func main() {
 					teo.SendTo(pac.From(), pac.Cmd(), data)
 
 				// # 132: Get list of keys (by not complete key) and send answer with array of keys in text or json format
-				case teocdb.CmdList:
+				case cdb.CmdList:
 					data, _, err := readKeyList(pac.Data())
 					if err != nil {
 						fmt.Printf("Read List Error: %s\n", err.Error())
