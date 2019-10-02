@@ -39,8 +39,8 @@ type TeoConnector interface {
 // 	Err  error
 // }
 
-// Teocdbcli is teocdbcli packet receiver.
-type Teocdbcli struct {
+// TeocdbCli is teocdbcli packet receiver.
+type TeocdbCli struct {
 	con      TeoConnector
 	peerName string
 	nextID   uint16
@@ -101,44 +101,67 @@ func (bd *BinaryData) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// NewTeocdbcli create new teocdbcli object.
-func NewTeocdbcli(con TeoConnector, ii ...interface{}) *Teocdbcli {
+// NewTeocdbCli create new teocdbcli object.
+func NewTeocdbCli(con TeoConnector, ii ...interface{}) *TeocdbCli {
 	var peerName = "teo-cdb"
 	if len(ii) > 0 {
 		if v, ok := ii[0].(string); ok {
 			peerName = v
 		}
 	}
-	return &Teocdbcli{con: con, peerName: peerName}
+	return &TeocdbCli{con: con, peerName: peerName}
 }
 
 // Send is clients api function to send binary command and exequte it in teonet
 // database. This function sends CmdBinary(#129) command to teocdb teonet
 // service which applay it (Set, Get or GetList) in teonet key/value database,
-// wait for answer, and return answer.
-func (cdb *Teocdbcli) Send(cmd byte, key string, value []byte) (data []byte, err error) {
+// wait for answer, and return answer. First parameter cmd may be CmdSet,
+// CmdGet, CmdList.
+func (cdb *TeocdbCli) Send(cmd byte, key string, value []byte) (data []byte, err error) {
 	cdb.nextID++
+	var d []byte
 	response := &BinaryData{}
 	request := &BinaryData{Cmd: cmd, ID: cdb.nextID, Key: key, Value: value}
-	if data, err = request.MarshalBinary(); err != nil {
+
+	if d, err = request.MarshalBinary(); err != nil {
 		return
 	}
-	if _, err = cdb.con.SendTo(cdb.peerName, CmdBinary, data); err != nil {
+
+	if _, err = cdb.con.SendTo(cdb.peerName, CmdBinary, d); err != nil {
 		return
 	}
-	r := <-cdb.con.WaitFrom(cdb.peerName, CmdBinary, func(data []byte) (rv bool) {
+
+	if r := <-cdb.con.WaitFrom(cdb.peerName, CmdBinary, func(data []byte) (rv bool) {
 		if err = response.UnmarshalBinary(data); err == nil {
 			rv = response.ID == request.ID
 		}
 		return
-	})
-	if r.Err != nil {
+	}); r.Err != nil {
 		err = r.Err
 		return
-	}
-	if err = response.UnmarshalBinary(r.Data); err != nil {
+	} else if err = response.UnmarshalBinary(r.Data); err != nil {
 		return
 	}
+
 	data = response.Value
+	return
+}
+
+// Keys function convert byte slice returned by Send function called with
+// GetList cmd parameter to string slice.
+func (cdb *TeocdbCli) Keys(data []byte) (keys []string, err error) {
+
+	for {
+		idx := bytes.IndexByte(data, 0)
+		if idx < 0 {
+			break
+		}
+		keys = append(keys, string(data[:idx]))
+		if idx == len(data) - 1 {
+			break
+		}
+		data = data[idx+1:]
+	}
+
 	return
 }

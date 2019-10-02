@@ -56,17 +56,19 @@ func main() {
 	// Show host and network name
 	fmt.Printf("\nhost: %s\nnetwork: %s\n", param.Name, param.Network)
 
+	// Teonet connect
+	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version, api)
+
 	// Connect to the cql cluster
 	// cluster := gocql.NewCluster("172.17.0.2", "172.17.0.3", "172.17.0.4")
 	// cluster.Keyspace = "teocdb"
 	// cluster.Consistency = gocql.Quorum
 	// session, _ := cluster.CreateSession()
 	// defer session.Close()
-	tcdb, _ := teocdb.Connect()
+	tcdb, _ := teocdb.Connect(teo)
 	defer tcdb.Close()
 
-	// Teonet connect and run
-	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version, api)
+	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
 		//fmt.Println("Teonet even loop started")
 		for ev := range teo.Event() {
@@ -179,26 +181,9 @@ func main() {
 
 				// # 129: Binary command execute all cammands Set, Get and GetList in binary format
 				case cdb.CmdBinary:
-					tcdb.Process().CmdBinary()
+					tcdb.Process().CmdBinary(pac.From(), pac.Cmd(), pac.Data())
 
-					fmt.Printf("Got cdb.CmdBinary\n")
-					var request, responce cdb.BinaryData
-					err := request.UnmarshalBinary(pac.Data())
-					if err != nil {
-						fmt.Printf("Unmarshal Error: %s\n", err.Error())
-						break
-					}
-					fmt.Println(request.Key, request.Value)
-					if err := tcdb.Update(request.Key, request.Value); err != nil {
-						fmt.Printf("Update Error: %s\n", err.Error())
-						break
-					}
-					responce = request
-					responce.Value = nil
-					data, err := responce.MarshalBinary()
-					teo.SendTo(pac.From(), pac.Cmd(), data)
-
-				// # 130: Set (insert or update) text or json \"key,value\" to database
+				// # 130: Set (insert or update) text or json {key,value} to database
 				case cdb.CmdSet:
 					key, value, err := updateKeyValue(pac.Data())
 					if err != nil {
@@ -206,6 +191,7 @@ func main() {
 						break
 					}
 					fmt.Println(key, value)
+					teo.SendTo(pac.From(), pac.Cmd(), nil)
 
 				// # 131: Get key value and send answer with value in text or json format
 				case cdb.CmdGet:

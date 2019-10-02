@@ -5,7 +5,7 @@
 // Package teocdb (teo-cdb) is the Teonet database service package
 //
 // Install this go package:
-//   go get github.com/kirill-scherba/teonet-go/services/teoregistry
+//   go get github.com/kirill-scherba/teonet-go/services/teocdb
 //
 // Data base organisation
 //
@@ -29,17 +29,23 @@ import (
 	"fmt"
 
 	"github.com/gocql/gocql"
+	cdb "github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
 )
+
+// Process receiver to process teocdb commands
+type Process struct{ tcdb *Teocdb }
 
 // Teocdb is teocdb packet receiver
 type Teocdb struct {
 	session *gocql.Session
-	process *Process
+	process Process
+	con     cdb.TeoConnector
 }
 
 // Connect to the cql cluster and return teocdb receiver
-func Connect(hosts ...string) (tdb *Teocdb, err error) {
-	tdb = &Teocdb{}
+func Connect(con cdb.TeoConnector, hosts ...string) (tcdb *Teocdb, err error) {
+	tcdb = &Teocdb{con: con}
+	tcdb.process.tcdb = tcdb
 	cluster := gocql.NewCluster(func() (h []string) {
 		if h = hosts; len(h) == 0 {
 			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
@@ -48,7 +54,7 @@ func Connect(hosts ...string) (tdb *Teocdb, err error) {
 	}()...)
 	cluster.Keyspace = "teocdb"
 	cluster.Consistency = gocql.Quorum
-	tdb.session, _ = cluster.CreateSession()
+	tcdb.session, _ = cluster.CreateSession()
 
 	// Create keyspace and table
 	const mapSchema = `
@@ -61,27 +67,27 @@ func Connect(hosts ...string) (tdb *Teocdb, err error) {
 			data blob,
 			PRIMARY KEY(key)
 		)`
-	if err = tdb.execStmt(tdb.session, mapSchema); err != nil {
+	if err = tcdb.execStmt(tcdb.session, mapSchema); err != nil {
 		//t.Fatal("create table:", err)
 	}
 	return
 }
 
 // ExecStmt executes a statement string.
-func (tdb *Teocdb) execStmt(s *gocql.Session, stmt string) error {
+func (tcdb *Teocdb) execStmt(s *gocql.Session, stmt string) error {
 	q := s.Query(stmt).RetryPolicy(nil)
 	defer q.Release()
 	return q.Exec()
 }
 
 // Close teocdb connection
-func (tdb *Teocdb) Close() {
-	tdb.session.Close()
+func (tcdb *Teocdb) Close() {
+	tcdb.session.Close()
 }
 
 // Update key value
-func (tdb *Teocdb) Update(key string, value []byte) (err error) {
-	if err = tdb.session.Query(`UPDATE map SET data = ? WHERE key = ?`,
+func (tcdb *Teocdb) Update(key string, value []byte) (err error) {
+	if err = tcdb.session.Query(`UPDATE map SET data = ? WHERE key = ?`,
 		value, key).Exec(); err != nil {
 		fmt.Printf("Insert Error: %s\n", err.Error())
 	}
@@ -89,8 +95,8 @@ func (tdb *Teocdb) Update(key string, value []byte) (err error) {
 }
 
 // Get value by key
-func (tdb *Teocdb) Get(key string) (data []byte, err error) {
-	if err := tdb.session.Query(`SELECT data FROM map WHERE key = ? LIMIT 1`,
+func (tcdb *Teocdb) Get(key string) (data []byte, err error) {
+	if err := tcdb.session.Query(`SELECT data FROM map WHERE key = ? LIMIT 1`,
 		key).Consistency(gocql.One).Scan(&data); err != nil {
 		fmt.Printf("Get Error: %s\n", err.Error())
 	}
@@ -98,9 +104,9 @@ func (tdb *Teocdb) Get(key string) (data []byte, err error) {
 }
 
 // List read and return array of all keys connected to selected key
-func (tdb *Teocdb) List(key string) (keyAr []string, err error) {
+func (tcdb *Teocdb) List(key string) (keyAr []string, err error) {
 	var keyOut string
-	iter := tdb.session.Query(`
+	iter := tcdb.session.Query(`
 		SELECT key FROM map WHERE key >= ? and key < ?
 		ALLOW FILTERING`,
 		key, key+"a").Iter()
@@ -111,15 +117,49 @@ func (tdb *Teocdb) List(key string) (keyAr []string, err error) {
 	return
 }
 
-// Process return Teocdb process receiver
-func (tdb *Teocdb) Process() *Process {
-	return tdb.process
+// Process return command processing receiver
+func (tcdb *Teocdb) Process() *Process {
+	return &tcdb.process
 }
 
-// Process receiver to process teocdb commands
-type Process struct{}
-
 // CmdBinary process CmdBinary command
-func (proc *Process) CmdBinary() {
-	fmt.Printf("CmdBinary: \n")
+func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
+	fmt.Printf("Got CmdBinary: \n")
+	var request, responce cdb.BinaryData
+	err = request.UnmarshalBinary(data)
+	if err != nil {
+		fmt.Printf("Unmarshal Error: %s\n", err.Error())
+		return
+	}
+	fmt.Println(request.Cmd, request.Key, request.Value)
+	responce = request
+	switch request.Cmd {
+	case cdb.CmdSet:
+		if err = proc.tcdb.Update(request.Key, request.Value); err != nil {
+			fmt.Printf("Update Error: %s\n", err.Error())
+			return
+		}
+		responce.Value = nil
+	case cdb.CmdGet:
+		if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
+			fmt.Printf("Get Error: %s\n", err.Error())
+			return
+		}
+	case cdb.CmdList:
+		var keys []string
+		if keys, err = proc.tcdb.List(request.Key); err != nil {
+			fmt.Printf("Get Error: %s\n", err.Error())
+			return
+		}
+		for _, key := range keys {
+			responce.Value = append(responce.Value, []byte(key)...)
+			responce.Value = append(responce.Value, 0)
+		}
+	}
+	var retdata []byte
+	if retdata, err = responce.MarshalBinary(); err != nil {
+		return
+	}
+	_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	return
 }
