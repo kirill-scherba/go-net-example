@@ -96,7 +96,7 @@ func TestKeyValueText(t *testing.T) {
 		}{
 			// TODO: Add test cases.
 			{"text-key", fields{Key: key}, args{[]byte(key)}, false},
-			//{"text-key-id", fields{Key: key, ID: id}, args{[]byte(key + "," + strconv.Itoa(int(id)))}, false},
+			{"text-key-id-", fields{Key: key, ID: id}, args{[]byte(key + "," + strconv.Itoa(int(id)) + ",")}, false},
 			{"text-key-value", fields{Key: key, Value: value}, args{[]byte(key + "," + string(value))}, false},
 			{"text-key-id-value", fields{Key: key, ID: id, Value: value}, args{[]byte(key + "," + strconv.Itoa(int(id)) + "," + string(value))}, false},
 		}
