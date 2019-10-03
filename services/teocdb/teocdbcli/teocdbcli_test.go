@@ -34,7 +34,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
-func TestTeocdbcli(t *testing.T) {
+func TestBinaryData(t *testing.T) {
 
 	t.Run("MarshalUnmarshalBinary", func(t *testing.T) {
 
@@ -74,7 +74,7 @@ func TestTeocdbcli(t *testing.T) {
 
 // Connect to teo-cdb and test Send function.
 // To execute this test use command line parameters: go test -args teo-test
-func TestTeocdbcliSend(t *testing.T) {
+func TestSend(t *testing.T) {
 	ch := make(chan bool)
 	version := "1.0.0"
 	param := teonet.Params()
@@ -134,17 +134,20 @@ func TestTeocdbcliSend(t *testing.T) {
 							error(err)
 							return
 						}
-						keys, err := cdb.Keys(data)
-						fmt.Printf("got answer data: %v\n", keys)
+						//keylist, err := cdb.Keys(data)
+						var keylist KeyList
+						keylist.UnmarshalBinary(data)
+						fmt.Printf("got answer keys: %v\n%v\n", keylist, data)
 
 						// Get values of all keys received in previous example
-						for _, key := range keys {
+						for _, key := range keylist.Keys() {
 							data, err = cdb.Send(CmdGet, key, nil)
 							if err != nil {
 								error(err)
 								return
 							}
-							fmt.Printf("got answer key, value: %s, %s\n", key, string(data))
+							fmt.Printf("got answer key, value: %s -> %s\n", key,
+								string(data))
 						}
 
 						ch <- true

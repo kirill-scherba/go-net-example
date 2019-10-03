@@ -33,12 +33,6 @@ type TeoConnector interface {
 	}
 }
 
-// WaitFromData data used in return of WaitFrom function
-// type WaitFromData struct {
-// 	Data []byte
-// 	Err  error
-// }
-
 // TeocdbCli is teocdbcli packet receiver.
 type TeocdbCli struct {
 	con      TeoConnector
@@ -113,7 +107,7 @@ func NewTeocdbCli(con TeoConnector, ii ...interface{}) *TeocdbCli {
 }
 
 // Send is clients api function to send binary command and exequte it in teonet
-// database. This function sends CmdBinary(#129) command to teocdb teonet
+// database. This function sends CmdBinary(129) command to teocdb teonet
 // service which applay it (Set, Get or GetList) in teonet key/value database,
 // wait for answer, and return answer. First parameter cmd may be CmdSet,
 // CmdGet, CmdList.
@@ -144,24 +138,5 @@ func (cdb *TeocdbCli) Send(cmd byte, key string, value []byte) (data []byte, err
 	}
 
 	data = response.Value
-	return
-}
-
-// Keys function convert byte slice returned by Send function called with
-// GetList cmd parameter to string slice.
-func (cdb *TeocdbCli) Keys(data []byte) (keys []string, err error) {
-
-	for {
-		idx := bytes.IndexByte(data, 0)
-		if idx < 0 {
-			break
-		}
-		keys = append(keys, string(data[:idx]))
-		if idx == len(data) - 1 {
-			break
-		}
-		data = data[idx+1:]
-	}
-
 	return
 }

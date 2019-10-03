@@ -104,7 +104,7 @@ func (tcdb *Teocdb) Get(key string) (data []byte, err error) {
 }
 
 // List read and return array of all keys connected to selected key
-func (tcdb *Teocdb) List(key string) (keyAr []string, err error) {
+func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 	var keyOut string
 	iter := tcdb.session.Query(`
 		SELECT key FROM map WHERE key >= ? and key < ?
@@ -112,7 +112,7 @@ func (tcdb *Teocdb) List(key string) (keyAr []string, err error) {
 		key, key+"a").Iter()
 	for iter.Scan(&keyOut) {
 		fmt.Println("key:", keyOut)
-		keyAr = append(keyAr, keyOut)
+		keyList.Append(keyOut)
 	}
 	return
 }
@@ -146,15 +146,12 @@ func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
 			return
 		}
 	case cdb.CmdList:
-		var keys []string
+		var keys cdb.KeyList
 		if keys, err = proc.tcdb.List(request.Key); err != nil {
 			fmt.Printf("Get Error: %s\n", err.Error())
 			return
 		}
-		for _, key := range keys {
-			responce.Value = append(responce.Value, []byte(key)...)
-			responce.Value = append(responce.Value, 0)
-		}
+		responce.Value, _ = keys.MarshalBinary()
 	}
 	var retdata []byte
 	if retdata, err = responce.MarshalBinary(); err != nil {

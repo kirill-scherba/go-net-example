@@ -158,11 +158,13 @@ func main() {
 					}
 
 					// Read list
-					jdata, err := tcdb.List(jsonData.Key)
+					keyList, err := tcdb.List(jsonData.Key)
 					if err != nil {
 						return
 					}
-					fmt.Printf("Got from db: %v\n", jdata)
+					fmt.Printf("Got from db: %v\n", keyList)
+
+					jdata := keyList.Keys()
 					sort.Strings(jdata)
 					data, _ = json.Marshal(jdata)
 
