@@ -14,10 +14,8 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
@@ -99,52 +97,32 @@ func main() {
 				fmt.Printf("Event Received from: %s, cmd: %d, data: %s\n",
 					pac.From(), pac.Cmd(), pac.Data())
 
-				// updateKeyValue Parse input parameters and update key value in database
-				updateKeyValue := func(data []byte) (key string, value []byte, err error) {
-					if teonet.DataIsJSON(data) {
-						var v cdb.JSONData
-						json.Unmarshal(data, &v)
-						key = v.Key
-						value, _ = json.Marshal(v.Value)
-					} else {
-						d := strings.Split(string(data), ",")
-						if len(d) < 2 {
-							err = errors.New("not enough parameters in text request")
-							return
-						}
-						key = d[0]
-						value = []byte(d[1])
-					}
-					err = tcdb.Update(key, value)
-					return
-				}
-
 				// readKeyValue Parse input parameters and read key value
-				readKeyValue := func(req []byte) (data []byte, jsonReqF bool, err error) {
-					var jsonData cdb.JSONData
+				// readKeyValue := func(req []byte) (data []byte, jsonReqF bool, err error) {
+				// 	var jsonData cdb.JSONData
 
-					// Unmarshal request
-					if jsonReqF = teonet.DataIsJSON(req); !jsonReqF {
-						jsonData.Key = string(req)
-					} else if err = json.Unmarshal(req, &jsonData); err != nil {
-						return
-					}
+				// 	// Unmarshal request
+				// 	if jsonReqF = teonet.DataIsJSON(req); !jsonReqF {
+				// 		jsonData.Key = string(req)
+				// 	} else if err = json.Unmarshal(req, &jsonData); err != nil {
+				// 		return
+				// 	}
 
-					// Get result from database
-					if data, err = tcdb.Get(jsonData.Key); err != nil {
-						return
-					}
-					fmt.Printf("Got from db: %v\n", data)
+				// 	// Get result from database
+				// 	if data, err = tcdb.Get(jsonData.Key); err != nil {
+				// 		return
+				// 	}
+				// 	fmt.Printf("Got from db: %v\n", data)
 
-					// Marshal responce
-					if jsonReqF {
-						if err := json.Unmarshal(data, &jsonData.Value); err != nil {
-							jsonData.Value = string(data)
-						}
-						data, err = json.Marshal(jsonData)
-					}
-					return
-				}
+				// 	// Marshal responce
+				// 	if jsonReqF {
+				// 		if err := json.Unmarshal(data, &jsonData.Value); err != nil {
+				// 			jsonData.Value = string(data)
+				// 		}
+				// 		data, err = json.Marshal(jsonData)
+				// 	}
+				// 	return
+				// }
 
 				// readKeyList Parse input parameters and read list of keys
 				readKeyList := func(req []byte) (data []byte, jsonReqF bool, err error) {
@@ -183,26 +161,31 @@ func main() {
 
 				// # 129: Binary command execute all cammands Set, Get and GetList in binary format
 				case cdb.CmdBinary:
-					tcdb.Process().CmdBinary(pac.From(), pac.Cmd(), pac.Data())
+					err := tcdb.Process().CmdBinary(pac.From(), pac.Cmd(), pac.Data())
+					if err != nil {
+						fmt.Printf("CmdBinary Error: %s\n", err.Error())
+					}
 
 				// # 130: Set (insert or update) text or json {key,value} to database
 				case cdb.CmdSet:
-					key, value, err := updateKeyValue(pac.Data())
+					err := tcdb.Process().CmdSet(pac.From(), pac.Cmd(), pac.Data())
 					if err != nil {
-						fmt.Printf("Insert(or Update) Error: %s\n", err.Error())
-						break
+						fmt.Printf("CmdSet Error: %s\n", err.Error())
 					}
-					fmt.Println(key, value)
-					teo.SendTo(pac.From(), pac.Cmd(), nil)
 
 				// # 131: Get key value and send answer with value in text or json format
-				case cdb.CmdGet:
-					data, _, err := readKeyValue(pac.Data())
+				case cdb.CmdGet:					
+					err := tcdb.Process().CmdGet(pac.From(), pac.Cmd(), pac.Data())
 					if err != nil {
-						fmt.Printf("Get Error: %s\n", err.Error())
-						break
+						fmt.Printf("CmdGet Error: %s\n", err.Error())
 					}
-					teo.SendTo(pac.From(), pac.Cmd(), data)
+
+					// data, _, err := readKeyValue(pac.Data())
+					// if err != nil {
+					// 	fmt.Printf("Get Error: %s\n", err.Error())
+					// 	break
+					// }
+					// teo.SendTo(pac.From(), pac.Cmd(), data)
 
 				// # 132: Get list of keys (by not complete key) and send answer with array of keys in text or json format
 				case cdb.CmdList:

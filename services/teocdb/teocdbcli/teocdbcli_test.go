@@ -28,13 +28,14 @@ package teocdbcli
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
-func TestBinaryData(t *testing.T) {
+func TestKeyValueBinary(t *testing.T) {
 
 	t.Run("MarshalUnmarshalBinary", func(t *testing.T) {
 
@@ -43,8 +44,8 @@ func TestBinaryData(t *testing.T) {
 		key := "test.key.123"
 		value := []byte("Hello world!")
 
-		bdInput := &BinaryData{cmd, id, key, value}
-		bdOutput := &BinaryData{}
+		bdInput := &KeyValue{cmd, id, key, value, false}
+		bdOutput := &KeyValue{}
 		data, err := bdInput.MarshalBinary()
 		//fmt.Println(data)
 		if err != nil {
@@ -69,7 +70,62 @@ func TestBinaryData(t *testing.T) {
 			"data: %v\n"+"cmd: %d\n"+"id: %d\n"+"key: %s\n"+"value: %s\n",
 			data, bdOutput.Cmd, bdOutput.ID, bdOutput.Key, string(bdOutput.Value))
 	})
+}
+func TestKeyValueText(t *testing.T) {
+	t.Run("MarshalUnmarshalText", func(t *testing.T) {
 
+		id := uint16(77)
+		key := "test.key.5678"
+		value := []byte("Hello!")
+
+		type fields struct {
+			Cmd           byte
+			ID            uint16
+			Key           string
+			Value         []byte
+			requestInJSON bool
+		}
+		type args struct {
+			text []byte
+		}
+		tests := []struct {
+			name    string
+			fields  fields
+			args    args
+			wantErr bool
+		}{
+			// TODO: Add test cases.
+			{"text-key", fields{Key: key}, args{[]byte(key)}, false},
+			//{"text-key-id", fields{Key: key, ID: id}, args{[]byte(key + "," + strconv.Itoa(int(id)))}, false},
+			{"text-key-value", fields{Key: key, Value: value}, args{[]byte(key + "," + string(value))}, false},
+			{"text-key-id-value", fields{Key: key, ID: id, Value: value}, args{[]byte(key + "," + strconv.Itoa(int(id)) + "," + string(value))}, false},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				kv := &KeyValue{}
+
+				// Cmd:           tt.fields.Cmd,
+				// ID:            tt.fields.ID,
+				// Key:           tt.fields.Key,
+				// Value:         tt.fields.Value,
+				// requestInJSON: tt.fields.requestInJSON,
+
+				if err := kv.UnmarshalText(tt.args.text); (err != nil) != tt.wantErr {
+					t.Errorf("KeyValue.UnmarshalText() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if isErr := (kv.Key != tt.fields.Key); isErr != tt.wantErr {
+					t.Errorf("Key not right ")
+				}
+				if isErr := (string(kv.Value) != string(tt.fields.Value)); isErr != tt.wantErr {
+					t.Errorf("Value not right ")
+				}
+				if isErr := (kv.ID != tt.fields.ID); isErr != tt.wantErr {
+					t.Errorf("Id not right ")
+				}
+				fmt.Printf("text: %s ->  KeyValue%v\n", string(tt.args.text), kv)
+			})
+		}
+	})
 }
 
 // Connect to teo-cdb and test Send function.

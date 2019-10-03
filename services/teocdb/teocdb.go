@@ -124,31 +124,31 @@ func (tcdb *Teocdb) Process() *Process {
 
 // CmdBinary process CmdBinary command
 func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
-	fmt.Printf("Got CmdBinary: \n")
-	var request, responce cdb.BinaryData
+	//fmt.Printf("Got CmdBinary: \n")
+	var request, responce cdb.KeyValue
 	err = request.UnmarshalBinary(data)
 	if err != nil {
-		fmt.Printf("Unmarshal Error: %s\n", err.Error())
+		//fmt.Printf("Unmarshal Error: %s\n", err.Error())
 		return
 	}
-	fmt.Println(request.Cmd, request.Key, request.Value)
+	//fmt.Println(request.Cmd, request.Key, request.Value)
 	responce = request
 	switch request.Cmd {
 	case cdb.CmdSet:
 		if err = proc.tcdb.Update(request.Key, request.Value); err != nil {
-			fmt.Printf("Update Error: %s\n", err.Error())
+			//fmt.Printf("Update Error: %s\n", err.Error())
 			return
 		}
 		responce.Value = nil
 	case cdb.CmdGet:
 		if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
-			fmt.Printf("Get Error: %s\n", err.Error())
+			//fmt.Printf("Get Error: %s\n", err.Error())
 			return
 		}
 	case cdb.CmdList:
 		var keys cdb.KeyList
 		if keys, err = proc.tcdb.List(request.Key); err != nil {
-			fmt.Printf("Get Error: %s\n", err.Error())
+			//fmt.Printf("Get Error: %s\n", err.Error())
 			return
 		}
 		responce.Value, _ = keys.MarshalBinary()
@@ -158,5 +158,86 @@ func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
 		return
 	}
 	_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	return
+}
+
+// CmdSet process CmdSet command
+func (proc *Process) CmdSet(from string, cmd byte, data []byte) (err error) {
+
+	// updateKeyValue Parse input parameters and update key value in database
+	// updateKeyValue := func(data []byte) (key string, value []byte, err error) {
+	// 	if teonet.DataIsJSON(data) {
+	// 		var v cdb.JSONData
+	// 		json.Unmarshal(data, &v)
+	// 		key = v.Key
+	// 		value, _ = json.Marshal(v.Value)
+	// 	} else {
+	// 		d := strings.Split(string(data), ",")
+	// 		if len(d) < 2 {
+	// 			err = errors.New("not enough parameters in text request")
+	// 			return
+	// 		}
+	// 		key = d[0]
+	// 		value = []byte(d[1])
+	// 	}
+	// 	err = proc.tcdb.Update(key, value)
+	// 	return
+	// }
+
+	// key, value, err := updateKeyValue(data)
+	// if err != nil {
+	// 	//fmt.Printf("Insert(or Update) Error: %s\n", err.Error())
+	// 	return
+	// }
+	// fmt.Println(key, value)
+	// _, err = proc.tcdb.con.SendTo(from, cmd, nil)
+	// return
+
+	request := cdb.KeyValue{Cmd: cmd}
+	err = request.UnmarshalText(data)
+	if err != nil {
+		//fmt.Printf("Unmarshal Error: %s\n", err.Error())
+		return
+	}
+	//fmt.Println(request.Cmd, request.Key, request.Value)
+	if err = proc.tcdb.Update(request.Key, request.Value); err != nil {
+		//fmt.Printf("Update Error: %s\n", err.Error())
+		return
+	}
+	responce := request
+	responce.Value = nil
+	var retdata []byte
+	if retdata, err = responce.MarshalText(); err != nil {
+		return
+	}
+	_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+
+	return
+}
+
+// CmdGet process CmdGet command
+func (proc *Process) CmdGet(from string, cmd byte, data []byte) (err error) {
+
+	fmt.Printf("CmdGet\n")
+	request := cdb.KeyValue{Cmd: cmd}
+	err = request.UnmarshalText(data)
+	if err != nil {
+		//fmt.Printf("Unmarshal Error: %s\n", err.Error())
+		return
+	}
+	fmt.Printf("CmdGet %v\n", request)
+	// Get result from database
+	responce := request
+	if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
+		return
+	}
+	fmt.Printf("Got from db: %v\n", responce.Value)
+	responce.Value = data
+	var retdata []byte
+	if retdata, err = responce.MarshalText(); err != nil {
+		return
+	}
+	_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+
 	return
 }

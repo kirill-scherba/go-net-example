@@ -8,8 +8,15 @@ package teocdbcli
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"unsafe"
+
+	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Key value database commands.
@@ -47,30 +54,32 @@ type JSONData struct {
 	Value interface{} `json:"value"`
 }
 
-// BinaryData is key value packet in binary format.
-type BinaryData struct {
-	Cmd   byte   // Command
-	ID    uint16 // Packet id
-	Key   string // Key
-	Value []byte // Value
+// KeyValue is key value packet data (text or binary). User in requests
+// and responce teonet commands
+type KeyValue struct {
+	Cmd           byte   // Command
+	ID            uint16 // Packet id
+	Key           string // Key
+	Value         []byte // Value
+	requestInJSON bool   // Request packet format
 }
 
-// MarshalBinary encodes BinaryData receiver into binary buffer and returns
-// byte slice.
-func (bd *BinaryData) MarshalBinary() (data []byte, err error) {
+// MarshalBinary encodes KeyValue receiver data into binary buffer and returns
+// it in byte slice.
+func (kv *KeyValue) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
-	binary.Write(buf, le, bd.Cmd)
-	binary.Write(buf, le, bd.ID)
-	binary.Write(buf, le, uint16(len(bd.Key)))
-	binary.Write(buf, le, []byte(bd.Key))
-	binary.Write(buf, le, bd.Value)
+	binary.Write(buf, le, kv.Cmd)
+	binary.Write(buf, le, kv.ID)
+	binary.Write(buf, le, uint16(len(kv.Key)))
+	binary.Write(buf, le, []byte(kv.Key))
+	binary.Write(buf, le, kv.Value)
 	data = buf.Bytes()
 	return
 }
 
-// UnmarshalBinary decode binary buffer into BinaryData receiver.
-func (bd *BinaryData) UnmarshalBinary(data []byte) (err error) {
+// UnmarshalBinary decode binary buffer into KeyValue receiver data.
+func (kv *KeyValue) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
 	ReadData := func(r io.Reader, order binary.ByteOrder, dataLen uint16) (data []byte) {
@@ -84,14 +93,92 @@ func (bd *BinaryData) UnmarshalBinary(data []byte) (err error) {
 		str = string(ReadData(r, order, strLen))
 		return
 	}
-	binary.Read(buf, le, &bd.Cmd)
-	binary.Read(buf, le, &bd.ID)
-	bd.Key = ReadString(buf, le)
-	bd.Value = ReadData(buf, le, uint16(len(data)-
-		int(unsafe.Sizeof(bd.Cmd))-
-		int(unsafe.Sizeof(bd.ID))-
-		(int(unsafe.Sizeof(uint16(0)))+len(bd.Key)),
+	binary.Read(buf, le, &kv.Cmd)
+	binary.Read(buf, le, &kv.ID)
+	kv.Key = ReadString(buf, le)
+	kv.Value = ReadData(buf, le, uint16(len(data)-
+		int(unsafe.Sizeof(kv.Cmd))-
+		int(unsafe.Sizeof(kv.ID))-
+		(int(unsafe.Sizeof(uint16(0)))+len(kv.Key)),
 	))
+	return
+}
+
+// MarshalText encodes KeyValue receiver data into text buffer and returns it
+// in byte slice. Response format for text requests: {key,id,value}
+func (kv *KeyValue) MarshalText() (data []byte, err error) {
+	if kv.requestInJSON {
+
+		var v JSONData
+		v.Key = kv.Key
+		v.ID = kv.ID
+		json.Unmarshal(kv.Value, &v.Value)
+
+		data, err = json.Marshal(v)
+
+	} else {
+
+		data = []byte(fmt.Sprintf("%s,%d,%s", kv.Key, kv.ID, string(kv.Value)))
+
+	}
+	return
+}
+
+// UnmarshalText decode text or json buffer into KeyValue receiver data.
+// Parameters avalable in text request:
+//   {key} {key,id} {key,value} {key,id,value}
+// Parameters avalable in text request by commands:
+// CmdSet:
+//   {key} {key,value} {key,id,value}
+func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
+	if teonet.DataIsJSON(text) {
+
+		kv.requestInJSON = true
+
+		var ok bool
+		var v JSONData
+
+		json.Unmarshal(text, &v)
+		kv.Key = v.Key
+		if kv.ID, ok = v.ID.(uint16); !ok {
+			// TODO Do somethink if can't get ID
+		}
+		kv.Value, _ = json.Marshal(v.Value)
+
+	} else {
+
+		kv.requestInJSON = false
+		d := strings.Split(string(text), ",")
+		getID := func(idx int) uint16 {
+			id, _ := strconv.Atoi(d[idx])
+			return uint16(id)
+		}
+		l := len(d)
+		kv.ID = 0
+		switch {
+
+		case l == 1:
+			kv.Key = d[0]
+			kv.Value = nil
+
+		case l == 2:
+			kv.Key = d[0]
+			if kv.Cmd == CmdGet {
+				kv.ID = getID(1)
+				break
+			}
+			kv.Value = []byte(d[1])
+
+		case l == 3:
+			kv.Key = d[0]
+			kv.ID = getID(1)
+			kv.Value = []byte(d[2])
+
+		default:
+			err = errors.New("not enough parameters in text request")
+			return
+		}
+	}
 	return
 }
 
@@ -114,8 +201,8 @@ func NewTeocdbCli(con TeoConnector, ii ...interface{}) *TeocdbCli {
 func (cdb *TeocdbCli) Send(cmd byte, key string, value []byte) (data []byte, err error) {
 	cdb.nextID++
 	var d []byte
-	response := &BinaryData{}
-	request := &BinaryData{Cmd: cmd, ID: cdb.nextID, Key: key, Value: value}
+	response := &KeyValue{}
+	request := &KeyValue{Cmd: cmd, ID: cdb.nextID, Key: key, Value: value}
 
 	if d, err = request.MarshalBinary(); err != nil {
 		return
