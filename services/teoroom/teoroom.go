@@ -65,8 +65,8 @@ type GameParameters struct {
 
 // newGameParameters create new GameParameters, sets default parameters and read
 // parameters from config file
-func (r *Room) newGameParameters(name string) (gparam *GameParameters) {
-	gparam = &GameParameters{
+func (r *Room) newGameParameters(name string) (gp *GameParameters) {
+	gp = &GameParameters{
 		Name:              name,
 		GameTime:          gameTime,
 		GameClosedAfter:   gameClosedAfter,
@@ -75,25 +75,25 @@ func (r *Room) newGameParameters(name string) (gparam *GameParameters) {
 		WaitForMinClients: waitForMinClients,
 		WaitForMaxClients: waitForMaxClients,
 	}
-	if err := gparam.readConfig(); err != nil {
+	if err := gp.readConfig(); err != nil {
 		fmt.Printf("Read game config error: %s\n", err)
 	}
-	r.gparam = gparam
+	r.gparam = gp
 	return
 }
 
 // configDir return configuration files folder
-func (gparam *GameParameters) configDir() string {
+func (gp *GameParameters) configDir() string {
 	home := os.Getenv("HOME")
 	return home + "/.config/teonet/teoroom/"
 }
 
-// readConfig read game parameters from config file and replace current
+// readConfig reads game parameters from config file and replace current
 // parameters
-func (gparam *GameParameters) readConfig() (err error) {
-	fileName := gparam.Name
-	confDir := gparam.configDir()
-	f, err := os.Open(confDir + fileName + ".json")
+func (gp *GameParameters) readConfig() (err error) {
+	fileName := gp.Name
+	dirName := gp.configDir()
+	f, err := os.Open(dirName + fileName + ".json")
 	if err != nil {
 		return
 	}
@@ -106,12 +106,29 @@ func (gparam *GameParameters) readConfig() (err error) {
 		return
 	}
 
-	// Unmarsha json to the GameParameters structure
-	if err = json.Unmarshal(data, gparam); err != nil {
+	// Unmarshal json to the GameParameters structure
+	if err = json.Unmarshal(data, gp); err != nil {
 		return
 	}
-	fmt.Println("gparam: ", gparam)
+	fmt.Println("game parameters: ", gp)
 
+	return
+}
+
+// writeConfig writes game parameters to config file
+func (gp *GameParameters) writeConfig() (err error) {
+	fileName := gp.Name
+	confDir := gp.configDir()
+	f, err := os.Open(confDir + fileName + ".json")
+	if err != nil {
+		return
+	}
+	// Marshal json from the GameParameters structure
+	data, err := json.Marshal(gp)
+	if err != nil {
+		return
+	}
+	_, err = f.Write(data)
 	return
 }
 
