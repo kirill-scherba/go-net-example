@@ -4,7 +4,11 @@
 
 package teocdbcli
 
-import "strings"
+import (
+	"encoding/json"
+	"sort"
+	"strings"
+)
 
 // KeyList is strings array of keys
 type KeyList struct {
@@ -19,6 +23,14 @@ func (k *KeyList) Append(keys ...string) {
 // Keys return keys string slice
 func (k *KeyList) Keys() []string {
 	return k.keys
+}
+
+// MarshalJSON returns the JSON encoding
+func (k *KeyList) MarshalJSON() (data []byte, err error) {
+	jdata := k.Keys()
+	sort.Strings(jdata)
+	data, err = json.Marshal(jdata)
+	return
 }
 
 // MarshalBinary marshal Keylist (string slice) to byte slice with \0x00 separator
