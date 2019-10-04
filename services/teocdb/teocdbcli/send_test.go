@@ -102,3 +102,8 @@ func TestSend(t *testing.T) {
 	//os.Exit(0)
 	//teo.Close()
 }
+
+func ExampleTeocdbCli_Send() {
+	fmt.Println("Hello")
+	// Output: Hello
+}

@@ -238,10 +238,15 @@ func NewTeocdbCli(con TeoConnector, ii ...interface{}) *TeocdbCli {
 }
 
 // Send is clients api function to send binary command and exequte it in teonet
-// database. This function sends CmdBinary(129) command to teocdb teonet
-// service which applay it (Set, Get or GetList) in teonet key/value database,
-// wait for answer, and return answer. First parameter cmd may be CmdSet,
-// CmdGet, CmdList.
+// database.
+//
+// This function sends CmdBinary command (129) to the teocdb teonet
+// service which applay it in teonet key-value database, wait and return answer.
+//
+// First function parameter 'cmd' may be: CmdSet, CmdGet or CmdList:
+//   CmdSet (130) - Set (insert or update) {key,value} to the key-value database
+//   CmdGet (131) - Get key and send answer with value from key-value database
+//   CmdList (132) - List get not completed key and send answer with array of keys from key-value database
 func (cdb *TeocdbCli) Send(cmd byte, key string, value []byte) (data []byte, err error) {
 	cdb.nextID++
 	var d []byte
