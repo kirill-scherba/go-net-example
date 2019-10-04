@@ -16,6 +16,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -107,10 +108,9 @@ func (gp *GameParameters) readConfig() (err error) {
 	}
 
 	// Unmarshal json to the GameParameters structure
-	if err = json.Unmarshal(data, gp); err != nil {
-		return
+	if err = json.Unmarshal(data, gp); err == nil {
+		fmt.Println("game parameters read from file: ", gp)
 	}
-	fmt.Println("game parameters: ", gp)
 
 	return
 }
@@ -129,6 +129,47 @@ func (gp *GameParameters) writeConfig() (err error) {
 		return
 	}
 	_, err = f.Write(data)
+	return
+}
+
+// configKeyCdb return configuration key
+func (gp *GameParameters) configKeyCdb() string {
+	return "conf.game." + gp.Name
+}
+
+// readConfigCdb read game parameters from config in teo-cdb
+func (gp *GameParameters) readConfigCdb(con teocdbcli.TeoConnector) (err error) {
+
+	// Create teocdb client
+	cdb := teocdbcli.NewTeocdbCli(con)
+
+	// Get config from teo-cdb
+	data, err := cdb.Send(teocdbcli.CmdGet, gp.configKeyCdb(), nil)
+	if err != nil {
+		return
+	}
+
+	// Unmarshal json to the GameParameters structure
+	if err = json.Unmarshal(data, gp); err == nil {
+		fmt.Println("game parameters read from cdb: ", gp)
+	}
+	return
+}
+
+// writeConfigCdb writes game parameters to config in teo-cdb
+func (gp *GameParameters) writeConfigCdb(con teocdbcli.TeoConnector) (err error) {
+
+	// Create teocdb client
+	cdb := teocdbcli.NewTeocdbCli(con)
+
+	// Marshal json from the GameParameters structure
+	data, err := json.Marshal(gp)
+	if err != nil {
+		return
+	}
+
+	// Send config to teo-cdb
+	_, err = cdb.Send(teocdbcli.CmdSet, gp.configKeyCdb(), data)
 	return
 }
 
