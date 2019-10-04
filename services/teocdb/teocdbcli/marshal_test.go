@@ -116,7 +116,7 @@ func TestKeyValueText(t *testing.T) {
 
 				// Display result
 				fmt.Printf("%s: %s -> KeyValue%v\n", func() string {
-					if kv.requestInJSON {
+					if kv.RequestInJSON {
 						return "json"
 					}
 					return "text"

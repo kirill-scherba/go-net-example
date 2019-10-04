@@ -20,10 +20,10 @@ import (
 
 // Key value database commands.
 const (
-	CmdBinary = 129 // Binary command execute all cammands Set, Get and GetList in binary format
-	CmdSet    = 130 // Set (insert or update) text or json \"key,value\" to database
-	CmdGet    = 131 // Get key value and send answer with value in text or json format
-	CmdList   = 132 // Get list of keys (by not complete key) and send answer with array of keys in text or json format
+	CmdBinary = 129 // Binary set, get or get list binary {key,value} to/from key-value database
+	CmdSet    = 130 // Set (insert or update) text or json {key,value} to key-value database
+	CmdGet    = 131 // Get key and send answer with value in text or json format from key-value database
+	CmdList   = 132 // List get not completed key and send answer with array of keys in text or json format from key-value database
 )
 
 // TeoConnector is teonet connector interface. It may be servers (*Teonet) or
@@ -60,7 +60,7 @@ type KeyValue struct {
 	ID            uint16 // Packet id
 	Key           string // Key
 	Value         []byte // Value
-	requestInJSON bool   // Request packet format
+	RequestInJSON bool   // Request packet format
 }
 
 // MarshalBinary encodes KeyValue receiver data into binary buffer and returns
@@ -106,7 +106,7 @@ func (kv *KeyValue) UnmarshalBinary(data []byte) (err error) {
 // MarshalText encodes KeyValue receiver data into text buffer and returns it
 // in byte slice. Response format for text requests: {key,id,value}
 func (kv *KeyValue) MarshalText() (data []byte, err error) {
-	if kv.requestInJSON {
+	if kv.RequestInJSON {
 
 		var v JSONData
 		v.Key = kv.Key
@@ -146,7 +146,7 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 		// Unmarshal JSON
 		var v JSONData
 		json.Unmarshal(text, &v)
-		kv.requestInJSON = true
+		kv.RequestInJSON = true
 
 		// Key
 		if v.Key == "" {
@@ -181,7 +181,7 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 	} else {
 
 		// Unmarshal TEXT (comma separated)
-		kv.requestInJSON = false
+		kv.RequestInJSON = false
 		d := strings.Split(string(text), ",")
 		l := len(d)
 
