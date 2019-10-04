@@ -85,8 +85,8 @@ func (tcdb *Teocdb) Close() {
 	tcdb.session.Close()
 }
 
-// Update key value
-func (tcdb *Teocdb) Update(key string, value []byte) (err error) {
+// Set key value
+func (tcdb *Teocdb) Set(key string, value []byte) (err error) {
 	if err = tcdb.session.Query(`UPDATE map SET data = ? WHERE key = ?`,
 		value, key).Exec(); err != nil {
 		fmt.Printf("Insert Error: %s\n", err.Error())
@@ -103,7 +103,7 @@ func (tcdb *Teocdb) Get(key string) (data []byte, err error) {
 	return
 }
 
-// List read and return array of all keys connected to selected key
+// List read and return array of all keys starts from selected key
 func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 	var keyOut string
 	iter := tcdb.session.Query(`
@@ -111,7 +111,6 @@ func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 		ALLOW FILTERING`,
 		key, key+"a").Iter()
 	for iter.Scan(&keyOut) {
-		fmt.Println("key:", keyOut)
 		keyList.Append(keyOut)
 	}
 	return
@@ -132,7 +131,7 @@ func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
 	responce = request
 	switch request.Cmd {
 	case cdb.CmdSet:
-		if err = proc.tcdb.Update(request.Key, request.Value); err != nil {
+		if err = proc.tcdb.Set(request.Key, request.Value); err != nil {
 			return
 		}
 		responce.Value = nil
@@ -162,7 +161,7 @@ func (proc *Process) CmdSet(from string, cmd byte, data []byte) (err error) {
 	if err != nil {
 		return
 	}
-	if err = proc.tcdb.Update(request.Key, request.Value); err != nil {
+	if err = proc.tcdb.Set(request.Key, request.Value); err != nil {
 		return
 	}
 	responce := request
@@ -171,7 +170,12 @@ func (proc *Process) CmdSet(from string, cmd byte, data []byte) (err error) {
 	if retdata, err = responce.MarshalText(); err != nil {
 		return
 	}
-	_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	// Return only Value for text requests and all fields for json
+	if request.RequestInJSON {
+		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	} else {
+		_, err = proc.tcdb.con.SendTo(from, cmd, responce.Value)
+	}
 
 	return
 }
@@ -191,12 +195,42 @@ func (proc *Process) CmdGet(from string, cmd byte, data []byte) (err error) {
 	if retdata, err = responce.MarshalText(); err != nil {
 		return
 	}
-	_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	// Return only Value for text requests and all fields for json
+	if request.RequestInJSON {
+		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	} else {
+		_, err = proc.tcdb.con.SendTo(from, cmd, responce.Value)
+	}
 
 	return
 }
 
 // CmdList process CmdList command
 func (proc *Process) CmdList(from string, cmd byte, data []byte) (err error) {
+
+	request := cdb.KeyValue{Cmd: cmd}
+	err = request.UnmarshalText(data)
+	if err != nil {
+		return
+	}
+	var k cdb.KeyList
+	if k, err = proc.tcdb.List(request.Key); err != nil {
+		return
+	}
+
+	responce := request
+	responce.Value, err = k.MarshalJSON()
+
+	var retdata []byte
+	if retdata, err = responce.MarshalText(); err != nil {
+		return
+	}
+	// Return only Value for text requests
+	if request.RequestInJSON {
+		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	} else {
+		_, err = proc.tcdb.con.SendTo(from, cmd, responce.Value)
+	}
+
 	return
 }
