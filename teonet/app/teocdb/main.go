@@ -174,18 +174,11 @@ func main() {
 					}
 
 				// # 131: Get key value and send answer with value in text or json format
-				case cdb.CmdGet:					
+				case cdb.CmdGet:
 					err := tcdb.Process().CmdGet(pac.From(), pac.Cmd(), pac.Data())
 					if err != nil {
 						fmt.Printf("CmdGet Error: %s\n", err.Error())
 					}
-
-					// data, _, err := readKeyValue(pac.Data())
-					// if err != nil {
-					// 	fmt.Printf("Get Error: %s\n", err.Error())
-					// 	break
-					// }
-					// teo.SendTo(pac.From(), pac.Cmd(), data)
 
 				// # 132: Get list of keys (by not complete key) and send answer with array of keys in text or json format
 				case cdb.CmdList:

@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -112,7 +111,14 @@ func (kv *KeyValue) MarshalText() (data []byte, err error) {
 		var v JSONData
 		v.Key = kv.Key
 		v.ID = kv.ID
-		json.Unmarshal(kv.Value, &v.Value)
+
+		if err = json.Unmarshal(kv.Value, &v.Value); err != nil {
+			if kv.Value == nil || len(kv.Value) == 0 {
+				v.Value = nil
+			} else {
+				v.Value = string(kv.Value)
+			}
+		}
 
 		data, err = json.Marshal(v)
 
@@ -124,37 +130,71 @@ func (kv *KeyValue) MarshalText() (data []byte, err error) {
 	return
 }
 
-// UnmarshalText decode text or json buffer into KeyValue receiver data.
+// UnmarshalText decode text or json buffer into KeyValue receiver data structure.
 // Parameters avalable in text request:
-//   {key} {key,id} {key,value} {key,id,value}
+//   {key} {key,id} {key,id,} {key,value} {key,id,value}
 // Parameters avalable in text request by commands:
 // CmdSet:
 //   {key} {key,value} {key,id,value}
+// CmdGet:
+//   {key} {key,id}
+// CmdList:
+//   {key} {key,id}
 func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 	if teonet.DataIsJSON(text) {
 
+		// Unmarshal JSON
+		var v JSONData
+		json.Unmarshal(text, &v)
 		kv.requestInJSON = true
 
-		var ok bool
-		var v JSONData
-
-		json.Unmarshal(text, &v)
-		kv.Key = v.Key
-		if kv.ID, ok = v.ID.(uint16); !ok {
-			// TODO Do somethink if can't get ID
+		// Key
+		if v.Key == "" {
+			err = fmt.Errorf("empty key")
+			return
 		}
-		kv.Value, _ = json.Marshal(v.Value)
+		kv.Key = v.Key
+
+		// ID
+		switch id := v.ID.(type) {
+		case nil:
+			kv.ID = 0
+		case float64:
+			kv.ID = uint16(id)
+		default:
+			err = fmt.Errorf("can't unmarshal json ID of type %T", v.ID)
+			return
+		}
+
+		// Value
+		switch val := v.Value.(type) {
+		case nil:
+			kv.Value = nil
+		case string:
+			kv.Value = []byte(val)
+		default:
+			if kv.Value, err = json.Marshal(v.Value); err != nil {
+				return
+			}
+		}
 
 	} else {
 
+		// Unmarshal TEXT (comma separated)
 		kv.requestInJSON = false
 		d := strings.Split(string(text), ",")
+		l := len(d)
+
 		getID := func(idx int) uint16 {
 			id, _ := strconv.Atoi(d[idx])
 			return uint16(id)
 		}
-		l := len(d)
 		kv.ID = 0
+
+		getValue := func(idx int) (data []byte, err error) {
+			return []byte(d[idx]), nil
+		}
+
 		switch {
 
 		case l == 1:
@@ -167,15 +207,19 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 				kv.ID = getID(1)
 				break
 			}
-			kv.Value = []byte(d[1])
+			if kv.Value, err = getValue(1); err != nil {
+				return
+			}
 
 		case l == 3:
 			kv.Key = d[0]
 			kv.ID = getID(1)
-			kv.Value = []byte(d[2])
+			if kv.Value, err = getValue(2); err != nil {
+				return
+			}
 
 		default:
-			err = errors.New("not enough parameters in text request")
+			err = fmt.Errorf("not enough parameters (%d) in text request", l)
 			return
 		}
 	}
