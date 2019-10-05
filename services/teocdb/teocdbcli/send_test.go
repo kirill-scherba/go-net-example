@@ -68,8 +68,17 @@ func TestSend(t *testing.T) {
 							return
 						}
 
+						// Get not existing key
+						fmt.Printf("Get not existing data\n")
+						data, err = cdb.Send(CmdGet, "a.not.existing.key.test")
+						if err != nil {
+							error(err)
+							return
+						}
+						fmt.Printf("got answer data: %v\n", data)
+
 						// Get list of keys - Read array of keys with common prefix
-						fmt.Printf("Get data\n")
+						fmt.Printf("Get list\n")
 						data, err = cdb.Send(CmdList, "test.key.")
 						if err != nil {
 							error(err)
