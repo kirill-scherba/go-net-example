@@ -57,7 +57,7 @@ func TestSend(t *testing.T) {
 
 						// Get data - Read data from DB by key
 						fmt.Printf("Get data\n")
-						data, err = cdb.Send(CmdGet, key, nil)
+						data, err = cdb.Send(CmdGet, key)
 						if err != nil {
 							error(err)
 							return
@@ -70,7 +70,7 @@ func TestSend(t *testing.T) {
 
 						// Get list of keys - Read array of keys with common prefix
 						fmt.Printf("Get data\n")
-						data, err = cdb.Send(CmdList, "test.key.", nil)
+						data, err = cdb.Send(CmdList, "test.key.")
 						if err != nil {
 							error(err)
 							return
@@ -82,7 +82,7 @@ func TestSend(t *testing.T) {
 
 						// Get values of all keys received in previous example
 						for _, key := range keylist.Keys() {
-							data, err = cdb.Send(CmdGet, key, nil)
+							data, err = cdb.Send(CmdGet, key)
 							if err != nil {
 								error(err)
 								return

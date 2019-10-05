@@ -63,6 +63,14 @@ type KeyValue struct {
 	RequestInJSON bool   // Request packet format
 }
 
+// Empty clears KeyValue values to default values
+func (kv *KeyValue) Empty() {
+	kv.ID = 0
+	kv.Key = ""
+	kv.Value = nil
+	kv.RequestInJSON = false
+}
+
 // MarshalBinary encodes KeyValue receiver data into binary buffer and returns
 // it in byte slice.
 func (kv *KeyValue) MarshalBinary() (data []byte, err error) {
@@ -79,6 +87,10 @@ func (kv *KeyValue) MarshalBinary() (data []byte, err error) {
 
 // UnmarshalBinary decode binary buffer into KeyValue receiver data.
 func (kv *KeyValue) UnmarshalBinary(data []byte) (err error) {
+	if data == nil || len(data) == 0 {
+		kv.Empty()
+		return
+	}
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
 	ReadData := func(r io.Reader, order binary.ByteOrder, dataLen uint16) (data []byte) {
@@ -141,6 +153,10 @@ func (kv *KeyValue) MarshalText() (data []byte, err error) {
 // CmdList:
 //   {key} {key,id}
 func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
+	if text == nil || len(text) == 0 {
+		kv.Empty()
+		return
+	}
 	if teonet.DataIsJSON(text) {
 
 		// Unmarshal JSON
@@ -244,23 +260,28 @@ func NewTeocdbCli(con TeoConnector, ii ...interface{}) *TeocdbCli {
 // service which applay it in teonet key-value database, wait and return answer.
 //
 // First function parameter 'cmd' may be: CmdSet, CmdGet or CmdList:
-//   CmdSet (130) - Set (insert or update) {key,value} to the key-value database
-//   CmdGet (131) - Get key and send answer with value from key-value database
-//   CmdList (132) - List get not completed key and send answer with array of keys from key-value database
-func (cdb *TeocdbCli) Send(cmd byte, key string, value []byte) (data []byte, err error) {
+//   CmdSet  (130) - Set  <key,value> insert or update key,value to the key-value database
+//   CmdGet  (131) - Get  <key> gets key and send answer with value from the key-value database
+//   CmdList (132) - List <key> gets not completed key and send answer with array of keys from the key-value database
+func (cdb *TeocdbCli) Send(cmd byte, key string, value ...[]byte) (data []byte, err error) {
 	cdb.nextID++
-	var d []byte
 	response := &KeyValue{}
-	request := &KeyValue{Cmd: cmd, ID: cdb.nextID, Key: key, Value: value}
+	request := &KeyValue{Cmd: cmd, ID: cdb.nextID, Key: key}
+	if len(value) > 0 {
+		for _, v := range value {
+			request.Value = append(request.Value, v...)
+		}
+	}
 
+	// Marshal request data to binary buffer and send request to teo-cdb
+	var d []byte
 	if d, err = request.MarshalBinary(); err != nil {
 		return
-	}
-
-	if _, err = cdb.con.SendTo(cdb.peerName, CmdBinary, d); err != nil {
+	} else if _, err = cdb.con.SendTo(cdb.peerName, CmdBinary, d); err != nil {
 		return
 	}
 
+	// Wait answer from teo-cdb and unmarshal it to the response
 	if r := <-cdb.con.WaitFrom(cdb.peerName, CmdBinary, func(data []byte) (rv bool) {
 		if err = response.UnmarshalBinary(data); err == nil {
 			rv = response.ID == request.ID
