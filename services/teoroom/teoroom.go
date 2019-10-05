@@ -79,6 +79,9 @@ func (r *Room) newGameParameters(name string) (gp *GameParameters) {
 	if err := gp.readConfig(); err != nil {
 		fmt.Printf("Read game config error: %s\n", err)
 	}
+	// TODO: read game parameters from teo-cdb here
+	// Read game parameters from teo-cdb and applay if changed, than write
+	// it to config file
 	r.gparam = gp
 	return
 }
@@ -144,14 +147,17 @@ func (gp *GameParameters) readConfigCdb(con teocdbcli.TeoConnector) (err error) 
 	cdb := teocdbcli.NewTeocdbCli(con)
 
 	// Get config from teo-cdb
-	data, err := cdb.Send(teocdbcli.CmdGet, gp.configKeyCdb(), nil)
+	data, err := cdb.Send(teocdbcli.CmdGet, gp.configKeyCdb())
 	if err != nil {
+		return
+	} else if data == nil || len(data) == 0 {
+		err = errors.New("config does not exists")
 		return
 	}
 
 	// Unmarshal json to the GameParameters structure
 	if err = json.Unmarshal(data, gp); err == nil {
-		fmt.Println("game parameters read from cdb: ", gp)
+		fmt.Println("game parameters was read from cdb: ", gp)
 	}
 	return
 }
