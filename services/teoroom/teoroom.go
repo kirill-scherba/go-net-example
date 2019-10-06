@@ -42,6 +42,24 @@ type GameParameters struct {
 	WaitForMaxClients int    `json:"wait_for_max_clients,omitempty"` // Wait for maximum clients connected after minimum clients connected
 }
 
+// Teorooms errors code
+const (
+	GetError = iota
+	ConfigCdbDoesNotExists
+	UnmarshalJSON
+)
+
+// errorTeoroom is Teoroom errors data structure
+type errorTeoroom struct {
+	code int
+	prob string
+}
+
+// Error returns error in string format
+func (e *errorTeoroom) Error() string {
+	return fmt.Sprintf("%d - %s", e.code, e.prob)
+}
+
 // newGameParameters create new GameParameters, sets default parameters and read
 // parameters from config file
 func (r *Room) newGameParameters(name string) (gp *GameParameters) {
@@ -61,11 +79,15 @@ func (r *Room) newGameParameters(name string) (gp *GameParameters) {
 	// Read game parameters from teo-cdb and applay if changed, than write
 	// it to config file
 	//
-	// if err := gp.readConfigCdb(r.tr.teo); err == nil {
-	// 	gp.writeConfig()
-	// } else {
-	// 	fmt.Printf("Read cdb game config  error: %s\n", err)
-	// }
+	go func() {
+		if err := gp.readConfigCdb(r.tr.teo); err != nil {
+			fmt.Printf("Read cdb game config  error: %s\n", err)
+			if err.code == ConfigCdbDoesNotExists {
+				gp.writeConfigCdb(r.tr.teo)
+			}
+		}
+		gp.writeConfig()
+	}()
 
 	r.gparam = gp
 	return
@@ -126,7 +148,7 @@ func (gp *GameParameters) configKeyCdb() string {
 }
 
 // readConfigCdb read game parameters from config in teo-cdb
-func (gp *GameParameters) readConfigCdb(con teocdbcli.TeoConnector) (err error) {
+func (gp *GameParameters) readConfigCdb(con teocdbcli.TeoConnector) (errt *errorTeoroom) {
 
 	// Create teocdb client
 	cdb := teocdbcli.NewTeocdbCli(con)
@@ -134,16 +156,19 @@ func (gp *GameParameters) readConfigCdb(con teocdbcli.TeoConnector) (err error) 
 	// Get config from teo-cdb
 	data, err := cdb.Send(teocdbcli.CmdGet, gp.configKeyCdb())
 	if err != nil {
+		errt = &errorTeoroom{GetError, err.Error()}
 		return
 	} else if data == nil || len(data) == 0 {
-		err = errors.New("config does not exists")
+		errt = &errorTeoroom{ConfigCdbDoesNotExists, "config does not exists"}
 		return
 	}
 
 	// Unmarshal json to the GameParameters structure
-	if err = json.Unmarshal(data, gp); err == nil {
-		fmt.Println("Game parameters was read from cdb: ", gp)
+	if err = json.Unmarshal(data, gp); err != nil {
+		errt = &errorTeoroom{UnmarshalJSON, err.Error()}
+		return
 	}
+	fmt.Println("Game parameters was read from cdb: ", gp)
 	return
 }
 
