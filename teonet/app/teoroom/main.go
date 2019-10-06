@@ -83,7 +83,6 @@ func main() {
 						fmt.Printf("%s\n", err.Error())
 						break
 					}
-					// Send roomDataCommand
 					teo.SendToClient("teo-l0", pac.From(),
 						teoroomcli.ComRoomRequestAnswer,
 						append([]byte{}, byte(clientID)))
@@ -92,7 +91,6 @@ func main() {
 				case teoroomcli.ComRoomData:
 					tr.ResendData(pac.From(), pac.Data(), func(l0, client string,
 						data []byte) {
-						//teoroom.SendData(teo, client, pac.From(), data)
 						teo.SendToClient("teo-l0", client, teoroomcli.ComRoomData,
 							data)
 					})
