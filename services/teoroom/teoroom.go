@@ -17,30 +17,8 @@ import (
 	"time"
 
 	"github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
+	"github.com/kirill-scherba/teonet-go/services/teoroom/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
-)
-
-// Room controller commands
-const (
-	// ComRoomRequest [in] #129 Room request
-	// [input] command for room controller
-	ComRoomRequest = 129
-
-	// ComRoomRequest [out] #129 Room request answer
-	// [output] command from room controller
-	ComRoomRequestAnswer = 129
-
-	// ComRoomData [in,out] #130 Data transfer
-	// [input or output] command for room controller
-	ComRoomData = 130
-
-	// ComDisconnect [in] #131 Disconnect from room controller (from room)
-	// [input] command for room controller
-	ComDisconnect = 131
-
-	// ComStart [in] #132 Room started (got from room controller)
-	// [input] command for room controller
-	ComStart = 132
 )
 
 // Rooms constant default
@@ -267,14 +245,14 @@ func (r *Room) clientReady(cliID int) {
 func (r *Room) startRoom() {
 	r.state = RoomRunning
 	fmt.Printf("Room id %d started (time: %d)\n", r.id, r.gparam.GameTime)
-	r.sendToClients(ComStart, nil)
+	r.sendToClients(teoroomcli.ComStart, nil)
 	// send disconnect to rooms clients after GameTime
 	go func() {
 		<-time.After(time.Duration(r.gparam.GameTime) * time.Millisecond)
 		r.state = RoomStopped
 		fmt.Printf("Room id %d closed\n", r.id)
 		r.funcToClients(nil, func(l0, client string, data []byte) {
-			r.tr.teo.SendToClient("teo-l0", client, ComDisconnect, data)
+			r.tr.teo.SendToClient("teo-l0", client, teoroomcli.ComDisconnect, data)
 			r.tr.Disconnect(client)
 		})
 	}()
@@ -414,7 +392,7 @@ func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 			r.state = RoomStopped
 			fmt.Printf("Room id %d closed\n", r.id)
 			r.funcToClients(nil, func(l0, client string, data []byte) {
-				r.tr.teo.SendToClient("teo-l0", client, ComDisconnect, data)
+				r.tr.teo.SendToClient("teo-l0", client, teoroomcli.ComDisconnect, data)
 				r.tr.Disconnect(client)
 			})
 		}

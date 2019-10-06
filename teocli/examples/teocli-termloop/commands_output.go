@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/kirill-scherba/teonet-go/services/teoroom"
+	"github.com/kirill-scherba/teonet-go/services/teoroom/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 )
 
@@ -27,7 +27,7 @@ func (p *startCommandD) Command(teo *teocli.TeoLNull, pac *teocli.Packet) {
 		go p.tg.start(nil)
 		return
 	}
-	teoroom.RoomRequest(p.tg.teo, p.tg.peer, nil)
+	teoroomcli.RoomRequest(p.tg.teo, p.tg.peer, nil)
 }
 
 // Running used inside teocli.Run() function and return running flag
@@ -47,17 +47,17 @@ type outputCommands struct {
 	start teocli.StartCommand
 }
 
-// disconnect [out] send disconnect (exit from room) command to room controller
+// disconnect [out] send disconnect (leave room) command to room controller
 func (com *outputCommands) disconnect() {
 	if com.tg.rra == nil {
 		return
 	}
-	teoroom.Disconnect(com.tg.teo, com.tg.peer, com.tg.rra.clientID)
+	teoroomcli.Disconnect(com.tg.teo, com.tg.peer, com.tg.rra.clientID)
 }
 
 // sendData [out] send data command to room controller
 func (com *outputCommands) sendData(i ...interface{}) (num int, err error) {
-	return teoroom.SendData(com.tg.teo, com.tg.peer, i...)
+	return teoroomcli.Data(com.tg.teo, com.tg.peer, i...)
 }
 
 // stop teocli.Run()

@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
+	"github.com/kirill-scherba/teonet-go/services/teoroom/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -76,7 +77,7 @@ func main() {
 				switch pac.Cmd() {
 
 				// Command #129: [in,out] Room request
-				case teoroom.ComRoomRequest:
+				case teoroomcli.ComRoomRequest:
 					_, clientID, err := tr.RoomRequest(pac.From())
 					if err != nil {
 						fmt.Printf("%s\n", err.Error())
@@ -84,23 +85,23 @@ func main() {
 					}
 					// Send roomDataCommand
 					teo.SendToClient("teo-l0", pac.From(),
-						teoroom.ComRoomRequestAnswer,
+						teoroomcli.ComRoomRequestAnswer,
 						append([]byte{}, byte(clientID)))
 
 				// Command #130: [in,out] Data transfer
-				case teoroom.ComRoomData:
+				case teoroomcli.ComRoomData:
 					tr.ResendData(pac.From(), pac.Data(), func(l0, client string,
 						data []byte) {
 						//teoroom.SendData(teo, client, pac.From(), data)
-						teo.SendToClient("teo-l0", client, teoroom.ComRoomData,
+						teo.SendToClient("teo-l0", client, teoroomcli.ComRoomData,
 							data)
 					})
 
 				// Command #131 [in] Disconnect (exit) from room
-				case teoroom.ComDisconnect:
+				case teoroomcli.ComDisconnect:
 					tr.ResendData(pac.From(), pac.Data(), func(l0, client string,
 						data []byte) {
-						teo.SendToClient("teo-l0", client, teoroom.ComDisconnect,
+						teo.SendToClient("teo-l0", client, teoroomcli.ComDisconnect,
 							data)
 					})
 					if err := tr.Disconnect(pac.From()); err != nil {

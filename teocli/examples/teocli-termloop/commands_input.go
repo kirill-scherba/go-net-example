@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kirill-scherba/teonet-go/services/teoroom"
+	"github.com/kirill-scherba/teonet-go/services/teoroom/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 )
 
@@ -59,7 +59,7 @@ func (p peerAnswerCommand) Command(packet *teocli.Packet) bool {
 }
 
 // Room request answer command methods
-func (p roomRequestAnswerCommand) Cmd() byte { return teoroom.ComRoomRequestAnswer }
+func (p roomRequestAnswerCommand) Cmd() byte { return teoroomcli.ComRoomRequestAnswer }
 func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 	rra := roomRequestAnswerData{}
 	rra.UnmarshalBinary(packet.Data())
@@ -72,7 +72,7 @@ func (p roomRequestAnswerCommand) Command(packet *teocli.Packet) bool {
 }
 
 // Room data command methods
-func (p roomDataCommand) Cmd() byte { return teoroom.ComRoomData }
+func (p roomDataCommand) Cmd() byte { return teoroomcli.ComRoomData }
 func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 	id := packet.Data()[0]
 	p.tg.addPlayer(p.tg.level[Game], id).UnmarshalBinary(packet.Data())
@@ -80,7 +80,7 @@ func (p roomDataCommand) Command(packet *teocli.Packet) bool {
 }
 
 // Disconnec (exit from room, game over) command methods
-func (p clientDisconnecCommand) Cmd() byte { return teoroom.ComDisconnect }
+func (p clientDisconnecCommand) Cmd() byte { return teoroomcli.ComDisconnect }
 func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 	if packet.Data() == nil || len(packet.Data()) == 0 {
 		p.tg.menu.SetText(" Game Over! ")
@@ -96,7 +96,7 @@ func (p clientDisconnecCommand) Command(packet *teocli.Packet) bool {
 }
 
 // roomStartCommand start game command methods
-func (p roomStartCommand) Cmd() byte { return teoroom.ComStart }
+func (p roomStartCommand) Cmd() byte { return teoroomcli.ComStart }
 func (p roomStartCommand) Command(packet *teocli.Packet) bool {
 	p.tg.state.setRunning()
 	return true
