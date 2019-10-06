@@ -242,13 +242,15 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 	return
 }
 
-// NewTeocdbCli create new teocdbcli object.
-func NewTeocdbCli(con TeoConnector, ii ...interface{}) *TeocdbCli {
-	var peerName = "teo-cdb"
-	if len(ii) > 0 {
-		if v, ok := ii[0].(string); ok {
-			peerName = v
-		}
+// NewTeocdbCli create new teocdbcli object. First parameter is Teonet
+// connection. Second parameter is teonet teocdb peer name, in sets to 'teo-cdb'
+// by default if parameter omitted.
+func NewTeocdbCli(con TeoConnector, ss ...string) *TeocdbCli {
+	var peerName string
+	if len(ss) > 0 {
+		peerName = ss[0]
+	} else {
+		peerName = "teo-cdb"
 	}
 	return &TeocdbCli{con: con, peerName: peerName}
 }
