@@ -30,6 +30,7 @@ import (
 
 	"github.com/gocql/gocql"
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
+	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Process receiver to process teocdb commands
@@ -89,16 +90,17 @@ func (tcdb *Teocdb) Close() {
 func (tcdb *Teocdb) Set(key string, value []byte) (err error) {
 	if err = tcdb.session.Query(`UPDATE map SET data = ? WHERE key = ?`,
 		value, key).Exec(); err != nil {
-		fmt.Printf("Insert Error: %s\n", err.Error())
+		fmt.Printf("Insert(or update) key '%s' Error: %s\n", key, err.Error())
 	}
 	return
 }
 
-// Get value by key
+// Get value by key, returns key value or empty data if key not found
 func (tcdb *Teocdb) Get(key string) (data []byte, err error) {
+	// Does not return err of tcdb.session.Query function
 	if err := tcdb.session.Query(`SELECT data FROM map WHERE key = ? LIMIT 1`,
 		key).Consistency(gocql.One).Scan(&data); err != nil {
-		fmt.Printf("Get Error: %s\n", err.Error())
+		fmt.Printf("Get key '%s' Error: %s\n", key, err.Error())
 	}
 	return
 }
@@ -135,10 +137,12 @@ func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
 			return
 		}
 		responce.Value = nil
+
 	case cdb.CmdGet:
 		if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
 			return
 		}
+
 	case cdb.CmdList:
 		var keys cdb.KeyList
 		if keys, err = proc.tcdb.List(request.Key); err != nil {
@@ -156,6 +160,7 @@ func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
 
 // CmdSet process CmdSet command
 func (proc *Process) CmdSet(from string, cmd byte, data []byte) (err error) {
+	data = teonet.RemoveTrailingZero(data)
 	request := cdb.KeyValue{Cmd: cmd}
 	err = request.UnmarshalText(data)
 	if err != nil {
@@ -182,24 +187,22 @@ func (proc *Process) CmdSet(from string, cmd byte, data []byte) (err error) {
 
 // CmdGet process CmdGet command
 func (proc *Process) CmdGet(from string, cmd byte, data []byte) (err error) {
+	data = teonet.RemoveTrailingZero(data)
 	request := cdb.KeyValue{Cmd: cmd}
 	err = request.UnmarshalText(data)
 	if err != nil {
 		return
 	}
+	var retdata []byte
 	responce := request
 	if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
 		return
 	}
-	var retdata []byte
-	if retdata, err = responce.MarshalText(); err != nil {
-		return
-	}
 	// Return only Value for text requests and all fields for json
-	if request.RequestInJSON {
-		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
-	} else {
+	if !request.RequestInJSON {
 		_, err = proc.tcdb.con.SendTo(from, cmd, responce.Value)
+	} else if retdata, err = responce.MarshalText(); err == nil {
+		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
 	}
 
 	return
@@ -207,7 +210,7 @@ func (proc *Process) CmdGet(from string, cmd byte, data []byte) (err error) {
 
 // CmdList process CmdList command
 func (proc *Process) CmdList(from string, cmd byte, data []byte) (err error) {
-
+	data = teonet.RemoveTrailingZero(data)
 	request := cdb.KeyValue{Cmd: cmd}
 	err = request.UnmarshalText(data)
 	if err != nil {
