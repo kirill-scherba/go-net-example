@@ -9,7 +9,7 @@ import (
 )
 
 // Version this teonet application version
-const Version = "0.0.1"
+const Version = "0.1.0"
 
 func main() {
 
@@ -29,17 +29,22 @@ func main() {
 		fmt.Println("Teonet even loop started")
 		for ev := range teo.Event() {
 			switch ev.Event {
+
 			case teonet.EventStarted:
 				fmt.Printf("Event Started\n")
+
 			case teonet.EventStoppedBefore:
 			case teonet.EventStopped:
 				fmt.Printf("Event Stopped\n")
+
 			case teonet.EventConnected:
 				pac := ev.Data
 				fmt.Printf("Event Connected from: %s\n", pac.From())
+
 			case teonet.EventDisconnected:
 				pac := ev.Data
 				fmt.Printf("Event Disconnected from: %s\n", pac.From())
+
 			case teonet.EventReceived:
 				pac := ev.Data
 				fmt.Printf("Event Received from: %s, cmd: %d, data: %s\n",
