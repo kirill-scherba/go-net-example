@@ -204,7 +204,7 @@ func (com *command) reset(rec *receiveData) {
 func (com *command) echo(rec *receiveData) {
 	com.log(rec.rd, "CMD_ECHO command, data: "+
 		C.GoString((*C.char)(unsafe.Pointer(&rec.rd.Data()[0]))))
-	com.teo.SendAnswer(rec, C.CMD_ECHO_ANSWER, rec.rd.Data())
+	com.teo.sendAnswer(rec, C.CMD_ECHO_ANSWER, rec.rd.Data())
 }
 
 // echo process 'echoAnswer' command
@@ -264,7 +264,7 @@ func (com *command) hostInfo(rec *receiveData) (err error) {
 
 	// Send answer with host infor data
 	//com.teo.sendToTcd(rec.tcd, C.CMD_HOST_INFO_ANSWER, data)
-	com.teo.SendAnswer(rec, C.CMD_HOST_INFO_ANSWER, data)
+	com.teo.sendAnswer(rec, C.CMD_HOST_INFO_ANSWER, data)
 
 	return
 }
@@ -323,7 +323,7 @@ func (com *command) peers(rec *receiveData) (err error) {
 
 	// \TODO: create peers answer on binary and json format. Create functions in
 	// arp module to generate peers structure
-	com.teo.SendAnswer(rec, C.CMD_PEERS_ANSWER, data)
+	com.teo.sendAnswer(rec, C.CMD_PEERS_ANSWER, data)
 	return
 }
 

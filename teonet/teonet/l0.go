@@ -565,7 +565,7 @@ func (l0 *l0Conn) cmdL0ClientsNumber(rec *receiveData) {
 		teolog.Error(MODULE, err)
 		return
 	}
-	l0.teo.SendAnswer(rec, CmdL0ClientsNumAnswer, data)
+	l0.teo.sendAnswer(rec, CmdL0ClientsNumAnswer, data)
 }
 
 // cmdL0Clients parse cmd 'got clients list' and send answer with list of clients
@@ -596,5 +596,5 @@ func (l0 *l0Conn) cmdL0Clients(rec *receiveData) {
 	if l0.teo.com.isJSONRequest(rec.rd.Data()) {
 		data = l0.teo.com.marshalClients(data)
 	}
-	l0.teo.SendAnswer(rec, CmdL0ClientsAnswer, data)
+	l0.teo.sendAnswer(rec, CmdL0ClientsAnswer, data)
 }

@@ -83,7 +83,7 @@ func (auth *l0AuthCom) cmdAuth(rec *receiveData) {
 	json.Unmarshal(body, &jbody)
 	jdataOut := authDataOut{Status: resp.StatusCode, Data: jbody}
 	jdataOutData, _ := json.Marshal(jdataOut)
-	auth.teo.SendAnswer(rec, cmdAuthAnswer, jdataOutData)
+	auth.teo.sendAnswer(rec, cmdAuthAnswer, jdataOutData)
 }
 
 // cmdL0Auth Check l0 client answer from authentication application
