@@ -124,9 +124,9 @@ func (tcdb *Teocdb) Process() *Process {
 }
 
 // CmdBinary process CmdBinary command
-func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
+func (proc *Process) CmdBinary(pac *teonet.Packet) (err error) {
 	var request, responce cdb.KeyValue
-	err = request.UnmarshalBinary(data)
+	err = request.UnmarshalBinary(pac.Data())
 	if err != nil {
 		return
 	}
@@ -150,90 +150,69 @@ func (proc *Process) CmdBinary(from string, cmd byte, data []byte) (err error) {
 		}
 		responce.Value, _ = keys.MarshalBinary()
 	}
-	var retdata []byte
-	if retdata, err = responce.MarshalBinary(); err != nil {
-		return
+
+	if retdata, err := responce.MarshalBinary(); err == nil {
+		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
-	_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
 	return
 }
 
 // CmdSet process CmdSet command
-func (proc *Process) CmdSet(from string, cmd byte, data []byte) (err error) {
-	data = teonet.RemoveTrailingZero(data)
-	request := cdb.KeyValue{Cmd: cmd}
-	err = request.UnmarshalText(data)
-	if err != nil {
+func (proc *Process) CmdSet(pac *teonet.Packet) (err error) {
+	data := teonet.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
 		return
-	}
-	if err = proc.tcdb.Set(request.Key, request.Value); err != nil {
-		return
-	}
-	responce := request
-	responce.Value = nil
-	var retdata []byte
-	if retdata, err = responce.MarshalText(); err != nil {
+	} else if err = proc.tcdb.Set(request.Key, request.Value); err != nil {
 		return
 	}
 	// Return only Value for text requests and all fields for json
-	if request.RequestInJSON {
-		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
-	} else {
-		_, err = proc.tcdb.con.SendTo(from, cmd, responce.Value)
+	responce := request
+	responce.Value = nil
+	if !request.RequestInJSON {
+		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
-
 	return
 }
 
 // CmdGet process CmdGet command
-func (proc *Process) CmdGet(from string, cmd byte, data []byte) (err error) {
-	data = teonet.RemoveTrailingZero(data)
-	request := cdb.KeyValue{Cmd: cmd}
-	err = request.UnmarshalText(data)
-	if err != nil {
-		return
-	}
-	var retdata []byte
-	responce := request
-	if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
+func (proc *Process) CmdGet(pac *teonet.Packet) (err error) {
+	data := teonet.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
 		return
 	}
 	// Return only Value for text requests and all fields for json
-	if !request.RequestInJSON {
-		_, err = proc.tcdb.con.SendTo(from, cmd, responce.Value)
-	} else if retdata, err = responce.MarshalText(); err == nil {
-		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
+	responce := request
+	if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
+		return
+	} else if !request.RequestInJSON {
+		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
-
 	return
 }
 
 // CmdList process CmdList command
-func (proc *Process) CmdList(from string, cmd byte, data []byte) (err error) {
-	data = teonet.RemoveTrailingZero(data)
-	request := cdb.KeyValue{Cmd: cmd}
-	err = request.UnmarshalText(data)
-	if err != nil {
+func (proc *Process) CmdList(pac *teonet.Packet) (err error) {
+	var keys cdb.KeyList
+	data := teonet.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	} else if keys, err = proc.tcdb.List(request.Key); err != nil {
 		return
 	}
-	var k cdb.KeyList
-	if k, err = proc.tcdb.List(request.Key); err != nil {
-		return
-	}
-
+	// Return only Value for text requests and all fields for json
 	responce := request
-	responce.Value, err = k.MarshalJSON()
-
-	var retdata []byte
-	if retdata, err = responce.MarshalText(); err != nil {
-		return
+	responce.Value, err = keys.MarshalJSON()
+	if !request.RequestInJSON {
+		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
-	// Return only Value for text requests
-	if request.RequestInJSON {
-		_, err = proc.tcdb.con.SendTo(from, cmd, retdata)
-	} else {
-		_, err = proc.tcdb.con.SendTo(from, cmd, responce.Value)
-	}
-
 	return
 }
