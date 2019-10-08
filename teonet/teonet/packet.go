@@ -33,9 +33,17 @@ func (teo *Teonet) packetCreateNew(from string, cmd byte, data []byte) (packet *
 	return
 }
 
-// Packet is Teonet packet container
+// Packet is Teonet packet data and method receiver
 type Packet struct {
 	packet []byte
+	l0     l0PacketData
+}
+
+// l0PacketData is l0 data of Teonet packet
+type l0PacketData struct {
+	addr string
+	port int
+	ok   bool
 }
 
 // Len return packet length
@@ -73,6 +81,14 @@ func (pac *Packet) DataLen() int {
 	return len(pac.packet) - pac.FromLen() - C.PACKET_HEADER_ADD_SIZE
 }
 
+// L0 return l0 server address and ok == true if packer recived from l0 client
+func (pac *Packet) L0() (addr string, port int, ok bool) {
+	addr = pac.l0.addr
+	port = pac.l0.port
+	ok = pac.l0.ok
+	return
+}
+
 // receiveData recived data structure
 type receiveData struct {
 	rd  *C.ksnCorePacketData
@@ -96,7 +112,7 @@ func (rd *C.ksnCorePacketData) Packet() (pac *Packet) {
 	if dataLength > 0 {
 		data = (*[1 << 28]byte)(rd.raw_data)[:dataLength:dataLength]
 	}
-	pac = &Packet{packet: data}
+	pac = &Packet{data, l0PacketData{addr: C.GoString(rd.addr), port: int(rd.port), ok: rd.l0_f != 0}}
 	return
 }
 
