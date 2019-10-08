@@ -70,28 +70,28 @@ func main() {
 
 		// # 129: Binary command execute all cammands Set, Get and GetList in binary format
 		case cdb.CmdBinary:
-			err := tcdb.Process().CmdBinary(pac.From(), pac.Cmd(), pac.Data())
+			err := tcdb.Process().CmdBinary(pac)
 			if err != nil {
 				fmt.Printf("CmdBinary Error: %s\n", err.Error())
 			}
 
 		// # 130: Set (insert or update) text or json {key,value} to database
 		case cdb.CmdSet:
-			err := tcdb.Process().CmdSet(pac.From(), pac.Cmd(), pac.Data())
+			err := tcdb.Process().CmdSet(pac)
 			if err != nil {
 				fmt.Printf("CmdSet Error: %s\n", err.Error())
 			}
 
 		// # 131: Get key value and send answer with value in text or json format
 		case cdb.CmdGet:
-			err := tcdb.Process().CmdGet(pac.From(), pac.Cmd(), pac.Data())
+			err := tcdb.Process().CmdGet(pac)
 			if err != nil {
 				fmt.Printf("CmdGet Error: %s\n", err.Error())
 			}
 
 		// # 132: Get list of keys (by not complete key) and send answer with array of keys in text or json format
 		case cdb.CmdList:
-			err := tcdb.Process().CmdList(pac.From(), pac.Cmd(), pac.Data())
+			err := tcdb.Process().CmdList(pac)
 			if err != nil {
 				fmt.Printf("CmdList Error: %s\n", err.Error())
 			}

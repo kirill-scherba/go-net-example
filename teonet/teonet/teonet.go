@@ -368,24 +368,48 @@ func (teo *Teonet) SendToClient(l0Peer string, client string, cmd byte, data []b
 	return teo.l0.sendToL0(l0Peer, client, cmd, data)
 }
 
-// SendAnswer send command to Teonet peer by receiveData
-func (teo *Teonet) SendAnswer(rec *receiveData, cmd byte, data []byte) (length int, err error) {
+// sendToClient send command to Teonet L0 client
+func (teo *Teonet) sendToClient(addr string, port int, client string, cmd byte, data []byte) (length int, err error) {
+	arp, ok := teo.arp.find(addr, port, 0)
+	if !ok {
+		err = fmt.Errorf("can't find l0 server %s:%d in arp table", addr, port)
+		return
+	}
+	return teo.SendToClient(arp.peer, client, cmd, data)
+}
+
+// SendAnswer send (answer) command to Teonet peer by received Packet
+func (teo *Teonet) SendAnswer(pac *Packet, cmd byte, data []byte) (length int, err error) {
+	if addr, port, ok := pac.L0(); ok {
+		if teo.isL0Local(addr, port) {
+			return teo.l0.sendTo(teo.param.Name, pac.From(), cmd, data)
+		}
+		return teo.sendToClient(addr, port, pac.From(), cmd, data)
+	}
+	return teo.SendTo(pac.From(), cmd, data)
+}
+
+// isL0Local return true if the addres and port refered to this server
+func (teo *Teonet) isL0Local(addr string, port int) bool {
+	return teo.l0.allow &&
+		port == teo.param.Port &&
+		(addr == "" || addr == "127.0.0.1" || addr == "localhost")
+}
+
+// sendAnswer send command to Teonet peer by receiveData
+func (teo *Teonet) sendAnswer(rec *receiveData, cmd byte, data []byte) (length int, err error) {
 	// Answer to peer
 	if !rec.rd.IsL0() {
 		return teo.sendToTcd(rec.tcd, cmd, data)
 	}
-	// Answer to L0 client on this server
+	// Answer to L0 client on this or on another L0 server
 	addr, port := C.GoString(rec.rd.addr), int(rec.rd.port)
-	if addr == "" && port == teo.param.Port && teo.l0.allow {
+	if teo.isL0Local(addr, port) {
 		return teo.l0.sendTo(teo.param.Name, rec.rd.From(), cmd, data)
+	} else if length, err = teo.sendToClient(addr, port, rec.rd.From(), cmd, data); err != nil {
+		err = errors.New("can't find whom answer to")
 	}
-	// Answer to L0 client on other L0 server
-	arp, ok := teo.arp.find(addr, port, 0)
-	if ok {
-		peer := arp.peer
-		return teo.SendToClient(peer, rec.rd.From(), cmd, data)
-	}
-	return 0, errors.New("can't find whom answer to")
+	return
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel
