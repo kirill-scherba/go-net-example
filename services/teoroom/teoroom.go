@@ -210,9 +210,10 @@ type Room struct {
 
 // Client data
 type Client struct {
-	tr   *Teoroom // Pointer to Teoroom receiver
-	name string   // Client name
-	data [][]byte // Client data (which sends to new room clients)
+	tr                   *Teoroom // Pointer to Teoroom receiver
+	name                 string   // Client name
+	data                 [][]byte // Client data (which sends to new room clients)
+	*teonet.L0PacketData          // Client L0 address
 }
 
 // ClientInRoom Data
@@ -283,42 +284,43 @@ func (r *Room) startRoom() {
 		<-time.After(time.Duration(r.gparam.GameTime) * time.Millisecond)
 		r.state = RoomStopped
 		fmt.Printf("Room id %d closed\n", r.id)
-		r.funcToClients(nil, func(l0, client string, data []byte) {
-			r.tr.teo.SendToClient("teo-l0", client, teoroomcli.ComDisconnect, data)
+		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
+			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
 			r.tr.Disconnect(client)
 		})
 	}()
 }
 
 // funcToClients calls function for all room clients
-func (r *Room) funcToClients(data []byte, f func(l0, client string, data []byte)) {
+func (r *Room) funcToClients(f func(l0 *teonet.L0PacketData, client string)) {
 	for _, cli := range r.client {
 		if cli != nil {
-			f("", cli.name, data)
+			f(cli.L0PacketData, cli.name)
 		}
 	}
 }
 
 // sendToClients send command with data to all room clients
 func (r *Room) sendToClients(cmd int, data []byte) {
-	r.funcToClients(data, func(l0, client string, data []byte) {
-		r.tr.teo.SendToClient("teo-l0", client, byte(cmd), data)
+	r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
+		r.tr.teo.SendToClientAddr(l0, client, byte(cmd), data)
 	})
 }
 
 // RoomRequest requests client connection to room controller and enterint to room
-func (tr *Teoroom) RoomRequest(client string) (roomID, cliID int, err error) {
+func (tr *Teoroom) RoomRequest(cli *teonet.Packet) (roomID, cliID int, err error) {
+	client := cli.From()
 	if _, ok := tr.mcli[client]; ok {
 		err = fmt.Errorf("Client %s is already in room", client)
 		return
 	}
-	return tr.newClient(client).roomRequest()
+	return tr.newClient(cli).roomRequest()
 }
 
 // ResendData process data received from client and resend it to all clients
 // connected to room with this client
-func (tr *Teoroom) ResendData(client string, data []byte, f func(l0,
-	client string, data []byte)) {
+func (tr *Teoroom) ResendData(client string, cmd byte, data []byte, f func(
+	l0 *teonet.L0PacketData, client string, cmd byte, data []byte)) {
 
 	// If client does not exists in map - skip this request
 	if _, ok := tr.mcli[client]; !ok {
@@ -328,7 +330,7 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0,
 	roomID, cliID, _ := tr.mcli[client].getRoomClientID()
 
 	// If client send first data than it looaded and ready to play - send him
-	// Existing Data (existing clients saved data )"
+	// Existing Data (existing clients saved data )
 	if tr.mcli[client].data == nil {
 		fmt.Printf(
 			"Client %s loaded and ready to play, roomID: %d, client id: %d\n",
@@ -346,15 +348,15 @@ func (tr *Teoroom) ResendData(client string, data []byte, f func(l0,
 	// Send data to all (connected and loaded) clients except himself
 	for id, cli := range tr.mroom[roomID].client {
 		if id != cliID && cli != nil {
-			f("", cli.name, data)
+			f(cli.L0PacketData, cli.name, cmd, data)
 		}
 	}
 }
 
 // sendExistingData sends saved data of all connected and loaded clients to
 // this new client
-func (tr *Teoroom) sendExistingData(client string, f func(l0, client string,
-	data []byte)) {
+func (tr *Teoroom) sendExistingData(client string, f func(
+	l0 *teonet.L0PacketData, client string, cmd byte, data []byte)) {
 
 	c, ok := tr.mcli[client]
 	if !ok {
@@ -364,7 +366,7 @@ func (tr *Teoroom) sendExistingData(client string, f func(l0, client string,
 	for id, cli := range tr.mroom[roomID].client {
 		if id != cliID && cli != nil {
 			for _, d := range cli.data {
-				f("", client, d)
+				f(cli.L0PacketData, client, teoroomcli.ComRoomData, d)
 			}
 		}
 	}
@@ -378,6 +380,11 @@ func (tr *Teoroom) Disconnect(client string) (err error) {
 		return
 	}
 	if roomID, cliID, err := cli.getRoomClientID(); err == nil {
+		// Resend command to other playesr in this room
+		tr.ResendData(client, teoroomcli.ComDisconnect, []byte{byte(cliID)}, func(
+			l0 *teonet.L0PacketData, client string, cmd byte, data []byte) {
+			tr.teo.SendToClientAddr(l0, client, cmd, data)
+		})
 		tr.mroom[roomID].client[cliID] = nil
 	}
 	delete(tr.mcli, client)
@@ -400,8 +407,10 @@ func (tr *Teoroom) newRoom() (room *Room) {
 }
 
 // newClient create new Client
-func (tr *Teoroom) newClient(client string) (cli *Client) {
-	cli = &Client{tr: tr, name: client}
+func (tr *Teoroom) newClient(c *teonet.Packet) (cli *Client) {
+	l0 := c.GetL0()
+	client := c.From()
+	cli = &Client{tr: tr, name: client, L0PacketData: l0}
 	tr.mcli[client] = cli
 	return
 }
@@ -423,8 +432,8 @@ func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 		if r.numClients() < r.gparam.MinClientsToStart {
 			r.state = RoomStopped
 			fmt.Printf("Room id %d closed\n", r.id)
-			r.funcToClients(nil, func(l0, client string, data []byte) {
-				r.tr.teo.SendToClient("teo-l0", client, teoroomcli.ComDisconnect, data)
+			r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
+				r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
 				r.tr.Disconnect(client)
 			})
 		}

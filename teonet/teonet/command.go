@@ -122,6 +122,11 @@ func (com *command) process(rec *receiveData) (processed bool) {
 		processed = false
 	}
 
+	// Process waitFrom commands
+	if !processed {
+		processed = com.teo.wcom.check(rec) > 0
+	}
+
 	// Send (not processed) command to user level
 	if !processed {
 		teolog.DebugVf(MODULE,
@@ -130,9 +135,6 @@ func (com *command) process(rec *receiveData) (processed bool) {
 		)
 		com.teo.ev.send(EventReceived, rec.rd.Packet())
 	}
-
-	// Process waitFrom commands
-	com.teo.wcom.check(rec)
 
 	return
 }

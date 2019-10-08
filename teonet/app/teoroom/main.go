@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet room controller (teo-room) application
+// Teonet room controller (teo-room) application.
 //
 // Teonet room controller combine users to room and send commands between it.
 //
@@ -10,7 +10,7 @@
 //   go get github.com/kirill-scherba/teonet-go/teonet/app/teoroom/
 //
 // Run this application:
-//   go run .
+//   go run . teo-room
 //
 package main
 
@@ -25,10 +25,10 @@ import (
 func main() {
 
 	// Version this teonet application version
-	const Version = "0.0.1"
+	const Version = "0.1.0"
 
 	// Teonet logo
-	teonet.Logo("Teonet-go room conroller service", Version)
+	teonet.Logo("Teonet-go room conroller application", Version)
 
 	// Read Teonet parameters from configuration file and parse application
 	// flars and arguments
@@ -44,6 +44,39 @@ func main() {
 		panic(err)
 	}
 	defer tr.Destroy()
+
+	// Commands processing
+	commands := func(pac *teonet.Packet) {
+		switch pac.Cmd() {
+
+		// Command #129: [in,out] Room request
+		case teoroomcli.ComRoomRequest:
+			_, clientID, err := tr.RoomRequest(pac)
+			if err != nil {
+				fmt.Printf("%s\n", err.Error())
+				break
+			}
+			data := append([]byte{}, byte(clientID))
+			//teo.SendAnswer(pac, teoroomcli.ComRoomRequestAnswer, data)
+			teo.SendToClientAddr(pac.GetL0(), pac.From(),
+				teoroomcli.ComRoomRequestAnswer, data)
+
+		// Command #130: [in,out] Data transfer
+		case teoroomcli.ComRoomData:
+			tr.ResendData(pac.From(), teoroomcli.ComRoomData, pac.Data(), func(
+				l0 *teonet.L0PacketData, client string, cmd byte, data []byte) {
+				teo.SendToClientAddr(l0, client, cmd, data)
+			})
+
+		// Command #131 [in] Disconnect (exit) from room
+		case teoroomcli.ComDisconnect:
+			if err := tr.Disconnect(pac.From()); err != nil {
+				fmt.Printf("Error Disconnect %s: %s\n", pac.From(), err.Error())
+			}
+		}
+	}
+
+	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
 		for ev := range teo.Event() {
 
@@ -72,42 +105,7 @@ func main() {
 				pac := ev.Data
 				fmt.Printf("Event Received from: %s, cmd: %d, data: %v\n",
 					pac.From(), pac.Cmd(), pac.Data())
-
-				// Commands processing
-				switch pac.Cmd() {
-
-				// Command #129: [in,out] Room request
-				case teoroomcli.ComRoomRequest:
-					_, clientID, err := tr.RoomRequest(pac.From())
-					if err != nil {
-						fmt.Printf("%s\n", err.Error())
-						break
-					}
-					teo.SendToClient("teo-l0", pac.From(),
-						teoroomcli.ComRoomRequestAnswer,
-						append([]byte{}, byte(clientID)))
-
-				// Command #130: [in,out] Data transfer
-				case teoroomcli.ComRoomData:
-					tr.ResendData(pac.From(), pac.Data(), func(l0, client string,
-						data []byte) {
-						teo.SendToClient("teo-l0", client, teoroomcli.ComRoomData,
-							data)
-					})
-
-				// Command #131 [in] Disconnect (exit) from room
-				case teoroomcli.ComDisconnect:
-					tr.ResendData(pac.From(), pac.Data(), func(l0, client string,
-						data []byte) {
-						teo.SendToClient("teo-l0", client, teoroomcli.ComDisconnect,
-							data)
-					})
-					if err := tr.Disconnect(pac.From()); err != nil {
-						fmt.Printf("Client %s is already disconnected\n",
-							pac.From())
-						break
-					}
-				}
+				commands(pac)
 			}
 		}
 	})
