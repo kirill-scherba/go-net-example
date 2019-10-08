@@ -123,7 +123,8 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 		for _, peerArp = range arp.m {
 			if peerArp.tcd != nil &&
 				peerArp.tcd.GetAddr().IP.String() == addr &&
-				peerArp.tcd.GetAddr().Port == port && peerArp.tcd.GetCh() == ch {
+				peerArp.tcd.GetAddr().Port == port &&
+				peerArp.tcd.GetCh() == ch {
 				ok = true
 				return
 			}
