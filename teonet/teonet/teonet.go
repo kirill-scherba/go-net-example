@@ -357,7 +357,6 @@ func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (length int, err err
 		return
 	}
 	if arp == nil || arp.tcd == nil {
-		//err = errors.New("send himself not implemented yet")
 		return teo.sendToHimself(to, cmd, data)
 	}
 	return teo.sendToTcd(arp.tcd, cmd, data)
