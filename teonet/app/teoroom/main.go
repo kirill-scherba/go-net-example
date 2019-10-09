@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet room controller (teo-room) application.
+// Teonet room controller (teo-room) micro service application.
 //
 // Teonet room controller combine users to room and send commands between it.
 //
@@ -51,26 +51,19 @@ func main() {
 
 		// Command #129: [in,out] Room request
 		case teoroomcli.ComRoomRequest:
-			_, clientID, err := tr.RoomRequest(pac)
-			if err != nil {
+			if err := tr.Process.ComRoomRequest(pac); err != nil {
 				fmt.Printf("%s\n", err.Error())
-				break
 			}
-			data := append([]byte{}, byte(clientID))
-			//teo.SendAnswer(pac, teoroomcli.ComRoomRequestAnswer, data)
-			teo.SendToClientAddr(pac.GetL0(), pac.From(),
-				teoroomcli.ComRoomRequestAnswer, data)
 
 		// Command #130: [in,out] Data transfer
 		case teoroomcli.ComRoomData:
-			tr.ResendData(pac.From(), teoroomcli.ComRoomData, pac.Data(), func(
-				l0 *teonet.L0PacketData, client string, cmd byte, data []byte) {
-				teo.SendToClientAddr(l0, client, cmd, data)
-			})
+			if err := tr.Process.ComRoomData(pac); err != nil {
+				fmt.Printf("%s\n", err.Error())
+			}
 
 		// Command #131 [in] Disconnect (exit) from room
 		case teoroomcli.ComDisconnect:
-			if err := tr.Disconnect(pac.From()); err != nil {
+			if err := tr.Process.ComDisconnect(pac); err != nil {
 				fmt.Printf("Error Disconnect %s: %s\n", pac.From(), err.Error())
 			}
 		}
