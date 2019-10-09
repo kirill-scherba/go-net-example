@@ -2,7 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet cdb (teo-cdb) database service application.
+// Teonet cdb (teo-cdb) database service service application.
+//
+// Install this application:
+//   go get github.com/kirill-scherba/teonet-go/teonet/app/teoroom/
 //
 // Before you execute this application, you need install database schemas.
 // Launch `cqlsh` and execute next commands:
@@ -10,6 +13,10 @@
   create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
   create table teocdb.map(key text, data blob, PRIMARY KEY(key));
 */
+//
+// Run this application:
+//   go run . teo-cdb
+//
 package main
 
 import (
@@ -70,28 +77,28 @@ func main() {
 
 		// # 129: Binary command execute all cammands Set, Get and GetList in binary format
 		case cdb.CmdBinary:
-			err := tcdb.Process().CmdBinary(pac)
+			err := tcdb.Process.CmdBinary(pac)
 			if err != nil {
 				fmt.Printf("CmdBinary Error: %s\n", err.Error())
 			}
 
 		// # 130: Set (insert or update) text or json {key,value} to database
 		case cdb.CmdSet:
-			err := tcdb.Process().CmdSet(pac)
+			err := tcdb.Process.CmdSet(pac)
 			if err != nil {
 				fmt.Printf("CmdSet Error: %s\n", err.Error())
 			}
 
 		// # 131: Get key value and send answer with value in text or json format
 		case cdb.CmdGet:
-			err := tcdb.Process().CmdGet(pac)
+			err := tcdb.Process.CmdGet(pac)
 			if err != nil {
 				fmt.Printf("CmdGet Error: %s\n", err.Error())
 			}
 
 		// # 132: Get list of keys (by not complete key) and send answer with array of keys in text or json format
 		case cdb.CmdList:
-			err := tcdb.Process().CmdList(pac)
+			err := tcdb.Process.CmdList(pac)
 			if err != nil {
 				fmt.Printf("CmdList Error: %s\n", err.Error())
 			}

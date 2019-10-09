@@ -33,20 +33,17 @@ import (
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
-// Process receiver to process teocdb commands
-type Process struct{ tcdb *Teocdb }
-
 // Teocdb is teocdb packet receiver
 type Teocdb struct {
 	session *gocql.Session
-	process Process
-	con     cdb.TeoConnector
+	*Process
+	con cdb.TeoConnector
 }
 
 // Connect to the cql cluster and return teocdb receiver
 func Connect(con cdb.TeoConnector, hosts ...string) (tcdb *Teocdb, err error) {
 	tcdb = &Teocdb{con: con}
-	tcdb.process.tcdb = tcdb
+	tcdb.Process = &Process{tcdb}
 	cluster := gocql.NewCluster(func() (h []string) {
 		if h = hosts; len(h) == 0 {
 			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
@@ -118,13 +115,11 @@ func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 	return
 }
 
-// Process return command processing receiver
-func (tcdb *Teocdb) Process() *Process {
-	return &tcdb.process
-}
+// Process receiver to process teocdb commands
+type Process struct{ tcdb *Teocdb }
 
 // CmdBinary process CmdBinary command
-func (proc *Process) CmdBinary(pac *teonet.Packet) (err error) {
+func (p *Process) CmdBinary(pac *teonet.Packet) (err error) {
 	var request, responce cdb.KeyValue
 	err = request.UnmarshalBinary(pac.Data())
 	if err != nil {
@@ -133,52 +128,52 @@ func (proc *Process) CmdBinary(pac *teonet.Packet) (err error) {
 	responce = request
 	switch request.Cmd {
 	case cdb.CmdSet:
-		if err = proc.tcdb.Set(request.Key, request.Value); err != nil {
+		if err = p.tcdb.Set(request.Key, request.Value); err != nil {
 			return
 		}
 		responce.Value = nil
 
 	case cdb.CmdGet:
-		if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
+		if responce.Value, err = p.tcdb.Get(request.Key); err != nil {
 			return
 		}
 
 	case cdb.CmdList:
 		var keys cdb.KeyList
-		if keys, err = proc.tcdb.List(request.Key); err != nil {
+		if keys, err = p.tcdb.List(request.Key); err != nil {
 			return
 		}
 		responce.Value, _ = keys.MarshalBinary()
 	}
 
 	if retdata, err := responce.MarshalBinary(); err == nil {
-		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
 	return
 }
 
 // CmdSet process CmdSet command
-func (proc *Process) CmdSet(pac *teonet.Packet) (err error) {
+func (p *Process) CmdSet(pac *teonet.Packet) (err error) {
 	data := teonet.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
 		return
-	} else if err = proc.tcdb.Set(request.Key, request.Value); err != nil {
+	} else if err = p.tcdb.Set(request.Key, request.Value); err != nil {
 		return
 	}
 	// Return only Value for text requests and all fields for json
 	responce := request
 	responce.Value = nil
 	if !request.RequestInJSON {
-		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
 	} else if retdata, err := responce.MarshalText(); err == nil {
-		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
 	return
 }
 
 // CmdGet process CmdGet command
-func (proc *Process) CmdGet(pac *teonet.Packet) (err error) {
+func (p *Process) CmdGet(pac *teonet.Packet) (err error) {
 	data := teonet.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
@@ -186,33 +181,33 @@ func (proc *Process) CmdGet(pac *teonet.Packet) (err error) {
 	}
 	// Return only Value for text requests and all fields for json
 	responce := request
-	if responce.Value, err = proc.tcdb.Get(request.Key); err != nil {
+	if responce.Value, err = p.tcdb.Get(request.Key); err != nil {
 		return
 	} else if !request.RequestInJSON {
-		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
 	} else if retdata, err := responce.MarshalText(); err == nil {
-		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
 	return
 }
 
 // CmdList process CmdList command
-func (proc *Process) CmdList(pac *teonet.Packet) (err error) {
+func (p *Process) CmdList(pac *teonet.Packet) (err error) {
 	var keys cdb.KeyList
 	data := teonet.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
 		return
-	} else if keys, err = proc.tcdb.List(request.Key); err != nil {
+	} else if keys, err = p.tcdb.List(request.Key); err != nil {
 		return
 	}
 	// Return only Value for text requests and all fields for json
 	responce := request
 	responce.Value, err = keys.MarshalJSON()
 	if !request.RequestInJSON {
-		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
 	} else if retdata, err := responce.MarshalText(); err == nil {
-		_, err = proc.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
 	return
 }
