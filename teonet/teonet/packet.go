@@ -1,6 +1,6 @@
 package teonet
 
-// Packed and receive packet module
+// Packet and receive packet module
 
 //#include <stdlib.h> /* free */
 //#include "packet.h"
@@ -39,7 +39,7 @@ type Packet struct {
 	l0     *L0PacketData
 }
 
-// l0PacketData is l0 data of Teonet packet
+// L0PacketData is l0 data of Teonet packet
 type L0PacketData struct {
 	addr string
 	port int
@@ -99,7 +99,7 @@ func (pac *Packet) L0() (addr string, port int, ok bool) {
 	return
 }
 
-// L0 return packets l0 structure
+// GetL0 return packets l0 structure
 func (pac *Packet) GetL0() *L0PacketData {
 	return pac.l0
 }

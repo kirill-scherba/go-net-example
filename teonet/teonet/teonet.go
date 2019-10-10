@@ -367,7 +367,7 @@ func (teo *Teonet) SendToClient(l0Peer string, client string, cmd byte, data []b
 	return teo.l0.sendToL0(l0Peer, client, cmd, data)
 }
 
-// sendToClient send command to Teonet L0 client by address
+// SendToClientAddr send command to Teonet L0 client by address
 func (teo *Teonet) SendToClientAddr(l0 *L0PacketData, client string, cmd byte, data []byte) (length int, err error) {
 	return teo.sendToClient(l0.addr, l0.port, client, cmd, data)
 }
