@@ -1,8 +1,15 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet command processing module.
+
 package teonet
 
-//#include "command.h"
-//#include "packet.h"
+// #include "command.h"
+// #include "packet.h"
 import "C"
+
 import (
 	"bytes"
 	"encoding/binary"

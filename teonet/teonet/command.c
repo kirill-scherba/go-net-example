@@ -9,7 +9,7 @@
 char *marshalClients(void *data, size_t *ret_data_len) {
   teonet_client_data_ar *client_data_ar = data;
   int data_str_len = KSN_BUFFER_SIZE + sizeof(client_data_ar->client_data[0]) *
-                                           2 * client_data_ar->length;
+                                           2 * client_data_ar->length; 
   char *data_str = malloc(data_str_len);
   int ptr = sprintf(data_str, "{\"length\":%d,\"client_data_ar\":[",
                     client_data_ar->length);

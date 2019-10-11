@@ -1,17 +1,24 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet r-host module.
+
 package teonet
 
-//#include <stdint.h>
-//#include <string.h>
-//#include "command.h"
-/*
-uint32_t getPort(void *data, size_t data_len) {
-  return *((uint32_t*)(data + data_len - sizeof(uint32_t)));
-}
-void setPort(void *data, size_t ptr, uint32_t port) {
-  *((uint32_t *)(data + ptr)) = port;
-}
-*/
+// #include <stdint.h>
+// #include <string.h>
+// #include "command.h"
+// 
+// uint32_t getPort(void *data, size_t data_len) {
+//   return *((uint32_t*)(data + data_len - sizeof(uint32_t)));
+// }
+// void setPort(void *data, size_t ptr, uint32_t port) {
+//   *((uint32_t *)(data + ptr)) = port;
+// }
+// 
 import "C"
+
 import (
 	"bytes"
 	"encoding/binary"

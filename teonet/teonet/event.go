@@ -1,12 +1,13 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet event module.
+
 package teonet
 
-//// CGO definition (don't delay or edit it):
-//// sudo apt-get install -y libssl-dev
-//#cgo LDFLAGS:
-//#include "event.h"
+// #include "event.h"
 import "C"
-
-// Teonet event module
 
 type event struct {
 	teo *Teonet         // Pointer to teonet

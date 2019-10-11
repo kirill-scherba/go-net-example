@@ -5,9 +5,9 @@
 // Package teonet contain Teonet server functions and data structures
 package teonet
 
-//// CGO definition (don't delay or edit it):
-//#include "packet.h"
+// #include "packet.h"
 import "C"
+
 import (
 	"errors"
 	"fmt"

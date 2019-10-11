@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet L0 server statistic module:
+// Teonet L0 server statistic module.
 //
 // Hold statictic data, printf statistic table to terminal, return statictics
 // string, process teonet l0 client statistic commands (for remote consumers).

@@ -123,7 +123,7 @@ func (tr *Teoroom) resendData(client string, cmd byte, data []byte, f func(
 // Process receiver to process teoroom commands
 type Process struct{ tr *Teoroom }
 
-// RoomRequest process clients request, connect to room controller,
+// ComRoomRequest process clients request, connect to room controller,
 // entering to room and send room request answer with client room id
 // (room position)
 func (p *Process) ComRoomRequest(pac *teonet.Packet) (err error) {
@@ -159,7 +159,7 @@ func (p *Process) ComRoomData(pac *teonet.Packet) (err error) {
 	return
 }
 
-// Disconnect remove client from room
+// ComDisconnect remove client from room
 func (p *Process) ComDisconnect(pac interface{}) (err error) {
 
 	// Process input interface

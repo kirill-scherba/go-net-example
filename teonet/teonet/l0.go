@@ -1,8 +1,8 @@
-// Copyright 2019 teonet-go authors.  All rights reserved.
+// Copyright 2019 Teonet-go authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teonet L0 server module:
+// Teonet L0 server module.
 //
 // L0 server is intended to connect teonet clients to the teonet network. Teonet
 // clients should use uses teocli packet which connect it to teonet L0 server.

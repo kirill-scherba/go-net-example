@@ -1,4 +1,4 @@
-// Main teonet sample application
+// Main teonet sample application.
 //
 package main
 

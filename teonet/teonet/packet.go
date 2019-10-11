@@ -1,10 +1,15 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet packet module.
+
 package teonet
 
-// Packet and receive packet module
-
-//#include <stdlib.h> /* free */
-//#include "packet.h"
+// #include <stdlib.h> /* free */
+// #include "packet.h"
 import "C"
+
 import (
 	"errors"
 	"unsafe"

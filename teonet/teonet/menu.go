@@ -1,3 +1,9 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet hotkey menu module.
+
 package teonet
 
 import (
@@ -12,8 +18,6 @@ import (
 	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
-
-// Teonet hotkey menu module
 
 func (teo *Teonet) createMenu() {
 	if !teo.param.ForbidHotkeysF {

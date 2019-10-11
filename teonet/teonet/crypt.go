@@ -1,10 +1,18 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet crypt module.
+
 package teonet
 
-//// CGO definition (don't delay or edit it):
-//// sudo apt-get install -y libssl-dev
-//#cgo LDFLAGS: -lcrypto
-//#include "crypt.h"
+// Install this C dependences to use crypto:
+//   sudo apt-get install -y libssl-dev
+
+// #cgo LDFLAGS: -lcrypto
+// #include "crypt.h"
 import "C"
+
 import (
 	"errors"
 	"fmt"
@@ -12,8 +20,6 @@ import (
 
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
-
-// Teonet crypt module
 
 type crypt struct {
 	teo *Teonet

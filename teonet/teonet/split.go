@@ -1,3 +1,9 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Teonet 'split-combine teonet packages' module.
+
 package teonet
 
 import (
@@ -8,8 +14,6 @@ import (
 	"strings"
 	"unsafe"
 )
-
-// Module to Split / Combine Teonet packages
 
 // splitPacket split module data structure
 type splitPacket struct {
