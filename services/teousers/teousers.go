@@ -51,7 +51,7 @@ type Users struct {
 // be 3 hosts - 3 ScyllaDB nodes)
 func Connect(hosts ...string) (u *Users, err error) {
 	u = &Users{}
-	u.db, err = newDb()
+	u.db, err = newDb(hosts...)
 	return
 }
 

@@ -39,7 +39,7 @@ type db struct {
 }
 
 // newDb creates new db structure.
-func newDb() (d *db, err error) {
+func newDb(hosts ...string) (d *db, err error) {
 	d = &db{
 		userMetadata: table.Metadata{
 			Name: "users",
@@ -52,13 +52,13 @@ func newDb() (d *db, err error) {
 				"online",
 				"last_online",
 			},
-			PartKey: []string{"user_id uuid"},
-			SortKey: []string{"user_id uuid"},
+			PartKey: []string{"user_id"},
+			SortKey: []string{},
 		},
 	}
 	// usersTable allows for simple CRUD operations based on personMetadata.
 	d.usersTable = table.New(d.userMetadata)
-	err = d.connect()
+	err = d.connect(hosts...)
 	return
 }
 

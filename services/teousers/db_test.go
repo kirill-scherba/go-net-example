@@ -63,13 +63,14 @@ func TestTeoregistry(t *testing.T) {
 
 	t.Run("Set", func(t *testing.T) {
 		accessToken := gocql.TimeUUID()
-		fmt.Println(userID)
-		u.db.set(&User{
+		user := &User{
 			UserID:      userID,
 			AccessToken: accessToken,
 			UserName:    "Test-1",
 			LastOnline:  time.Now(),
-		})
+		}
+		fmt.Println("set user_id:", user.UserID)
+		err = u.db.set(user)
 		if err != nil {
 			t.Error(err)
 			return
@@ -78,7 +79,8 @@ func TestTeoregistry(t *testing.T) {
 
 	t.Run("Get", func(t *testing.T) {
 		user := &User{UserID: userID}
-		u.db.get(user)
+		fmt.Println("get user_id:", user.UserID)
+		err = u.db.get(user)
 		if err != nil {
 			t.Error(err)
 			return
