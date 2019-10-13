@@ -41,10 +41,21 @@
 //
 package teousers
 
-import "github.com/gocql/gocql"
-
 // Users is the teousers data structure and methods receiver
 type Users struct {
-	session *gocql.Session
 	*db
+}
+
+// Connect to the cql cluster and create teousers receiver.
+// First parameter is keyspace, next parameters is hosts name (usualy it should
+// be 3 hosts - 3 ScyllaDB nodes)
+func Connect(hosts ...string) (u *Users, err error) {
+	u = &Users{}
+	u.db, err = newDb()
+	return
+}
+
+// Close closes cql connection and destroy teoregistry receiver
+func (u *Users) Close() {
+	u.db.close()
 }

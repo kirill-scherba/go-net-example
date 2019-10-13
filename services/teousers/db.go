@@ -29,45 +29,18 @@ type User struct {
 	Online      bool
 	LastOnline  time.Time
 }
+
+// db data structure and methods receiver.
 type db struct {
 	*Users
+	session      *gocql.Session
 	usersTable   *table.Table
 	userMetadata table.Metadata
 }
 
-// Connect to the cql cluster and create teoregistry receiver.
-// First parameter is keyspace, next parameters is hosts name (usualy it should
-// be 3 hosts - 3 ScyllaDB nodes)
-func Connect(hosts ...string) (u *Users, err error) {
-	u = &Users{}
-	u.db = newDb(u)
-	var keyspace = "teousers"
-	cluster := gocql.NewCluster(func() (h []string) {
-		if h = hosts; len(h) > 0 {
-			keyspace = h[0]
-			h = h[1:]
-		}
-		if len(h) == 0 {
-			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
-		}
-		return
-	}()...)
-	cluster.Keyspace = keyspace
-	cluster.Consistency = gocql.Quorum
-	u.session, _ = cluster.CreateSession()
-
-	return
-}
-
-// Close closes cql connection and destroy teoregistry receiver
-func (u *Users) Close() {
-	u.session.Close()
-}
-
-// newDb creates new db structure
-func newDb(u *Users) *db {
-	d := &db{
-		Users: u,
+// newDb creates new db structure.
+func newDb() (d *db, err error) {
+	d = &db{
 		userMetadata: table.Metadata{
 			Name: "users",
 			Columns: []string{
@@ -85,13 +58,36 @@ func newDb(u *Users) *db {
 	}
 	// usersTable allows for simple CRUD operations based on personMetadata.
 	d.usersTable = table.New(d.userMetadata)
-
-	return d
+	err = d.connect()
+	return
 }
 
-// set add new usere or update existing
-func (d *db) set(user *User, columns ...string) (err error) {
+// connect to db.
+func (d *db) connect(hosts ...string) (err error) {
+	keyspace := "teousers"
+	cluster := gocql.NewCluster(func() (h []string) {
+		if h = hosts; len(h) > 0 {
+			keyspace = h[0]
+			h = h[1:]
+		}
+		if len(h) == 0 {
+			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
+		}
+		return
+	}()...)
+	cluster.Keyspace = keyspace
+	cluster.Consistency = gocql.Quorum
+	d.session, err = cluster.CreateSession()
+	return
+}
 
+// close db
+func (d *db) close() {
+	d.session.Close()
+}
+
+// set add new user or update existing.
+func (d *db) set(u *User, columns ...string) (err error) {
 	var stmt string
 	var names []string
 	if len(columns) == 0 {
@@ -99,7 +95,15 @@ func (d *db) set(user *User, columns ...string) (err error) {
 	} else {
 		stmt, names = d.usersTable.Update(columns...)
 	}
-	q := gocqlx.Query(d.Users.session.Query(stmt), names).BindStruct(user)
+	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
 	fmt.Println(q.String())
 	return q.ExecRelease()
+}
+
+// get returns select by primary key (UserID) statement.
+func (d *db) get(u *User, columns ...string) (err error) {
+	stmt, names := d.usersTable.Get(columns...)
+	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
+	fmt.Println(q.String())
+	return q.GetRelease(u)
 }

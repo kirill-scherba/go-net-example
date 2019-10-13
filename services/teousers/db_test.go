@@ -47,9 +47,9 @@ import (
 func TestTeoregistry(t *testing.T) {
 
 	const AppName = "teotest-7755-2"
-	var u *Users
-	// var uuid gocql.UUID
+	userID := gocql.TimeUUID()
 	var err error
+	var u *Users
 
 	t.Run("Connect", func(t *testing.T) {
 		u, err = Connect("teousers_test")
@@ -62,7 +62,6 @@ func TestTeoregistry(t *testing.T) {
 	defer u.Close()
 
 	t.Run("Set", func(t *testing.T) {
-		userID := gocql.TimeUUID()
 		accessToken := gocql.TimeUUID()
 		fmt.Println(userID)
 		u.db.set(&User{
@@ -75,6 +74,16 @@ func TestTeoregistry(t *testing.T) {
 			t.Error(err)
 			return
 		}
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		user := &User{UserID: userID}
+		u.db.get(user)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		fmt.Println(user)
 	})
 
 }
