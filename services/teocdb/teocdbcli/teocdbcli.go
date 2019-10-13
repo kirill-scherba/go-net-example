@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Package teocdbcli is the Teonet cdb service client package.
+// Package teocdbcli is the Teonet key-value databaseb service client package.
 package teocdbcli
 
 import (
