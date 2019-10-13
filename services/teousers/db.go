@@ -86,8 +86,12 @@ func (d *db) close() {
 	d.session.Close()
 }
 
-// set add new user or update existing.
-func (d *db) set(u *User, columns ...string) (err error) {
+// set add new user or update existing. First input parameter is structure with
+// filled UserID, and all other fields from User structure needs to set
+// (usaly it may be User structure with all fields filled). Next parameters
+// is column names which will be set to database, it may be ommited and than
+// all columns sets.
+func (d *db) set(u interface{}, columns ...string) (err error) {
 	var stmt string
 	var names []string
 	if len(columns) == 0 {
@@ -100,16 +104,20 @@ func (d *db) set(u *User, columns ...string) (err error) {
 	return q.ExecRelease()
 }
 
-// get returns select by primary key (UserID) statement.
-func (d *db) get(u *User, columns ...string) (err error) {
+// get returns select by primary key (UserID) statement. First input parameter
+// is structure with filled UserID, and all other fields to reseive User structure
+// (usaly it may be User structure). Next parameters is column names which need
+// to get, it may be ommited and than all columns returns.
+func (d *db) get(u interface{}, columns ...string) (err error) {
 	stmt, names := d.usersTable.Get(columns...)
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
 	fmt.Println(q.String())
 	return q.GetRelease(u)
 }
 
-// delete record by user_id
-func (d *db) delete(u *User) (err error) {
+// delete record by user_id. Input parameter is structure with filled UserID
+// field.
+func (d *db) delete(u interface{}) (err error) {
 	stmt, names := d.usersTable.Delete()
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
 	fmt.Println(q.String())

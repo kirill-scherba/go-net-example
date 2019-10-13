@@ -48,6 +48,7 @@ func TestProcess(t *testing.T) {
 	const AppName = "teotest-7755-2"
 	userID := gocql.TimeUUID()
 	teo := &teonet.Teonet{}
+	var userNew *UserNew
 	var err error
 	var u *Users
 
@@ -75,22 +76,27 @@ func TestProcess(t *testing.T) {
 		}
 	})
 
-	// t.Run("ComCreateUser", func(t *testing.T) {
-	// 	pac := teo.PacketCreateNew("teo-from", 129, nil)
-	// 	u.ComCreateUser(pac)
-	// })
+	t.Run("ComCreateUser", func(t *testing.T) {
+		pac := teo.PacketCreateNew("teo-from", 129, nil)
+		userNew, err = u.ComCreateUser(pac)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	})
 
-	// t.Run("ComCheckUser", func(t *testing.T) {
-	// 	data := userID.Bytes()
-	// 	pac := teo.PacketCreateNew("teo-from", 129, data)
-	// 	exists, err := u.ComCheckUser(pac)
-	// 	if err != nil {
-	// 		t.Error(err)
-	// 		return
-	// 	}
-	// 	if !exists {
-	// 		t.Error(errors.New("return false when user exists"))
-	// 		return
-	// 	}
-	// })
+	t.Run("ComCheckUser", func(t *testing.T) {
+		data := userNew.UserID.Bytes()
+		pac := teo.PacketCreateNew("teo-from", 129, data)
+		exists, err := u.ComCheckUser(pac)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if !exists {
+			t.Error(errors.New("return false when user exists"))
+			return
+		}
+		u.delete(userNew)
+	})
 }

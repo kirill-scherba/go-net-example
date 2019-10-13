@@ -60,14 +60,13 @@ func (p *Process) ComCheckUser(pac *teonet.Packet) (exists bool, err error) {
 //
 // Use UserNew.UnmarshalBinary to decode binary buffer into UserNew.
 func (p *Process) ComCreateUser(pac *teonet.Packet) (u *UserNew, err error) {
-	//userID := gocql.TimeUUID()
 	user := &User{
 		UserID:      gocql.TimeUUID(),
 		AccessToken: gocql.TimeUUID(),
 		UserName:    fmt.Sprintf("Player-%d", 1),
 		LastOnline:  time.Now(),
 	}
-	fmt.Println("set new user:", user)
+	// fmt.Println("set new user:", user)
 	err = p.set(user)
 	if err != nil {
 		return
