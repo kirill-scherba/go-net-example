@@ -44,6 +44,7 @@ package teousers
 // Users is the teousers data structure and methods receiver
 type Users struct {
 	*db
+	*Process
 }
 
 // Connect to the cql cluster and create teousers receiver.
@@ -52,6 +53,7 @@ type Users struct {
 func Connect(hosts ...string) (u *Users, err error) {
 	u = &Users{}
 	u.db, err = newDb(hosts...)
+	u.Process = &Process{u}
 	return
 }
 
