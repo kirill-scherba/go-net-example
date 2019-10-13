@@ -88,4 +88,14 @@ func TestTeoregistry(t *testing.T) {
 		fmt.Println(user)
 	})
 
+	t.Run("Delete", func(t *testing.T) {
+		user := &User{UserID: userID}
+		fmt.Println("delete user_id:", user.UserID)
+		err = u.db.delete(user)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	})
+
 }

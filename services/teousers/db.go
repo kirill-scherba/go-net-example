@@ -107,3 +107,11 @@ func (d *db) get(u *User, columns ...string) (err error) {
 	fmt.Println(q.String())
 	return q.GetRelease(u)
 }
+
+// delete record by user_id
+func (d *db) delete(u *User) (err error) {
+	stmt, names := d.usersTable.Delete()
+	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
+	fmt.Println(q.String())
+	return q.ExecRelease()
+}
