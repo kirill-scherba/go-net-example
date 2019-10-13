@@ -160,7 +160,7 @@ func (split *splitPacket) cmdSplit(rec *receiveData) (processed bool, err error)
 		processed = true
 		return
 	}
-	rd, err := split.teo.packetCreateNew(rec.rd.From(), cmd, data).Parse()
+	rd, err := split.teo.PacketCreateNew(rec.rd.From(), cmd, data).Parse()
 	if err != nil {
 		err = errors.New("can't parse combined packet")
 		return

@@ -339,7 +339,7 @@ func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (length int, 
 		"send command to this host: '%s', cmd: %d, data_len: %d\n",
 		to, cmd, len(data),
 	)
-	rd, err := teo.packetCreateNew(teo.param.Name, byte(cmd), data).Parse()
+	rd, err := teo.PacketCreateNew(teo.param.Name, byte(cmd), data).Parse()
 	if err != nil {
 		err = errors.New("can't parse packet to himself")
 		return
@@ -421,7 +421,7 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd byte, data []byte) (len
 
 	// makePac creates new teonet packet and show 'send' log message
 	makePac := func(tcd *trudp.ChannelData, cmd byte, data []byte) []byte {
-		pac := teo.packetCreateNew(teo.param.Name, cmd, data)
+		pac := teo.PacketCreateNew(teo.param.Name, cmd, data)
 		to, _ := teo.arp.peer(tcd)
 		teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to, len(data))
 		return teo.cry.encrypt(pac.packet)
@@ -445,7 +445,7 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd byte, data []byte) (len
 
 // sendToTcd send command to Teonet peer by known trudp channel
 func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd byte, data []byte) (int, error) {
-	pac := teo.packetCreateNew(teo.param.Name, cmd, data)
+	pac := teo.PacketCreateNew(teo.param.Name, cmd, data)
 	to, _ := teo.arp.peer(tcd)
 	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d (send direct udp)\n",
 		cmd, to, len(data))

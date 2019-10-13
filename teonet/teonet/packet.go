@@ -17,8 +17,8 @@ import (
 	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
-// packetCreateNew create teonet packet
-func (teo *Teonet) packetCreateNew(from string, cmd byte, data []byte) (packet *Packet) {
+// PacketCreateNew create teonet packet
+func (teo *Teonet) PacketCreateNew(from string, cmd byte, data []byte) (packet *Packet) {
 	fromC := C.CString(from)
 	var dataC unsafe.Pointer
 	var packetLen C.size_t

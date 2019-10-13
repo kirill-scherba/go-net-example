@@ -44,7 +44,7 @@ import (
 	"github.com/gocql/gocql"
 )
 
-func TestTeoregistry(t *testing.T) {
+func TestDB(t *testing.T) {
 
 	const AppName = "teotest-7755-2"
 	userID := gocql.TimeUUID()

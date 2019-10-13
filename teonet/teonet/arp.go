@@ -86,7 +86,7 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	go func() {
 		r := <-arp.teo.WaitFrom(peer, CmdHostInfoAnswer)
 		if r.Err == nil {
-			arp.teo.ev.send(EventConnected, arp.teo.packetCreateNew(peer, 0, nil))
+			arp.teo.ev.send(EventConnected, arp.teo.PacketCreateNew(peer, 0, nil))
 		}
 	}()
 	return
@@ -143,7 +143,7 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 func (arp *arp) deletePeer(peer string) {
 	if peerArp, ok := arp.m[peer]; ok {
 		if peerArp.mode != -1 {
-			arp.teo.ev.send(EventDisconnected, arp.teo.packetCreateNew(peer, 0, nil))
+			arp.teo.ev.send(EventDisconnected, arp.teo.PacketCreateNew(peer, 0, nil))
 		}
 		delete(arp.m, peer)
 		arp.print()

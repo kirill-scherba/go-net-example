@@ -508,7 +508,7 @@ func (l0 *l0Conn) cmdL0(rec *receiveData) (processed bool, err error) {
 	l0.teo.com.log(rec.rd, "CMD_L0 command")
 
 	// Create packet
-	rd, err := l0.teo.packetCreateNew(l0.packetParse(rec.rd.Data())).Parse()
+	rd, err := l0.teo.PacketCreateNew(l0.packetParse(rec.rd.Data())).Parse()
 	if err != nil {
 		err = errors.New("can't parse packet from l0")
 		fmt.Println(err.Error())
