@@ -60,8 +60,8 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	if peerArp, ok = arp.find(peer); ok {
 		if rec.tcd != peerArp.tcd {
 			if peerArp.tcd != nil {
-				teolog.DebugVf(MODULE, "the peer %s is already connected at channel %s, "+
-					"now it try connect at channel %s\n",
+				teolog.DebugVf(MODULE, "the peer %s is already connected at "+
+					"channel %s, now it try connect at channel %s\n",
 					peer, peerArp.tcd.GetKey(), rec.tcd.GetKey())
 			}
 			rec.tcd.Close()
@@ -70,8 +70,8 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	}
 
 	if peerArp, ok = arp.find(rec); ok {
-		teolog.DebugVf(MODULE, "the connection %s already associated with peer %s",
-			rec.tcd.GetKey(), peer)
+		teolog.DebugVf(MODULE, "the connection %s already associated with "+
+			"peer %s", rec.tcd.GetKey(), peer)
 		return
 	}
 
@@ -87,12 +87,10 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 		for {
 			r := <-arp.teo.WaitFrom(peer, CmdHostInfoAnswer)
 			if r.Err == nil {
-				arp.teo.ev.send(EventConnected, arp.teo.PacketCreateNew(peer, 0, nil))
+				arp.teo.ev.send(EventConnected,
+					arp.teo.PacketCreateNew(peer, 0, nil))
 				break
 			}
-			// else {
-			// 	fmt.Printf("Does not got host info during timeout from: %s, cmd: %d\n", peer, CmdHostInfoAnswer)
-			// }
 		}
 	}()
 	return
@@ -149,7 +147,8 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 func (arp *arp) deletePeer(peer string) {
 	if peerArp, ok := arp.m[peer]; ok {
 		if peerArp.mode != -1 {
-			arp.teo.ev.send(EventDisconnected, arp.teo.PacketCreateNew(peer, 0, nil))
+			arp.teo.ev.send(EventDisconnected,
+				arp.teo.PacketCreateNew(peer, 0, nil))
 		}
 		delete(arp.m, peer)
 		arp.print()
@@ -319,8 +318,8 @@ func (arp *arp) binary() (peersDataAr []byte, peersDataArLen int) {
 			addr = localhostIP
 			port = arp.teo.param.Port
 		}
-		binary.Write(buf, binary.LittleEndian, teocli.PeerData(peerArp.mode, peer,
-			addr, port, triptime),
+		binary.Write(buf, binary.LittleEndian, teocli.PeerData(peerArp.mode,
+			peer, addr, port, triptime),
 		)
 		peersDataArLen++
 	}
@@ -353,7 +352,8 @@ func (arp *arp) binaryToJSON(indata []byte) (data []byte, peersDataArLen int) {
 		peerData := make([]byte, teocli.PeerDataLength())
 		binary.Read(buf, le, peerData)
 		var peersData peersDataJSON
-		peersData.Mode, peersData.Name, peersData.Addr, peersData.Port, peersData.Triptime = teocli.ParsePeerData(peerData)
+		peersData.Mode, peersData.Name, peersData.Addr, peersData.Port,
+			peersData.Triptime = teocli.ParsePeerData(peerData)
 		peersDataAr.PeersAr = append(peersDataAr.PeersAr, peersData)
 	}
 	peersDataAr.Length = int(numOfPeers)
