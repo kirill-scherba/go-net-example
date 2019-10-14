@@ -31,16 +31,17 @@ const (
 	EventReceivedWrong = C.EV_K_RECEIVED_WRONG // #6  Wrong packet received
 )
 
-// eventNew initialize new Wait command module
+// eventNew initialize event module
 func (teo *Teonet) eventNew() (ev *event) {
-	ev = &event{}
-	ev.ch = make(chan *EventData)
+	ev = &event{teo: teo, ch: make(chan *EventData)}
 	return
 }
 
 // send sends event to user level
 func (ev *event) send(event int, data *Packet) {
-	ev.ch <- &EventData{event, data}
+	eventData := &EventData{event, data}
+	ev.ch <- eventData
+	ev.teo.l0.eventProcess(eventData)
 }
 
 // close closes event channel
