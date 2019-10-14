@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"unsafe"
-
-	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Key value database commands.
@@ -30,7 +28,9 @@ const (
 // clients (*TeoLNull) connector and must conain SendTo method.
 type TeoConnector interface {
 	SendTo(peer string, cmd byte, data []byte) (int, error)
-	SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, error)
+	//SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, error)
+	SendAnswer(pac interface{}, cmd byte, data []byte) (int, error)
+
 	// WaitFrom wait receiving data from peer. The third function parameter is
 	// timeout. It may be omitted or contain timeout time of time.Duration type.
 	// If timeout parameter is omitted than default timeout value sets to 2 second.
@@ -38,6 +38,21 @@ type TeoConnector interface {
 		Data []byte
 		Err  error
 	}
+}
+
+// removeTrailingZero remove trailing zero in byte slice
+func removeTrailingZero(data []byte) []byte {
+	if l := len(data); l > 0 && data[l-1] == 0 {
+		data = data[:l-1]
+	}
+	return data
+}
+
+// dataIsJSON simple check that data is JSON string
+func dataIsJSON(data []byte) bool {
+	data = removeTrailingZero(data)
+	return len(data) >= 2 && (data[0] == '{' && data[len(data)-1] == '}' ||
+		data[0] == '[' && data[len(data)-1] == ']')
 }
 
 // TeocdbCli is teocdbcli packet receiver.
@@ -158,7 +173,7 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 		kv.Empty()
 		return
 	}
-	if teonet.DataIsJSON(text) {
+	if dataIsJSON(text) {
 
 		// Unmarshal JSON
 		var v JSONData
