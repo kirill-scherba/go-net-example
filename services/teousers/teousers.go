@@ -25,16 +25,20 @@
  CREATE KEYSPACE IF NOT EXISTS teousers with replication = { 'class' : 'SimpleStrategy',
  'replication_factor' : 3 };
  USE teousers;
- CREATE TABLE IF NOT EXISTS users (
-   user_id uuid,
+ CREATE TABLE IF NOT EXISTS  users (
+   id uuid,
    access_token uuid,
-   user_name text,
+   prefix text,
+   name text,
    avatar_id uuid,
    gravatar_id text,
    online boolean,
    last_online timestamp,
-   PRIMARY KEY (user_id)
+   state int,
+   PRIMARY KEY (id)
  );
+ CREATE INDEX IF NOT EXISTS ON users (prefix);
+ CREATE INDEX IF NOT EXISTS ON users (name);
  CREATE INDEX IF NOT EXISTS ON users (online);
 */
 // To run db tests repeat the same with teousers_test in first string.

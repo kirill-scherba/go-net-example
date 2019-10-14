@@ -21,13 +21,15 @@ import (
 
 // User data structure
 type User struct {
-	UserID      gocql.UUID
-	AccessToken gocql.UUID
-	UserName    string
-	AvatarID    gocql.UUID
-	GravatarID  string
-	Online      bool
-	LastOnline  time.Time
+	ID          gocql.UUID // User ID
+	AccessToken gocql.UUID // Access tocket is tocken to use when login
+	Prefix      string     // Application(game) prefix (name or code)
+	Name        string     // User name
+	AvatarID    gocql.UUID // Avatar ID
+	GravatarID  string     // Gravatar ID
+	Online      bool       // Online or offline
+	LastOnline  time.Time  // Last time was online
+	State       int        // Current state
 }
 
 // db data structure and methods receiver.
@@ -44,15 +46,17 @@ func newDb(hosts ...string) (d *db, err error) {
 		userMetadata: table.Metadata{
 			Name: "users",
 			Columns: []string{
-				"user_id",
+				"id",
 				"access_token",
-				"user_name",
+				"prefix",
+				"name",
 				"avatar_id",
 				"gravatar_id",
 				"online",
 				"last_online",
+				"state",
 			},
-			PartKey: []string{"user_id"},
+			PartKey: []string{"id"},
 			SortKey: []string{},
 		},
 	}
