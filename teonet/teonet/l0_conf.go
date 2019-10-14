@@ -33,7 +33,9 @@ func (lp *parameters) eventProcess(ev *EventData) {
 	// Pocss event #3:  New peer connected to this host
 	if ev.Event == EventConnected && ev.Data.From() == "teo-cdb" {
 		fmt.Printf("Teo-cdb peer connectd. Read config...\n")
-		lp.readConfigCdb(lp.l0.teo)
+		if err := lp.readConfigCdb(lp.l0.teo); err != nil {
+			fmt.Printf("Error: %s\n", err)
+		}
 	}
 }
 
