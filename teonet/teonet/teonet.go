@@ -383,7 +383,8 @@ func (teo *Teonet) sendToClient(addr string, port int, client string, cmd byte, 
 }
 
 // SendAnswer send (answer) command to Teonet peer by received Packet
-func (teo *Teonet) SendAnswer(pac *Packet, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) SendAnswer(ipac interface{}, cmd byte, data []byte) (length int, err error) {
+	pac := ipac.(*Packet)
 	if addr, port, ok := pac.L0(); ok {
 		if teo.isL0Local(addr, port) {
 			return teo.l0.sendTo(teo.param.Name, pac.From(), cmd, data)
