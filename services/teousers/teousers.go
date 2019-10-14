@@ -45,13 +45,14 @@ package teousers
 type Users struct {
 	*db
 	*Process
+	TeoConnector
 }
 
 // Connect to the cql cluster and create teousers receiver.
 // First parameter is keyspace, next parameters is hosts name (usualy it should
 // be 3 hosts - 3 ScyllaDB nodes)
-func Connect(hosts ...string) (u *Users, err error) {
-	u = &Users{}
+func Connect(con TeoConnector, hosts ...string) (u *Users, err error) {
+	u = &Users{TeoConnector: con}
 	u.db, err = newDb(hosts...)
 	u.Process = &Process{u}
 	return

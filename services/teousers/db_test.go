@@ -52,7 +52,7 @@ func TestDB(t *testing.T) {
 	var u *Users
 
 	t.Run("Connect", func(t *testing.T) {
-		u, err = Connect("teousers_test")
+		u, err = Connect(nil, "teousers_test")
 		if err != nil {
 			t.Error(err)
 			return

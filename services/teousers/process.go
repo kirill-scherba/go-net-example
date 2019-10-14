@@ -47,7 +47,12 @@ func (p *Process) ComCheckUser(pac *teonet.Packet) (exists bool, err error) {
 	if err := p.get(&User{UserID: userID}, "user_id"); err == nil {
 		exists = true
 	}
-	// TODO: send answer to teonet
+	// Send answer to teonet
+	d := make([]byte, 1)
+	if exists {
+		d[0] = 1
+	}
+	p.SendAnswer(pac, pac.Cmd(), d)
 	return
 }
 
@@ -72,7 +77,12 @@ func (p *Process) ComCreateUser(pac *teonet.Packet) (u *UserNew, err error) {
 		return
 	}
 	u = &UserNew{user.UserID, user.AccessToken}
-	// TODO: send answer to teonet
+	// Send answer to teonet
+	d, err := u.MarshalBinary()
+	if err != nil {
+		return
+	}
+	p.SendAnswer(pac, pac.Cmd(), d)
 	return
 }
 

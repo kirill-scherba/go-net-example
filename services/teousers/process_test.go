@@ -9,6 +9,11 @@ import (
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
+type Teoemu struct{}
+
+func (t *Teoemu) SendTo(peer string, cmd byte, data []byte) (int, error)            { return 0, nil }
+func (t *Teoemu) SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, error) { return 0, nil }
+
 func TestUserNew(t *testing.T) {
 	var data []byte
 	var in *UserNew
@@ -47,13 +52,14 @@ func TestProcess(t *testing.T) {
 
 	const AppName = "teotest-7755-2"
 	userID := gocql.TimeUUID()
+	teoemu := &Teoemu{}
 	teo := &teonet.Teonet{}
 	var userNew *UserNew
 	var err error
 	var u *Users
 
 	t.Run("Connect", func(t *testing.T) {
-		u, err = Connect("teousers_test")
+		u, err = Connect(teoemu, "teousers_test")
 		if err != nil {
 			t.Error(err)
 			return
