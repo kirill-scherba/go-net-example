@@ -142,13 +142,15 @@ func (teo *Teonet) WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *st
 			teolog.DebugVv(MODULE, "wait data from task finished...")
 			return
 		}
-		if teo.wcom.exists(wfr) {
-			ch <- &struct {
-				Data []byte
-				Err  error
-			}{nil, errors.New("timeout")}
-			teo.kernel(func() { teo.wcom.remove(wfr) })
-		}
+		teo.kernel(func() {
+			if teo.wcom.exists(wfr) {
+				ch <- &struct {
+					Data []byte
+					Err  error
+				}{nil, errors.New("timeout")}
+				teo.wcom.remove(wfr)
+			}
+		})
 	}()
 	return ch
 }
