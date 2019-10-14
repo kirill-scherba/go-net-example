@@ -16,16 +16,17 @@ func (t *Teoemu) SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, err
 
 func TestUserNew(t *testing.T) {
 	var data []byte
-	var in *UserNew
+	var in *UserResponce
 	var err error
 
 	t.Run("Marshal", func(t *testing.T) {
-		in = &UserNew{
-			UserID:      gocql.TimeUUID(),
+		in = &UserResponce{
+			ID:          gocql.TimeUUID(),
 			AccessToken: gocql.TimeUUID(),
+			Prefix:      "game001",
 		}
-		fmt.Printf("Input UserNew: %s, %s\n", in.UserID.String(),
-			in.AccessToken.String())
+		fmt.Printf("Input UserNew: %s, %s, %s\n", in.ID.String(),
+			in.AccessToken.String(), in.Prefix)
 		if data, err = in.MarshalBinary(); err != nil {
 			t.Error(err)
 			return
@@ -34,14 +35,14 @@ func TestUserNew(t *testing.T) {
 	})
 
 	t.Run("Unmarshal", func(t *testing.T) {
-		out := &UserNew{}
+		out := &UserResponce{}
 		if err = out.UnmarshalBinary(data); err != nil {
 			t.Error(err)
 			return
 		}
-		fmt.Printf("Unarshal UserNew: %s, %s\n", out.UserID.String(),
-			out.AccessToken.String())
-		if !(in.UserID == out.UserID && in.AccessToken == out.AccessToken) {
+		fmt.Printf("Unmarshal UserNew: %s, %s, %s\n", out.ID.String(),
+			out.AccessToken.String(), out.Prefix)
+		if !(in.ID == out.ID && in.AccessToken == out.AccessToken) {
 			t.Error(errors.New("output UserNew not equal to input UserNew"))
 			return
 		}
@@ -54,10 +55,11 @@ func TestProcess(t *testing.T) {
 	userID := gocql.TimeUUID()
 	teoemu := &Teoemu{}
 	teo := &teonet.Teonet{}
-	var userNew *UserNew
+	var userNew *UserResponce
 	var err error
 	var u *Users
 
+	// Connect
 	t.Run("Connect", func(t *testing.T) {
 		u, err = Connect(teoemu, "teousers_test")
 		if err != nil {
@@ -68,6 +70,7 @@ func TestProcess(t *testing.T) {
 	})
 	defer u.Close()
 
+	// Check non existing user
 	t.Run("ComCheckUser", func(t *testing.T) {
 		data := userID.Bytes()
 		pac := teo.PacketCreateNew("teo-from", 129, data)
@@ -82,17 +85,35 @@ func TestProcess(t *testing.T) {
 		}
 	})
 
-	t.Run("ComCreateUser", func(t *testing.T) {
-		pac := teo.PacketCreateNew("teo-from", 129, nil)
+	// Create user using wrong rquest data (wron prefix)
+	t.Run("ComCreateUserWrong", func(t *testing.T) {
+		pac := teo.PacketCreateNew("teo-from", 129, []byte("tg001-new"))
 		userNew, err = u.ComCreateUser(pac)
-		if err != nil {
-			t.Error(err)
+		if err == nil {
+			t.Error(errors.New("ComCreateUser request = \"tg001-new\" should return error"))
 			return
 		}
 	})
+	if err == nil {
+		return
+	}
 
+	// Create user
+	t.Run("ComCreateUser", func(t *testing.T) {
+		pac := teo.PacketCreateNew("teo-from", 129, []byte("tg001"))
+		userNew, err = u.ComCreateUser(pac)
+		if err != nil {
+			t.Fatal(err)
+			return
+		}
+	})
+	if err != nil {
+		return
+	}
+
+	// Check existing user by binary user id
 	t.Run("ComCheckUser", func(t *testing.T) {
-		data := userNew.UserID.Bytes()
+		data := userNew.ID.Bytes()
 		pac := teo.PacketCreateNew("teo-from", 129, data)
 		exists, err := u.ComCheckUser(pac)
 		if err != nil {
@@ -103,6 +124,23 @@ func TestProcess(t *testing.T) {
 			t.Error(errors.New("return false when user exists"))
 			return
 		}
-		u.delete(userNew)
 	})
+
+	// Check existing user by text with prefix and user id
+	t.Run("ComCheckUser", func(t *testing.T) {
+		data := []byte("tg001-" + userNew.ID.String())
+		pac := teo.PacketCreateNew("teo-from", 129, data)
+		exists, err := u.ComCheckUser(pac)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if !exists {
+			t.Error(errors.New("return false when user exists"))
+			return
+		}
+	})
+
+	// Remove test user to clear db
+	u.delete(userNew)
 }

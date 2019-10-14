@@ -22,15 +22,19 @@
  'replication_factor' : 3 };
  USE teousers_test;
  CREATE TABLE IF NOT EXISTS  users (
-   user_id uuid,
+   id uuid,
    access_token uuid,
-   user_name text,
+   prefix text,
+   name text,
    avatar_id uuid,
    gravatar_id text,
    online boolean,
    last_online timestamp,
-   PRIMARY KEY (user_id)
+   state int,
+   PRIMARY KEY (id)
  );
+ CREATE INDEX IF NOT EXISTS ON users (prefix);
+ CREATE INDEX IF NOT EXISTS ON users (name);
  CREATE INDEX IF NOT EXISTS ON users (online);
 */
 
@@ -64,12 +68,12 @@ func TestDB(t *testing.T) {
 	t.Run("Set", func(t *testing.T) {
 		accessToken := gocql.TimeUUID()
 		user := &User{
-			UserID:      userID,
+			ID:          userID,
 			AccessToken: accessToken,
-			UserName:    "Test-1",
+			Name:        "Test-1",
 			LastOnline:  time.Now(),
 		}
-		fmt.Println("set user_id:", user.UserID)
+		fmt.Println("set user id:", user.ID)
 		err = u.db.set(user)
 		if err != nil {
 			t.Error(err)
@@ -78,8 +82,8 @@ func TestDB(t *testing.T) {
 	})
 
 	t.Run("Get", func(t *testing.T) {
-		user := &User{UserID: userID}
-		fmt.Println("get user_id:", user.UserID)
+		user := &User{ID: userID}
+		fmt.Println("get user id:", user.ID)
 		err = u.db.get(user)
 		if err != nil {
 			t.Error(err)
@@ -89,8 +93,8 @@ func TestDB(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		user := &User{UserID: userID}
-		fmt.Println("delete user_id:", user.UserID)
+		user := &User{ID: userID}
+		fmt.Println("delete user id:", user.ID)
 		err = u.db.delete(user)
 		if err != nil {
 			t.Error(err)
