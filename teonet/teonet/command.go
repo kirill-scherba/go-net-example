@@ -120,6 +120,7 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_HOST_INFO_ANSWER:
 		com.hostInfoAnswer(rec)
+		processed = false
 
 	case C.CMD_AUTH:
 		com.teo.l0.auth.cmdAuth(rec)
@@ -136,10 +137,8 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	// Send (not processed) command to user level
 	if !processed {
-		teolog.DebugVf(MODULE,
-			"got packet: cmd %d from %s, data len: %d\n",
-			rec.rd.Cmd(), rec.rd.From(), len(rec.rd.Data()),
-		)
+		teolog.DebugVf(MODULE, "got packet: cmd %d from %s, data len: %d\n",
+			rec.rd.Cmd(), rec.rd.From(), len(rec.rd.Data()))
 		com.teo.ev.send(EventReceived, rec.rd.Packet())
 	}
 
