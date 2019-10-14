@@ -84,9 +84,15 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	arp.teo.sendToTcd(rec.tcd, CmdNone, []byte{0})
 	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
 	go func() {
-		r := <-arp.teo.WaitFrom(peer, CmdHostInfoAnswer)
-		if r.Err == nil {
-			arp.teo.ev.send(EventConnected, arp.teo.PacketCreateNew(peer, 0, nil))
+		for {
+			r := <-arp.teo.WaitFrom(peer, CmdHostInfoAnswer)
+			if r.Err == nil {
+				arp.teo.ev.send(EventConnected, arp.teo.PacketCreateNew(peer, 0, nil))
+				break
+			}
+			// else {
+			// 	fmt.Printf("Does not got host info during timeout from: %s, cmd: %d\n", peer, CmdHostInfoAnswer)
+			// }
 		}
 	}()
 	return
