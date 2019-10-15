@@ -2,7 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-package teocdbcli
+// Package main is integration test for Send function of the teocdbcli package.
+//
+// **Note: This test can't be implemented as part of teocdbcli package because
+// this test uses teonet and teonet uses the teocdbcli package. And when we
+// trying run this test under the teocdbcli package this error hapends:
+// Import cycle not allowed.
+//
+package main
 
 import (
 	"errors"
@@ -10,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -21,10 +29,11 @@ func TestSend(t *testing.T) {
 	param := teonet.Params()
 	param.Name = "teo-test"
 	param.LogLevel = "NONE"
+	param.L0wsAllow = false
 	teo := teonet.Connect(param, []string{"teo-go", "teo-test"}, version)
 	testSend := func(pac *teonet.Packet) {
 		// Create new teonet teocdb client
-		cdb := NewTeocdbCli(teo)
+		cdb := teocdbcli.New(teo)
 
 		fmt.Printf("connected to %s\n", pac.From())
 
@@ -41,7 +50,7 @@ func TestSend(t *testing.T) {
 
 		// Set data - Save {key,value} data to DB
 		fmt.Printf("Set data: %s\n", value)
-		data, err := cdb.Send(CmdSet, key, []byte(value))
+		data, err := cdb.Send(teocdbcli.CmdSet, key, []byte(value))
 		if err != nil {
 			error(err)
 			return
@@ -50,7 +59,7 @@ func TestSend(t *testing.T) {
 
 		// Get data - Read data from DB by key
 		fmt.Printf("Get data\n")
-		data, err = cdb.Send(CmdGet, key)
+		data, err = cdb.Send(teocdbcli.CmdGet, key)
 		if err != nil {
 			error(err)
 			return
@@ -63,7 +72,7 @@ func TestSend(t *testing.T) {
 
 		// Get not existing key
 		fmt.Printf("Get not existing data\n")
-		data, err = cdb.Send(CmdGet, "a.not.existing.key.test")
+		data, err = cdb.Send(teocdbcli.CmdGet, "a.not.existing.key.test")
 		if err != nil {
 			error(err)
 			return
@@ -72,19 +81,19 @@ func TestSend(t *testing.T) {
 
 		// Get list of keys - Read array of keys with common prefix
 		fmt.Printf("Get list\n")
-		data, err = cdb.Send(CmdList, "test.key.")
+		data, err = cdb.Send(teocdbcli.CmdList, "test.key.")
 		if err != nil {
 			error(err)
 			return
 		}
 		//keylist, err := cdb.Keys(data)
-		var keylist KeyList
+		var keylist teocdbcli.KeyList
 		keylist.UnmarshalBinary(data)
 		fmt.Printf("got answer keys: %v\n%v\n", keylist, data)
 
 		// Get values of all keys received in previous example
 		for _, key := range keylist.Keys() {
-			data, err = cdb.Send(CmdGet, key)
+			data, err = cdb.Send(teocdbcli.CmdGet, key)
 			if err != nil {
 				error(err)
 				return
@@ -111,9 +120,4 @@ func TestSend(t *testing.T) {
 	fmt.Printf("got retval %v\n", retval)
 	//os.Exit(0)
 	//teo.Close()
-}
-
-func ExampleTeocdbCli_Send() {
-	fmt.Println("Hello")
-	// Output: Hello
 }

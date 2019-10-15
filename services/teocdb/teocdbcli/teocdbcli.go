@@ -3,6 +3,10 @@
 // found in the LICENSE file.
 
 // Package teocdbcli is the Teonet key-value databaseb service client package.
+//
+// This package provides types and functions to Send requests and get responce
+// from Teonet key-value database.
+//
 package teocdbcli
 
 import (
@@ -25,7 +29,8 @@ const (
 )
 
 // TeoConnector is teonet connector interface. It may be servers (*Teonet) or
-// clients (*TeoLNull) connector and must conain SendTo method.
+// clients (*TeoLNull) connector and must conain SendTo, SendAnswer and WaitFrom
+// methods.
 type TeoConnector interface {
 	SendTo(peer string, cmd byte, data []byte) (int, error)
 	//SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, error)
@@ -258,29 +263,45 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 	return
 }
 
-// NewTeocdbCli create new teocdbcli object. First parameter is Teonet
-// connection. Second parameter is teonet teocdb peer name, in sets to 'teo-cdb'
-// by default if parameter omitted.
-func NewTeocdbCli(con TeoConnector, ss ...string) *TeocdbCli {
+// New creates new teocdbcli object. The con parameter is Teonet connection.
+// The peer parameter is teonet teocdb peer name, it sets to 'teo-cdb' by
+// default if parameter omitted. Returned TeocdbCli object used to send requests
+// to the teonet cdb key-value database.
+func New(con TeoConnector, peer ...string) *TeocdbCli {
 	var peerName string
-	if len(ss) > 0 {
-		peerName = ss[0]
+	if len(peer) > 0 {
+		peerName = peer[0]
 	} else {
 		peerName = "teo-cdb"
 	}
 	return &TeocdbCli{con: con, peerName: peerName}
 }
 
-// Send is clients api function to send binary command and exequte it in teonet
-// database.
+// Send is clients low level api function to send binary command and exequte it
+// in teonet key-value database.
 //
 // This function sends CmdBinary command (129) to the teocdb teonet
 // service which applay it in teonet key-value database, wait and return answer.
 //
-// First function parameter 'cmd' may be: CmdSet, CmdGet or CmdList:
-//   CmdSet  (130) - Set  <key,value> insert or update key,value to the key-value database
-//   CmdGet  (131) - Get  <key> gets key and send answer with value from the key-value database
-//   CmdList (132) - List <key> gets not completed key and send answer with array of keys from the key-value database
+// The 'cmd' function parameter may be set to: CmdSet, CmdGet or CmdList:
+//
+//   CmdSet  (130) - Set  <key,value> insert or update key-value to the key-value database
+//   CmdGet  (131) - Get  <key> gets key and return answer with value from the key-value database
+//   CmdList (132) - List <key> gets not completed key and return answer with array of keys from the key-value database
+//
+// The 'key' parameter should contain key (for Set and Get functions) or beginning
+// of key (for List function).
+//
+// The 'value' parameter sets for Set command and should be omitted for other
+// commands.
+//
+// This function returns data slice. For the CmdGet there is any binary or text
+// data which was set with Set command. For the CmdList ther is KeyList data
+// structur it shoul be encoded with the Keylist UnmarshalBinary(data) function:
+//
+//   var keylist KeyList
+//   keylist.UnmarshalBinary(data)
+//
 func (cdb *TeocdbCli) Send(cmd byte, key string, value ...[]byte) (data []byte, err error) {
 	cdb.nextID++
 	response := &KeyValue{}

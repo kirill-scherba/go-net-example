@@ -146,7 +146,7 @@ func (lp *parameters) configKeyCdb() string {
 func (lp *parameters) readConfigCdb() (err error) {
 
 	// Create teocdb client
-	cdb := teocdbcli.NewTeocdbCli(lp.l0.teo)
+	cdb := teocdbcli.New(lp.l0.teo)
 
 	// Get config from teo-cdb
 	data, err := cdb.Send(teocdbcli.CmdGet, lp.configKeyCdb())
@@ -169,7 +169,7 @@ func (lp *parameters) readConfigCdb() (err error) {
 func (lp *parameters) writeConfigCdb(con teocdbcli.TeoConnector) (err error) {
 
 	// Create teocdb client
-	cdb := teocdbcli.NewTeocdbCli(con)
+	cdb := teocdbcli.New(con)
 
 	// Marshal json from the parameters structure
 	data, err := json.Marshal(lp)

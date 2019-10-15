@@ -69,3 +69,8 @@ func TestKeyList(t *testing.T) {
 		}
 	})
 }
+
+func ExampleTeocdbCli_Send() {
+	fmt.Println("Hello")
+	// Output: Hello
+}
