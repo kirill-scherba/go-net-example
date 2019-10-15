@@ -15,9 +15,9 @@ import (
 	"unsafe"
 )
 
-// keyValue is key value packet data (text or binary) used in requests
+// KeyValue is key value packet data (text or binary) used in requests
 // and responce teonet commands.
-type keyValue struct {
+type KeyValue struct {
 	Cmd           byte   // Command
 	ID            uint16 // Packet id
 	Key           string // Key
@@ -33,7 +33,7 @@ type jsonData struct {
 }
 
 // Empty clears KeyValue values to it default values.
-func (kv *keyValue) Empty() {
+func (kv *KeyValue) Empty() {
 	kv.ID = 0
 	kv.Key = ""
 	kv.Value = nil
@@ -42,7 +42,7 @@ func (kv *keyValue) Empty() {
 
 // MarshalBinary encodes KeyValue receiver data into binary buffer and returns
 // it in byte slice.
-func (kv *keyValue) MarshalBinary() (data []byte, err error) {
+func (kv *KeyValue) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
 	binary.Write(buf, le, kv.Cmd)
@@ -55,7 +55,7 @@ func (kv *keyValue) MarshalBinary() (data []byte, err error) {
 }
 
 // UnmarshalBinary decode binary buffer into KeyValue receiver data.
-func (kv *keyValue) UnmarshalBinary(data []byte) (err error) {
+func (kv *KeyValue) UnmarshalBinary(data []byte) (err error) {
 	if data == nil || len(data) == 0 {
 		kv.Empty()
 		return
@@ -86,7 +86,7 @@ func (kv *keyValue) UnmarshalBinary(data []byte) (err error) {
 
 // MarshalText encodes KeyValue receiver data into text buffer and returns it
 // in byte slice. Response format for text requests: {key,id,value}
-func (kv *keyValue) MarshalText() (data []byte, err error) {
+func (kv *KeyValue) MarshalText() (data []byte, err error) {
 	if kv.RequestInJSON {
 
 		var v jsonData
@@ -121,7 +121,7 @@ func (kv *keyValue) MarshalText() (data []byte, err error) {
 //   {key} {key,id}
 // CmdList:
 //   {key} {key,id}
-func (kv *keyValue) UnmarshalText(text []byte) (err error) {
+func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 	if text == nil || len(text) == 0 {
 		kv.Empty()
 		return

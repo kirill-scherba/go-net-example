@@ -18,8 +18,8 @@ func TestKeyValueBinary(t *testing.T) {
 		key := "test.key.123"
 		value := []byte("Hello world!")
 
-		bdInput := &keyValue{cmd, id, key, value, false}
-		bdOutput := &keyValue{}
+		bdInput := &KeyValue{cmd, id, key, value, false}
+		bdOutput := &KeyValue{}
 		data, err := bdInput.MarshalBinary()
 		//fmt.Println(data)
 		if err != nil {
@@ -107,7 +107,7 @@ func TestKeyValueText(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 
 				// Unmarshal
-				kv := &keyValue{Cmd: tt.fields.Cmd}
+				kv := &KeyValue{Cmd: tt.fields.Cmd}
 				err := kv.UnmarshalText(tt.args.text)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("KeyValue.UnmarshalText() error = %v, wantErr %v", err, tt.wantErr)

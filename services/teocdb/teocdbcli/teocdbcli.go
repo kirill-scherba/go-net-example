@@ -99,8 +99,8 @@ func New(con TeoConnector, peer ...string) *TeocdbCli {
 //
 func (cdb *TeocdbCli) Send(cmd byte, key string, value ...[]byte) (data []byte, err error) {
 	cdb.nextID++
-	response := &keyValue{}
-	request := &keyValue{Cmd: cmd, ID: cdb.nextID, Key: key}
+	response := &KeyValue{}
+	request := &KeyValue{Cmd: cmd, ID: cdb.nextID, Key: key}
 	if len(value) > 0 {
 		for _, v := range value {
 			request.Value = append(request.Value, v...)
