@@ -48,7 +48,6 @@ func (r *Room) newGameParameters(name string) (gp *GameParameters) {
 	if err := gp.readConfig(); err != nil {
 		fmt.Printf("Read game config error: %s\n", err)
 	}
-	// TODO: read game parameters from teo-cdb here
 	// Read game parameters from teo-cdb and applay if changed, than write
 	// it to config file
 	//
@@ -102,7 +101,7 @@ func (gp *GameParameters) readConfig() (err error) {
 func (gp *GameParameters) writeConfig() (err error) {
 	fileName := gp.Name
 	confDir := gp.configDir()
-	f, err := os.Open(confDir + fileName + ".json")
+	f, err := os.Create(confDir + fileName + ".json")
 	if err != nil {
 		return
 	}
