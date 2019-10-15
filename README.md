@@ -1,11 +1,10 @@
 # Teonet-go
 
-
 ## Requirements
 
-Teonet-go requires Go 1.2 or newer. Download the latest from: https://code.google.com/p/go/downloads/
+Teonet-go requires Go 1.2 or newer. Download the latest from: <https://code.google.com/p/go/downloads/>
 
-Git is required for installing via go get.
+Git is required for installing via `go get`.
 
 A C compiler (gcc or clang) and the openssl library are required too.
 
@@ -17,13 +16,11 @@ On CentOS and RHEL:
 
     yum install gcc libssl-dev
 
-
 ## Installation
 
 Make sure $GOROOT and $GOPATH are set, and install:
 
     go get github.com/kirill-scherba/teonet-go
-
 
 ## Running
 
