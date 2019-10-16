@@ -19,48 +19,56 @@ import (
 )
 
 // Config example
-// {"key":"conf.network.l0","id":7,"value":{"descr":"Normal network L0 server","prefix":["tg001"]}}
+// {"descr":"Normal network 1 L0 server","prefix":["tg001","tg002","tg003"]}
 
 // parameters is l0 configuration parameters
 type parameters struct {
 	Descr  string   // L0 configuration parameters description
 	Prefix []string // Prefixes allowed quick registration with teonet
-	//
+}
+
+type paramConf struct {
 	*teoconf.Teoconf
 }
 
+// funConf is functions receiver
+type funConf struct{}
+
 // parametersNew initialize parameters module
-func (l0 *l0Conn) parametersNew() (lp *parameters) {
-	lp = &parameters{}
-	lp.Teoconf = teoconf.New(l0.teo, &confLocation{}, lp)
+func (l0 *l0Conn) parametersNew() (p *paramConf) {
+	fun := &funConf{}
+	val := &parameters{}
+	p = &paramConf{teoconf.New(l0.teo, val, fun)}
 	return
 }
 
 // eventProcess process teonet events to get teo-cdb connected and read config
-func (lp *parameters) eventProcess(ev *EventData) {
+func (p *paramConf) eventProcess(ev *EventData) {
 	// Pocss event #3:  New peer connected to this host
 	if ev.Event == EventConnected && ev.Data.From() == "teo-cdb" {
 		fmt.Printf("Teo-cdb peer connectd. Read config...\n")
-		if err := lp.ReadBoth(); err != nil {
+		if err := p.ReadBoth(); err != nil {
 			fmt.Printf("Error: %s\n", err)
 		}
 	}
 }
 
-type confLocation struct {
+// Default return default value in json format
+func (p *funConf) Default() []byte {
+	return []byte(`{"descr":"Normal network L0 server","prefix":["tg001"]}`)
 }
 
-// configDir return configuration file folder
-func (where *confLocation) ConfigDir() string {
+// Dir return configuration file folder
+func (p *funConf) Dir() string {
 	return os.Getenv("HOME") + "/.config/teonet/teol0/"
 }
 
-// ConfigName return configuration file name
-func (where *confLocation) ConfigName() string {
+// Name return configuration file name
+func (p *funConf) Name() string {
 	return "l0"
 }
 
-// configKeyCdb return configuration key
-func (where *confLocation) ConfigKeyCdb() string {
-	return "conf.network." + where.ConfigName()
+// Key return configuration key
+func (p *funConf) Key() string {
+	return "conf.network." + p.Name()
 }

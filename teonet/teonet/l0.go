@@ -33,21 +33,21 @@ const notL0ServerError = "can't process this command because I'm not L0 server"
 
 // l0Conn is Module data structure
 type l0Conn struct {
-	teo         *Teonet            // Pointer to Teonet
-	stat        *l0Stat            // Statistic
-	auth        *l0AuthCom         // Authentication
-	allow       bool               // Allow L0 Server
-	wsAllow     bool               // Allow L0 websocket server
-	tcpPort     int                // TCP port (if 0 - not allowed TCP)
-	wsConn      *wsConn            // Wwebsocket server connector
-	wsPort      int                // Websocket TCP port (if 0 - not allowed websocket)
-	conn        net.Listener       // TCP listener connection
-	ch          chan *packet       // Packet processing channel
-	ma          map[string]*client // Clients address map
-	mn          map[string]*client // Clients name map
-	mux         sync.Mutex         // Maps mutex
-	closed      bool               // Closet flag
-	*parameters                    // L0 config parameters
+	teo     *Teonet            // Pointer to Teonet
+	stat    *l0Stat            // Statistic
+	auth    *l0AuthCom         // Authentication
+	allow   bool               // Allow L0 Server
+	wsAllow bool               // Allow L0 websocket server
+	tcpPort int                // TCP port (if 0 - not allowed TCP)
+	wsConn  *wsConn            // Wwebsocket server connector
+	wsPort  int                // Websocket TCP port (if 0 - not allowed websocket)
+	conn    net.Listener       // TCP listener connection
+	ch      chan *packet       // Packet processing channel
+	ma      map[string]*client // Clients address map
+	mn      map[string]*client // Clients name map
+	mux     sync.Mutex         // Maps mutex
+	closed  bool               // Closet flag
+	param   *paramConf         // L0 config parameters
 }
 
 // packet is Packet processing channels data structure
@@ -89,9 +89,9 @@ func (teo *Teonet) l0New() *l0Conn {
 		wsAllow: teo.param.L0wsAllow, // Allow websocket server(if websocket port > 0)
 		wsPort:  teo.param.L0wsPort,  // Allow websocket server(if wsAllow is true)
 	}
-	l0.stat = l0.statNew()             // Staistic module
-	l0.auth = l0.authNew()             // Authenticate module
-	l0.parameters = l0.parametersNew() // Configuration parameters module
+	l0.stat = l0.statNew()        // Staistic module
+	l0.auth = l0.authNew()        // Authenticate module
+	l0.param = l0.parametersNew() // Configuration parameters module
 
 	if l0.allow || l0.wsAllow {
 		// Start L0 pocessing

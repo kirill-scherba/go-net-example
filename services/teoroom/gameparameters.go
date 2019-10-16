@@ -123,7 +123,7 @@ func (gp *GameParameters) configKeyCdb() string {
 func (gp *GameParameters) readConfigCdb(con teocdbcli.TeoConnector) (errt *errorTeoroom) {
 
 	// Create teocdb client
-	cdb := teocdbcli.NewTeocdbCli(con)
+	cdb := teocdbcli.New(con)
 
 	// Get config from teo-cdb
 	data, err := cdb.Send(teocdbcli.CmdGet, gp.configKeyCdb())
@@ -148,7 +148,7 @@ func (gp *GameParameters) readConfigCdb(con teocdbcli.TeoConnector) (errt *error
 func (gp *GameParameters) writeConfigCdb(con teocdbcli.TeoConnector) (err error) {
 
 	// Create teocdb client
-	cdb := teocdbcli.NewTeocdbCli(con)
+	cdb := teocdbcli.New(con)
 
 	// Marshal json from the GameParameters structure
 	data, err := json.Marshal(gp)
