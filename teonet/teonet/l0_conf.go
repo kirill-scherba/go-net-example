@@ -18,31 +18,24 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teocdb/teoconf"
 )
 
-// Config example
-// {"descr":"Normal network 1 L0 server","prefix":["tg001","tg002","tg003"]}
-
-// parameters is l0 configuration parameters
-type parameters struct {
+// param is l0 configuration parameters.
+type param struct {
 	Descr  string   // L0 configuration parameters description
 	Prefix []string // Prefixes allowed quick registration with teonet
 }
 
+// paramConf is module receiver.
 type paramConf struct {
 	*teoconf.Teoconf
 }
 
-// funConf is functions receiver
-type funConf struct{}
-
-// parametersNew initialize parameters module
+// parametersNew initialize parameters module.
 func (l0 *l0Conn) parametersNew() (p *paramConf) {
-	fun := &funConf{}
-	val := &parameters{}
-	p = &paramConf{teoconf.New(l0.teo, val, fun)}
+	p = &paramConf{teoconf.New(l0.teo, &param{})}
 	return
 }
 
-// eventProcess process teonet events to get teo-cdb connected and read config
+// eventProcess process teonet events to get teo-cdb connected and read config.
 func (p *paramConf) eventProcess(ev *EventData) {
 	// Pocss event #3:  New peer connected to this host
 	if ev.Event == EventConnected && ev.Data.From() == "teo-cdb" {
@@ -50,25 +43,31 @@ func (p *paramConf) eventProcess(ev *EventData) {
 		if err := p.ReadBoth(); err != nil {
 			fmt.Printf("Error: %s\n", err)
 		}
+		var v *param = p.Value().(*param)
+		fmt.Printf("Descr: %s\n", v.Descr)
 	}
 }
 
-// Default return default value in json format
-func (p *funConf) Default() []byte {
+// Default return default value in json format.
+func (p *param) Default() []byte {
 	return []byte(`{"descr":"Normal network L0 server","prefix":["tg001"]}`)
 }
 
-// Dir return configuration file folder
-func (p *funConf) Dir() string {
+func (p *param) Value() interface{} {
+	return p
+}
+
+// Dir return configuration file folder.
+func (p *param) Dir() string {
 	return os.Getenv("HOME") + "/.config/teonet/teol0/"
 }
 
-// Name return configuration file name
-func (p *funConf) Name() string {
+// Name return configuration file name.
+func (p *param) Name() string {
 	return "l0"
 }
 
-// Key return configuration key
-func (p *funConf) Key() string {
+// Key return configuration key.
+func (p *param) Key() string {
 	return "conf.network." + p.Name()
 }
