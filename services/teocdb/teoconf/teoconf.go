@@ -74,12 +74,12 @@ func (c *Teoconf) ReadBoth() (err error) {
 			if err == ErrConfigCdbDoesNotExists {
 				c.WriteCdb()
 			}
+			return
 		}
 		if err = c.Write(); err != nil {
 			fmt.Printf("write config error: %s\n", err)
 		}
 	}()
-
 	return
 }
 
@@ -118,11 +118,14 @@ func (c *Teoconf) Write() (err error) {
 		return
 	}
 	// Marshal json from the parameters structure
-	data, err := json.Marshal(c)
+	data, err := json.Marshal(c.val)
 	if err != nil {
 		return
 	}
-	_, err = f.Write(data)
+	if _, err = f.Write(data); err != nil {
+		return
+	}
+	fmt.Printf("config was write to file %s, value: %v\n", c.fileName(), c.val)
 	return
 }
 
@@ -142,7 +145,7 @@ func (c *Teoconf) ReadCdb() (err error) {
 	}
 
 	// Unmarshal json to the parameters structure
-	if err = json.Unmarshal(data, c); err != nil {
+	if err = json.Unmarshal(data, c.val); err != nil {
 		return
 	}
 	fmt.Println("config was read from teo-cdb: ", c.val)
@@ -156,12 +159,15 @@ func (c *Teoconf) WriteCdb() (err error) {
 	cdb := teocdbcli.New(c.con)
 
 	// Marshal json from the parameters structure
-	data, err := json.Marshal(c)
+	data, err := json.Marshal(c.val)
 	if err != nil {
 		return
 	}
 
 	// Send config to teo-cdb
-	_, err = cdb.Send(teocdbcli.CmdSet, c.fun.Key(), data)
+	if _, err = cdb.Send(teocdbcli.CmdSet, c.fun.Key(), data); err != nil {
+		return
+	}
+	fmt.Println("config was write to teo-cdb: ", c.val)
 	return
 }
