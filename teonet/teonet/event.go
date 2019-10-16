@@ -39,6 +39,9 @@ func (teo *Teonet) eventNew() (ev *event) {
 
 // send sends event to user level
 func (ev *event) send(event int, data *Packet) {
+	if !ev.teo.running {
+		return
+	}
 	eventData := &EventData{event, data}
 	ev.ch <- eventData
 	ev.teo.l0.param.eventProcess(eventData)

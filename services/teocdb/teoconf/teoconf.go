@@ -25,9 +25,9 @@ var (
 type ConfValue interface {
 	Key() string        // return teocdb configuration key
 	Dir() string        // return configuration files folder
-	Name() string       // return configuration files name
 	Value() interface{} // return value
 	Default() []byte    // return default value in json
+	FileName() string   // return configuration files name
 }
 
 // Teoconf is an teoconf receiver
@@ -40,13 +40,16 @@ type Teoconf struct {
 func New(con teocdbcli.TeoConnector, val ConfValue) (c *Teoconf) {
 	c = &Teoconf{ConfValue: val, con: con}
 	c.ReadBoth()
-	fmt.Println("config name:", c.ConfValue.Name())
+	fmt.Println("config name:", c.ConfValue.FileName())
 	return
 }
 
 // setDefault sets default values from json string
 func (c *Teoconf) setDefault() (err error) {
 	data := c.ConfValue.Default()
+	if data == nil {
+		return
+	}
 	// Unmarshal json to the value structure
 	if err = json.Unmarshal(data, c.ConfValue); err == nil {
 		fmt.Printf("set default config value: %v\n", c.ConfValue)
@@ -85,7 +88,7 @@ func (c *Teoconf) ReadBoth() (err error) {
 
 // fileName returns file name.
 func (c *Teoconf) fileName() string {
-	return c.ConfValue.Dir() + c.ConfValue.Name() + ".json"
+	return c.ConfValue.Dir() + c.ConfValue.FileName() + ".json"
 }
 
 // Read reads parameters from config file and replace current
@@ -145,6 +148,8 @@ func (c *Teoconf) ReadCdb() (err error) {
 		return
 	}
 
+	fmt.Printf("config %s was read from teo-cdb: %s\n",
+		c.ConfValue.Key(), string(data))
 	// Unmarshal json to the parameters structure
 	if err = json.Unmarshal(data, c.ConfValue); err != nil {
 		return

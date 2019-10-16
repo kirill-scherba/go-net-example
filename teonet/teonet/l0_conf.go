@@ -37,6 +37,9 @@ func (l0 *l0Conn) parametersNew() (p *paramConf) {
 
 // eventProcess process teonet events to get teo-cdb connected and read config.
 func (p *paramConf) eventProcess(ev *EventData) {
+	if p == nil {
+		return
+	}
 	// Pocss event #3:  New peer connected to this host
 	if ev.Event == EventConnected && ev.Data.From() == "teo-cdb" {
 		fmt.Printf("Teo-cdb peer connectd. Read config...\n")
@@ -53,6 +56,7 @@ func (p *param) Default() []byte {
 	return []byte(`{"descr":"Normal network L0 server","prefix":["tg001"]}`)
 }
 
+// Value real value as interfaxe
 func (p *param) Value() interface{} {
 	return p
 }
@@ -63,11 +67,11 @@ func (p *param) Dir() string {
 }
 
 // Name return configuration file name.
-func (p *param) Name() string {
+func (p *param) FileName() string {
 	return "l0"
 }
 
 // Key return configuration key.
 func (p *param) Key() string {
-	return "conf.network." + p.Name()
+	return "conf.network." + p.FileName()
 }

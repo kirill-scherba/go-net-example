@@ -89,11 +89,12 @@ func (teo *Teonet) l0New() *l0Conn {
 		wsAllow: teo.param.L0wsAllow, // Allow websocket server(if websocket port > 0)
 		wsPort:  teo.param.L0wsPort,  // Allow websocket server(if wsAllow is true)
 	}
-	l0.stat = l0.statNew()        // Staistic module
-	l0.auth = l0.authNew()        // Authenticate module
-	l0.param = l0.parametersNew() // Configuration parameters module
 
 	if l0.allow || l0.wsAllow {
+		l0.stat = l0.statNew()        // Staistic module
+		l0.auth = l0.authNew()        // Authenticate module
+		l0.param = l0.parametersNew() // Configuration parameters module
+
 		// Start L0 pocessing
 		l0.ma = make(map[string]*client)
 		l0.mn = make(map[string]*client)
