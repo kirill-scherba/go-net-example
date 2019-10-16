@@ -55,7 +55,7 @@ func New(teo *teonet.Teonet) (tr *Teoroom, err error) {
 func (tr *Teoroom) Destroy() {}
 
 // sendExistingData sends saved data of all connected and loaded clients to
-// this new client
+// this new clientg
 func (tr *Teoroom) sendExistingData(client string, f func(
 	l0 *teonet.L0PacketData, client string, cmd byte, data []byte) error) {
 
@@ -67,15 +67,15 @@ func (tr *Teoroom) sendExistingData(client string, f func(
 	for id, cli := range tr.mroom[roomID].client {
 		if id != cliID && cli != nil {
 			for _, d := range cli.data {
-				f(cli.L0PacketData, client, teoroomcli.ComRoomData, d)
+				f(c.L0PacketData, client, teoroomcli.ComRoomData, d)
 			}
 		}
 	}
 }
 
-// resendData resend client data to all clients connected to room with this him.
+// resendData resend client data to all clients connected to this room with him.
 // Process data for first clients command: Save client data and send him data
-// saved by existing and ready clients
+// saved by existing and ready clients.
 func (tr *Teoroom) resendData(client string, cmd byte, data []byte, f func(
 	l0 *teonet.L0PacketData, client string, cmd byte, data []byte) error) (err error) {
 
