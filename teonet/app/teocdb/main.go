@@ -119,7 +119,7 @@ func main() {
 				fmt.Printf("ComCheckUser Error: %s\n", err.Error())
 			}
 			if ok {
-				fmt.Printf("User Exists: %s\n", string(pac.Data()))
+				fmt.Printf("User Validated: %s\n", string(pac.Data()))
 				break
 			}
 			// Create user

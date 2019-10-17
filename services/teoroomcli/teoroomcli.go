@@ -1,3 +1,8 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Package teoroomcli is  teonet room controller service client package.
 package teoroomcli
 
 import (
