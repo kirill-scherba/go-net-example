@@ -8,6 +8,7 @@ package teonet
 
 import (
 	"net"
+	"strings"
 
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
@@ -68,6 +69,7 @@ func (l0 *l0Conn) process() {
 	l0.ch = make(chan *packet)
 	l0.teo.wg.Add(1)
 	go func() {
+	packetGet:
 		for pac := range l0.ch {
 			teolog.DebugVvf(MODULE,
 				"valid packet received from client %s, length: %d\n",
@@ -89,29 +91,38 @@ func (l0 *l0Conn) process() {
 					l0.stat.receive(pac.client, d)
 					l0.add(pac.client)
 
-					// \TODO: Send to registrar
-
-					// \TODO: Send to auth
-					teoAuth := "teo-auth"
-					teolog.DebugVf(MODULE, "login command, send to auth: %s, data: %v\n", teoAuth, d)
-					l0.teo.SendTo(teoAuth, CmdUser, d)
-
-				} else {
-					teolog.Errorf(MODULE,
-						"incorrect login packet received from client %s, disconnect...\n",
-						pac.client.addr)
-					//fmt.Printf("cmd: %d, to: %s, data: %v\n", p.Command(), p.Name(), p.Data())
-					// Send http answer to tcp request
-					switch pac.client.conn.(type) {
-					case net.Conn:
-						pac.client.conn.Write([]byte("HTTP/1.1 200 OK\n" +
-							"Content-Type: text/html\n\n" +
-							"<html><body>Hello!</body></html>\n"))
+					// Send to users registrar
+					// Check l0 config and find valid prefixes and if prefix
+					// find than send login command to users registrar service
+					prefix := l0.param.Value().(*param).Prefix
+					for _, p := range prefix {
+						if strings.HasPrefix(pac.client.name, p) {
+							l0.sendToRegistrar([]byte(pac.client.name))
+							continue packetGet
+						}
 					}
-					pac.client.conn.Close()
+
+					// Send login command to auth service
+					l0.sendToAuth(d)
+					continue
 				}
+
+				// Incorrect login packet received
+				teolog.Errorf(MODULE,
+					"incorrect login packet received from client %s, disconnect...\n",
+					pac.client.addr)
+				//fmt.Printf("cmd: %d, to: %s, data: %v\n", p.Command(), p.Name(), p.Data())
+				// Send http answer to tcp request
+				switch pac.client.conn.(type) {
+				case net.Conn:
+					pac.client.conn.Write([]byte("HTTP/1.1 200 OK\n" +
+						"Content-Type: text/html\n\n" +
+						"<html><body>Hello!</body></html>\n"))
+				}
+				pac.client.conn.Close()
 				continue
 			}
+			
 			// if client exists: send it command to Client connected to this server
 			// or to Peer for exising client
 			l0.stat.receive(client, p.Data())

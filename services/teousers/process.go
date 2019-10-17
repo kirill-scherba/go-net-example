@@ -30,7 +30,8 @@ type Process struct{ *Users }
 // clients (*TeoLNull) connector and must conain SendTo method.
 type TeoConnector interface {
 	SendTo(peer string, cmd byte, data []byte) (int, error)
-	SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, error)
+	//SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, error)
+	SendAnswer(pac interface{}, cmd byte, data []byte) (int, error)
 	// WaitFrom wait receiving data from peer. The third function parameter is
 	// timeout. It may be omitted or contain timeout time of time.Duration type.
 	// If timeout parameter is omitted than default timeout value sets to 2 second.
@@ -83,9 +84,10 @@ func (p *Process) ComCheckUser(pac *teonet.Packet) (exists bool, err error) {
 func (p *Process) ComCreateUser(pac *teonet.Packet) (u *UserResponce, err error) {
 	// Parse intput data
 	req := UserRequest{}
-	err = req.UnmarshalText(pac.Data())
-	if err != nil {
-		return
+	if err := req.UnmarshalText(pac.Data()); err != nil {
+		// if there is wrong or empty id in request than create new one and
+		// ignore this error
+		req.ID = gocql.TimeUUID()
 	}
 	// Check if user already exists, get from database
 	if err = p.get(req, p.userMetadata.PartKey[0]); err == nil {
@@ -147,7 +149,7 @@ func (u *UserRequest) UnmarshalText(data []byte) (err error) {
 
 	if l == 2 {
 		if u.ID, err = gocql.ParseUUID(string(pre[1])); err != nil {
-			fmt.Printf("ComCreateUser error: %s\n", err)
+			fmt.Printf("ParseUUID Error: %s\n", err)
 		}
 		return
 	}

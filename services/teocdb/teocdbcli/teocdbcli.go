@@ -19,6 +19,11 @@ const (
 	CmdList   = 132 // List get not completed key and send answer with array of keys in text or json format from key-value database
 )
 
+// Users registrar commands
+const (
+	CheckUser = 133 // Check and register user
+)
+
 // TeocdbCli is teocdbcli packet receiver.
 type TeocdbCli struct {
 	con      TeoConnector

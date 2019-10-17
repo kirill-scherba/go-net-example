@@ -26,6 +26,7 @@ import (
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
+	"github.com/kirill-scherba/teonet-go/services/teousers"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -50,6 +51,8 @@ func main() {
 		Cmd: 131, Descr: "Get key and send answer with value in text or json format from key-value database",
 	}).Add(&teoregistry.Command{
 		Cmd: 132, Descr: "List get not completed key and send answer with array of keys in text or json format from key-value database",
+	}).Add(&teoregistry.Command{
+		Cmd: 133, Descr: "Check and register user",
 	})
 
 	// Read Teonet parameters from configuration file and parse application
@@ -71,11 +74,15 @@ func main() {
 	tcdb, _ := teocdb.Connect(teo)
 	defer tcdb.Close()
 
+	usr, _ := teousers.Connect(teo)
+	defer usr.Close()
+
 	// Commands processing
 	commands := func(pac *teonet.Packet) {
 		switch pac.Cmd() {
 
-		// # 129: Binary command execute all cammands Set, Get and GetList in binary format
+		// # 129: Binary command execute all cammands Set, Get and GetList in
+		// binary format
 		case cdb.CmdBinary:
 			err := tcdb.Process.CmdBinary(pac)
 			if err != nil {
@@ -96,12 +103,32 @@ func main() {
 				fmt.Printf("CmdGet Error: %s\n", err.Error())
 			}
 
-		// # 132: Get list of keys (by not complete key) and send answer with array of keys in text or json format
+		// # 132: Get list of keys (by not complete key) and send answer with
+		// array of keys in text or json format
 		case cdb.CmdList:
 			err := tcdb.Process.CmdList(pac)
 			if err != nil {
 				fmt.Printf("CmdList Error: %s\n", err.Error())
 			}
+
+		// # 133: Check and register user
+		case cdb.CheckUser:
+			// Check user
+			ok, err := usr.Process.ComCheckUser(pac)
+			if err != nil {
+				fmt.Printf("ComCheckUser Error: %s\n", err.Error())
+			}
+			if ok {
+				fmt.Printf("User Exists: %s\n", string(pac.Data()))
+				break
+			}
+			// Create user
+			res, err := usr.Process.ComCreateUser(pac)
+			if err != nil {
+				fmt.Printf("ComCreateUser Error: %s\n", err.Error())
+				break
+			}
+			fmt.Printf("User Created: %s\n", res.ID)
 		}
 	}
 

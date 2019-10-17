@@ -97,3 +97,19 @@ func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) (l
 	l0.stat.send(client, packet)
 	return client.conn.Write(packet)
 }
+
+// sendToRegistrar sends login commands to users registrar
+func (l0 *l0Conn) sendToRegistrar(d []byte) (length int, err error) {
+	teoCDB := "teo-cdb"
+	teolog.Debugf(MODULE, "login command, send to users registrar (teo-cdb): %s, data: %v\n", teoCDB, d)
+	l0.teo.SendTo(teoCDB /* teocdbcli.CheckUser */, 133, d)
+	return
+}
+
+// sendToRegistrar sends login commands to users registrar
+func (l0 *l0Conn) sendToAuth(d []byte) (length int, err error) {
+	teoAuth := "teo-auth"
+	teolog.Debugf(MODULE, "login command, send to auth: %s, data: %v\n", teoAuth, d)
+	l0.teo.SendTo(teoAuth, CmdUser, d)
+	return
+}

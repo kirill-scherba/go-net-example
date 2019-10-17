@@ -29,18 +29,18 @@ type l0Conn struct {
 	teo     *Teonet            // Pointer to Teonet
 	stat    *l0Stat            // Statistic
 	auth    *l0AuthCom         // Authentication
+	param   *paramConf         // Config parameters
 	allow   bool               // Allow L0 Server
 	wsAllow bool               // Allow L0 websocket server
-	tcpPort int                // TCP port (if 0 - not allowed TCP)
-	wsConn  *wsConn            // Wwebsocket server connector
+	wsConn  *wsConn            // Websocket server connector
 	wsPort  int                // Websocket TCP port (if 0 - not allowed websocket)
+	tcpPort int                // TCP port (if 0 - not allowed TCP)
 	conn    net.Listener       // TCP listener connection
 	ch      chan *packet       // Packet processing channel
 	ma      map[string]*client // Clients address map
 	mn      map[string]*client // Clients name map
 	mux     sync.Mutex         // Maps mutex
 	closed  bool               // Closet flag
-	param   *paramConf         // L0 config parameters
 }
 
 // packet is Packet processing channels data structure
