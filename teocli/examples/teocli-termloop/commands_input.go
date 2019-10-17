@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kirill-scherba/teonet-go/services/teoroom/teoroomcli"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 )
 

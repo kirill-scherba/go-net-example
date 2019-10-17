@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kirill-scherba/teonet-go/services/teocdb/teoconf"
+	"github.com/kirill-scherba/teonet-go/services/teocdbcli/conf"
 )
 
 // param is l0 configuration parameters.
@@ -26,12 +26,12 @@ type param struct {
 
 // paramConf is module receiver.
 type paramConf struct {
-	*teoconf.Teoconf
+	*conf.Teoconf
 }
 
 // parametersNew initialize parameters module.
 func (l0 *l0Conn) parametersNew() (p *paramConf) {
-	p = &paramConf{teoconf.New(l0.teo, &param{})}
+	p = &paramConf{conf.New(l0.teo, &param{})}
 	return
 }
 
@@ -46,7 +46,7 @@ func (p *paramConf) eventProcess(ev *EventData) {
 		if err := p.ReadBoth(); err != nil {
 			fmt.Printf("Error: %s\n", err)
 		}
-		var v *param = p.Value().(*param)
+		var v = p.Struct().(*param)
 		fmt.Printf("Descr: %s\n", v.Descr)
 	}
 }
@@ -56,8 +56,8 @@ func (p *param) Default() []byte {
 	return []byte(`{"descr":"Normal network L0 server","prefix":["tg001"]}`)
 }
 
-// Value real value as interfaxe
-func (p *param) Value() interface{} {
+// Struct real value as interfaxe
+func (p *param) Struct() interface{} {
 	return p
 }
 

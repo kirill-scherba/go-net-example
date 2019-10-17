@@ -11,8 +11,8 @@ import (
 
 type Teoemu struct{}
 
-func (t *Teoemu) SendTo(peer string, cmd byte, data []byte) (int, error)            { return 0, nil }
-func (t *Teoemu) SendAnswer(pac *teonet.Packet, cmd byte, data []byte) (int, error) { return 0, nil }
+func (t *Teoemu) SendTo(peer string, cmd byte, data []byte) (int, error)         { return 0, nil }
+func (t *Teoemu) SendAnswer(pac interface{}, cmd byte, data []byte) (int, error) { return 0, nil }
 
 func TestUserNew(t *testing.T) {
 	var data []byte

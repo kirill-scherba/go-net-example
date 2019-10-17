@@ -7,7 +7,7 @@ package teoroom
 import (
 	"os"
 
-	"github.com/kirill-scherba/teonet-go/services/teocdb/teoconf"
+	"github.com/kirill-scherba/teonet-go/services/teocdbcli/conf"
 )
 
 // Rooms GameParameters constant default
@@ -32,7 +32,7 @@ type GameParameters struct {
 }
 
 type paramConf struct {
-	*teoconf.Teoconf
+	*conf.Teoconf
 }
 
 // newGameParameters create new GameParameters, sets default parameters and read
@@ -49,7 +49,7 @@ func (r *Room) newGameParameters(name string) (p *paramConf) {
 		WaitForMaxClients: waitForMaxClients,
 	}
 
-	p = &paramConf{teoconf.New(r.tr.teo, gp)}
+	p = &paramConf{conf.New(r.tr.teo, gp)}
 
 	r.gparam = gp
 	return
@@ -60,8 +60,8 @@ func (gp *GameParameters) Default() []byte {
 	return nil
 }
 
-// Value real value as interfaxe
-func (gp *GameParameters) Value() interface{} {
+// Struct real value as interfaxe
+func (gp *GameParameters) Struct() interface{} {
 	return gp
 }
 

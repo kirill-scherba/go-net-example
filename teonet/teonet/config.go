@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
+	"github.com/kirill-scherba/teonet-go/services/teoapi"
 )
 
 // Parameters Teonet parameters

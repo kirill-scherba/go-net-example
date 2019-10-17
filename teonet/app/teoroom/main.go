@@ -7,6 +7,7 @@
 // Teonet room controller combine users to room and send commands between it.
 //
 // Install this application:
+//
 //   go get github.com/kirill-scherba/teonet-go/teonet/app/teoroom/
 //
 // Run this application:
@@ -18,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
-	"github.com/kirill-scherba/teonet-go/services/teoroom/teoroomcli"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
