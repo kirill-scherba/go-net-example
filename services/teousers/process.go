@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teousers process module.
-//
+// Teousers command processing module.
 
 package teousers
 
@@ -20,8 +19,8 @@ import (
 )
 
 var (
-	// ErrorUserAlreadyExists happends if user already exist during creating
-	ErrorUserAlreadyExists = errors.New("user with selected id already exists")
+	// ErrUserAlreadyExists happends if user already exist during creating
+	ErrUserAlreadyExists = errors.New("user with selected id already exists")
 )
 
 // Process receiver to process teousers commands
@@ -90,7 +89,7 @@ func (p *Process) ComCreateUser(pac *teonet.Packet) (u *UserResponce, err error)
 	}
 	// Check if user already exists, get from database
 	if err = p.get(req, p.userMetadata.PartKey[0]); err == nil {
-		err = ErrorUserAlreadyExists
+		err = ErrUserAlreadyExists
 		return
 	}
 	// Creat user data

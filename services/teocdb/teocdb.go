@@ -15,6 +15,11 @@
 //
 //   https://www.scylladb.com/download/open-source/#docker
 //
+// You may check version of your existing running scylla docker container with
+// command:
+//
+//   docker exec -it scylla scylla --version
+//
 // Before you execute application which used this package you need install
 // database schemas. Launch `cqlsh`:
 //

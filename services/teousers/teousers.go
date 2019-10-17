@@ -15,6 +15,11 @@
 //
 //   https://www.scylladb.com/download/open-source/#docker
 //
+// You may check version of your existing running scylla docker container with
+// command:
+//
+//   docker exec -it scylla scylla --version
+//
 // Before you execute application which used this package you need install
 // database schemas. Launch `cqlsh`:
 //
@@ -41,7 +46,12 @@
  CREATE INDEX IF NOT EXISTS ON users (name);
  CREATE INDEX IF NOT EXISTS ON users (online);
 */
-// To run db tests repeat the same with teousers_test in first string.
+// To run db tests repeat the same with teousers_test in first string:
+//
+//   CREATE KEYSPACE IF NOT EXISTS teousers_test with replication = { 'class' : 'SimpleStrategy',  'replication_factor' : 3 };
+//   USE teousers;
+//
+// and execute abowe code, from the CREATE TABLE ...
 //
 package teousers
 
