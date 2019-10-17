@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
+	"github.com/kirill-scherba/teonet-go/services/teoapi"
 
 	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"

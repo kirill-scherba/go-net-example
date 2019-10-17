@@ -37,7 +37,7 @@ import (
 	"fmt"
 
 	"github.com/gocql/gocql"
-	cdb "github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
+	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 

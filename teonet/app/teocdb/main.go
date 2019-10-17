@@ -22,10 +22,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
-	cdb "github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
+	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry"
-	"github.com/kirill-scherba/teonet-go/services/teoregistry/teoapi"
 	"github.com/kirill-scherba/teonet-go/services/teousers"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )

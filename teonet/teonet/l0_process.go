@@ -94,7 +94,7 @@ func (l0 *l0Conn) process() {
 					// Send to users registrar
 					// Check l0 config and find valid prefixes and if prefix
 					// find than send login command to users registrar service
-					prefix := l0.param.Value().(*param).Prefix
+					prefix := l0.param.Struct().(*param).Prefix
 					for _, p := range prefix {
 						if strings.HasPrefix(pac.client.name, p) {
 							l0.sendToRegistrar([]byte(pac.client.name))
@@ -122,7 +122,7 @@ func (l0 *l0Conn) process() {
 				pac.client.conn.Close()
 				continue
 			}
-			
+
 			// if client exists: send it command to Client connected to this server
 			// or to Peer for exising client
 			l0.stat.receive(client, p.Data())

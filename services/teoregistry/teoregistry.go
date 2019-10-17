@@ -83,7 +83,8 @@ type Com struct {
 	tre *Teoregistry
 }
 
-// Application is the Table 'applications': Teonet applications (services) description
+// Application is the Table 'applications': Teonet applications (services)
+// description
 type Application struct {
 	UUID    gocql.UUID
 	Name    string

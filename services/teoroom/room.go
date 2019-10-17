@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kirill-scherba/teonet-go/services/teoroom/teoroomcli"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 

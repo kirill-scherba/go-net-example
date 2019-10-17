@@ -77,3 +77,9 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 		time.Sleep(timeout)
 	}
 }
+
+func readСookie() {
+}
+
+func writeСookie() {
+}
