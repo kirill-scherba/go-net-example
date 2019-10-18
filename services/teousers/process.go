@@ -15,7 +15,6 @@ import (
 	"unsafe"
 
 	"github.com/gocql/gocql"
-	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 var (
@@ -41,12 +40,18 @@ type TeoConnector interface {
 	// }
 }
 
+// TeoPacket is teonet packet interface
+type TeoPacket interface {
+	Cmd() byte
+	Data() []byte
+}
+
 // ComCheckUser process check user request, return true if user valid.
 //
 // Input data (binary): user_id []byte[16] or user_prefix + user_id string.
 //
 // Output data (byte):  user_exists []byte[1]; 0 - not exists, 1 - exists.
-func (p *Process) ComCheckUser(pac *teonet.Packet) (exists bool, err error) {
+func (p *Process) ComCheckUser(pac TeoPacket) (exists bool, err error) {
 	// Parse intput data
 	// expected: user_id []byte[16]
 	userID, err := gocql.UUIDFromBytes(pac.Data())
@@ -73,15 +78,45 @@ func (p *Process) ComCheckUser(pac *teonet.Packet) (exists bool, err error) {
 	return
 }
 
-// ComCreateUser process create new user request, return new user_id and
-// access_tocken.
+// ComCheckAccess process check users access token request, return user_id and
+// access_tocken (the same as create user return)
 //
-// Input data: prefix (with or without id)
+//  Input data: prefix (with or without id).
 //
 // Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}.
 //
 // Use UserNew.UnmarshalBinary to decode binary buffer into UserNew.
-func (p *Process) ComCreateUser(pac *teonet.Packet) (u *UserResponce, err error) {
+func (p *Process) ComCheckAccess(pac TeoPacket) (res *UserResponce, err error) {
+	// Parse intput data
+	req := UserRequest{}
+	if err = req.UnmarshalText(pac.Data()); err != nil {
+		return
+	}
+	// Check if user exists, get from database by AccessToken
+	res = &UserResponce{AccessToken: req.ID}
+	err = p.getAccess(res)
+	if err != nil {
+		//err = ErrUserDoesNotExists
+		return
+	}
+	// Send answer to teonet
+	d, err := res.MarshalBinary()
+	if err != nil {
+		return
+	}
+	_, err = p.SendAnswer(pac, pac.Cmd(), d)
+	return
+}
+
+// ComCreateUser process create new user request, return new user_id and
+// access_tocken.
+//
+// Input data: prefix (with or without id).
+//
+// Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}.
+//
+// Use UserNew.UnmarshalBinary to decode binary buffer into UserNew.
+func (p *Process) ComCreateUser(pac TeoPacket) (u *UserResponce, err error) {
 	// Parse intput data
 	req := UserRequest{}
 	if err := req.UnmarshalText(pac.Data()); err != nil {
@@ -102,6 +137,7 @@ func (p *Process) ComCreateUser(pac *teonet.Packet) (u *UserResponce, err error)
 		LastOnline:  time.Now(),
 		Prefix:      req.Prefix,
 	}
+	fmt.Println(user)
 	// Set user data to database
 	err = p.set(user)
 	if err != nil {
