@@ -16,6 +16,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/table"
 )
 
@@ -114,6 +115,26 @@ func (d *db) set(u interface{}, columns ...string) (err error) {
 // to get, it may be ommited and than all columns returns.
 func (d *db) get(u interface{}, columns ...string) (err error) {
 	stmt, names := d.usersTable.Get(columns...)
+	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
+	fmt.Println(q.String())
+	return q.GetRelease(u)
+}
+
+// getAccess returns select by access_token
+func (d *db) getAccess(u interface{}, columns ...string) (err error) {
+	stmt, names := qb.Select(d.usersTable.Name()).
+		Columns(
+			d.usersTable.Metadata().Columns[0], // UserID
+			d.usersTable.Metadata().Columns[1], // AccessToken
+			d.usersTable.Metadata().Columns[2], // Prefix
+		).
+		Where(
+			// Find by AccessToken
+			qb.Eq(d.usersTable.Metadata().Columns[1]),
+		).
+		AllowFiltering().
+		ToCql()
+
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
 	fmt.Println(q.String())
 	return q.GetRelease(u)
