@@ -113,8 +113,11 @@ func (teo *Teonet) waitFromNew() (wcom *waitCommand) {
 type checkDataFunc func([]byte) bool
 
 // WaitFrom wait receiving data from peer. The third function parameter is
-// timeout. It may be omitted or contain timeout time of time.Duration type.
+// timeout. It may be omitted or contain timeout time of time. Duration type.
 // If timeout parameter is omitted than default timeout value sets to 2 second.
+// Next parameter is checkDataFunc func([]byte) bool. This function calls to
+// check packet data and returns true if packet data valid. This parameter may 
+// be ommited too.
 func (teo *Teonet) WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
 	Data []byte
 	Err  error
