@@ -21,40 +21,38 @@ var (
 	ErrConfigCdbDoesNotExists = errors.New("config does not exists")
 )
 
-// Value is an conf interface
-type Value interface {
-	Key() string         // return teocdb configuration key
-	Dir() string         // return configuration files folder
-	Struct() interface{} // return struct value
-	Default() []byte     // return default value in json
-	FileName() string    // return configuration files name
+// Config is an config interface
+type Config interface {
+	teoconf.Config
+	// Key return teocdb configuration key
+	Key() string
 }
 
 // Teoconf is an conf receiver
 type Teoconf struct {
-	Value
+	Config
 	fconf *teoconf.Teoconf
 	con   teocdbcli.TeoConnector
 }
 
 // New create and initialize teonet config
-func New(con teocdbcli.TeoConnector, val Value) (c *Teoconf) {
-	c = &Teoconf{Value: val, con: con}
+func New(con teocdbcli.TeoConnector, val Config) (c *Teoconf) {
+	c = &Teoconf{Config: val, con: con}
 	c.fconf = teoconf.New(val)
 	c.ReadBoth()
-	fmt.Println("config name:", c.Value.FileName())
+	fmt.Println("config name:", c.Config.FileName())
 	return
 }
 
 // setDefault sets default values from json string
 func (c *Teoconf) setDefault() (err error) {
-	data := c.Value.Default()
+	data := c.Config.Default()
 	if data == nil {
 		return
 	}
 	// Unmarshal json to the value structure
-	if err = json.Unmarshal(data, c.Value); err == nil {
-		fmt.Printf("set default config value: %v\n", c.Value)
+	if err = json.Unmarshal(data, c.Config); err == nil {
+		fmt.Printf("set default config value: %v\n", c.Config)
 	}
 	return
 }
@@ -90,7 +88,7 @@ func (c *Teoconf) ReadBoth() (err error) {
 
 // fileName returns file name.
 func (c *Teoconf) fileName() string {
-	return c.Value.Dir() + c.Value.FileName() + ".json"
+	return c.Config.Dir() + c.Config.FileName() + ".json"
 }
 
 // ReadCdb read l0 parameters from config in teo-cdb.
@@ -100,7 +98,7 @@ func (c *Teoconf) ReadCdb() (err error) {
 	cdb := teocdbcli.New(c.con)
 
 	// Get config from teo-cdb
-	data, err := cdb.Send(teocdbcli.CmdGet, c.Value.Key())
+	data, err := cdb.Send(teocdbcli.CmdGet, c.Config.Key())
 	if err != nil {
 		return
 	} else if data == nil || len(data) == 0 {
@@ -109,12 +107,12 @@ func (c *Teoconf) ReadCdb() (err error) {
 	}
 
 	fmt.Printf("config %s was read from teo-cdb: %s\n",
-		c.Value.Key(), string(data))
+		c.Config.Key(), string(data))
 	// Unmarshal json to the parameters structure
-	if err = json.Unmarshal(data, c.Value); err != nil {
+	if err = json.Unmarshal(data, c.Config); err != nil {
 		return
 	}
-	fmt.Println("config was read from teo-cdb: ", c.Value)
+	fmt.Println("config was read from teo-cdb: ", c.Config)
 	return
 }
 
@@ -125,15 +123,15 @@ func (c *Teoconf) WriteCdb() (err error) {
 	cdb := teocdbcli.New(c.con)
 
 	// Marshal json from the parameters structure
-	data, err := json.Marshal(c.Value)
+	data, err := json.Marshal(c.Config)
 	if err != nil {
 		return
 	}
 
 	// Send config to teo-cdb
-	if _, err = cdb.Send(teocdbcli.CmdSet, c.Value.Key(), data); err != nil {
+	if _, err = cdb.Send(teocdbcli.CmdSet, c.Config.Key(), data); err != nil {
 		return
 	}
-	fmt.Println("config was write to teo-cdb: ", c.Value)
+	fmt.Println("config was write to teo-cdb: ", c.Config)
 	return
 }

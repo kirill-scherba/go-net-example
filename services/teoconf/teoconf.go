@@ -11,44 +11,53 @@ import (
 	"os"
 )
 
-// Value is an conf interface
-type Value interface {
-	Dir() string         // return configuration files folder
-	Struct() interface{} // return struct value
-	Default() []byte     // return default value in json
-	FileName() string    // return configuration files name
+// Config is an configration data interface
+type Config interface {
+	// Dir return configuration files folder
+	Dir() string
+
+	// Struct return pointer to input interface
+	Struct() interface{}
+
+	// Default return default value in json string or directly set default
+	// values inside Struct with data
+	Default() []byte
+
+	// Return configuration files name or(and) key name when this packet used
+	// inside teocdbcli/conf packet
+	FileName() string
 }
 
 // Teoconf is an conf receiver
 type Teoconf struct {
-	Value
+	Config
 }
 
 // New create and initialize teonet config
-func New(val Value) (c *Teoconf) {
-	c = &Teoconf{Value: val}
+func New(val Config) (c *Teoconf) {
+	c = &Teoconf{val}
 	c.setDefault()
 	c.Read()
-	fmt.Println("config name:", c.Value.FileName())
+	fmt.Println("config name:", c.Config.FileName())
 	return
 }
 
 // setDefault sets default values from json string
 func (c *Teoconf) setDefault() (err error) {
-	data := c.Value.Default()
+	data := c.Config.Default()
 	if data == nil {
 		return
 	}
 	// Unmarshal json to the value structure
-	if err = json.Unmarshal(data, c.Value); err == nil {
-		fmt.Printf("set default config value: %v\n", c.Value)
+	if err = json.Unmarshal(data, c.Config); err == nil {
+		fmt.Printf("set default config value: %v\n", c.Config)
 	}
 	return
 }
 
 // fileName returns file name.
 func (c *Teoconf) fileName() string {
-	return c.Value.Dir() + c.Value.FileName() + ".json"
+	return c.Config.Dir() + c.Config.FileName() + ".json"
 }
 
 // Read reads parameters from config file and replace current
@@ -67,9 +76,9 @@ func (c *Teoconf) Read() (err error) {
 		return
 	}
 	// Unmarshal json to the parameters structure
-	if err = json.Unmarshal(data, c.Value); err == nil {
+	if err = json.Unmarshal(data, c.Config); err == nil {
 		fmt.Printf("config was read from file %s, value: %v\n",
-			c.fileName(), c.Value)
+			c.fileName(), c.Config)
 	}
 	return
 }
@@ -81,7 +90,7 @@ func (c *Teoconf) Write() (err error) {
 		return
 	}
 	// Marshal json from the parameters structure
-	data, err := json.Marshal(c.Value)
+	data, err := json.Marshal(c.Config)
 	if err != nil {
 		return
 	}
@@ -89,6 +98,6 @@ func (c *Teoconf) Write() (err error) {
 		return
 	}
 	fmt.Printf("config was write to file %s, value: %v\n", c.fileName(),
-		c.Value)
+		c.Config)
 	return
 }
