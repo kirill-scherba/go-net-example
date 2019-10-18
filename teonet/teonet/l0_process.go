@@ -84,20 +84,34 @@ func (l0 *l0Conn) process() {
 				// First message from client should contain login command. Loging
 				// command parameters: cmd = 0 and name = "" and data = 'client name'.
 				// When we got valid data in l0 login we add clien to cliens map and all
-				// next commands form this clients resend to peers with this name (name
+				// next commands form this client resends to peers with this name (name
 				// from login command data)
 				if d := p.Data(); p.Command() == 0 && p.Name() == "" {
 					pac.client.name = string(d[:len(d)-1])
 					l0.stat.receive(pac.client, d)
 					l0.add(pac.client)
 
-					// Send to users registrar
+					// Send to users registrar.
 					// Check l0 config and find valid prefixes and if prefix
-					// find than send login command to users registrar service
+					// find than send login command to users registrar service.
+					// Users registrar return answer [1] if login valid and user
+					// my continue or data structure:
+					// UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}
 					prefix := l0.param.Struct().(*param).Prefix
 					for _, p := range prefix {
 						if strings.HasPrefix(pac.client.name, p) {
-							l0.sendToRegistrar([]byte(pac.client.name))
+							go func() {
+								_, err := l0.sendToRegistrar([]byte(pac.client.name))
+								if err != nil {
+									// TODO: disconnect this client?
+									// send to registrar error: %s
+									return
+								}
+								// TODO: send answer to client and set valid client id
+								// to it name with `l0.rename`.
+								// It alread set inside sendToRegistrar...
+								// Move that code here?
+							}()
 							continue packetGet
 						}
 					}
