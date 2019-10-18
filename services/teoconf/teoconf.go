@@ -37,8 +37,10 @@ type Teoconf struct {
 func New(val Config) (c *Teoconf) {
 	c = &Teoconf{val}
 	c.setDefault()
-	c.Read()
-	fmt.Println("config name:", c.Config.FileName())
+	err := c.Read()
+	if err != nil {
+		fmt.Printf("config name: %s (err: %s) \n", c.Config.FileName(), err.Error())
+	}
 	return
 }
 

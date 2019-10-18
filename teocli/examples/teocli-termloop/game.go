@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	tl "github.com/JoelOtter/termloop"
+	"github.com/kirill-scherba/teonet-go/services/teoconf"
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 )
 
@@ -19,6 +20,7 @@ type Teogame struct {
 	peer   string                 // Teonet room controller peer name
 	com    *outputCommands        // Teonet output commands receiver
 	rra    *roomRequestAnswerData // Room request answer data
+	conf   *teoconf.Teoconf       // Application config
 }
 
 // Game levels
