@@ -113,22 +113,23 @@ func main() {
 
 		// # 133: Check and register user
 		case cdb.CheckUser:
-			// Check user
-			ok, err := usr.Process.ComCheckUser(pac)
-			if err != nil {
-				fmt.Printf("ComCheckUser Error: %s\n", err.Error())
-			}
-			if ok {
-				fmt.Printf("User Validated: %s\n", string(pac.Data()))
+			// Check access token
+			res, err := usr.Process.ComCheckAccess(pac)
+			if err == nil {
+				fmt.Printf("User Validated: %s, %s, %s\n\n",
+					res.ID, res.AccessToken, res.Prefix)
 				break
 			}
+			//fmt.Println(res)
+
 			// Create user
-			res, err := usr.Process.ComCreateUser(pac)
+			res, err = usr.Process.ComCreateUser(pac)
 			if err != nil {
 				fmt.Printf("ComCreateUser Error: %s\n", err.Error())
 				break
 			}
-			fmt.Printf("User Created: %s\n", res.ID)
+			fmt.Printf("User Created: %s, %s, %s\n\n",
+				res.ID, res.AccessToken, res.Prefix)
 		}
 	}
 
