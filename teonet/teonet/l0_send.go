@@ -10,7 +10,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"time"
 
+	"github.com/kirill-scherba/teonet-go/services/teousers"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
@@ -91,18 +93,53 @@ func (l0 *l0Conn) sendTo(from string, toClient string, cmd byte, data []byte) (l
 		return
 	}
 
-	teolog.DebugVf(MODULE, "send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
+	teolog.DebugVf(MODULE,
+		"send cmd: %d, %d bytes data packet, to %s l0 client: %s\n",
 		cmd, len(data), l0.network(client), client.name)
 
 	l0.stat.send(client, packet)
 	return client.conn.Write(packet)
 }
 
-// sendToRegistrar sends login commands to users registrar
-func (l0 *l0Conn) sendToRegistrar(d []byte) (length int, err error) {
+// sendToRegistrar sends login commands to users registrar got answer and send
+// answer to client
+func (l0 *l0Conn) sendToRegistrar(d []byte) (data []byte, err error) {
 	teoCDB := "teo-cdb"
-	teolog.Debugf(MODULE, "login command, send to users registrar (teo-cdb): %s, data: %v\n", teoCDB, d)
-	l0.teo.SendTo(teoCDB /* teocdbcli.CheckUser */, 133, d)
+	CmdAuth := byte(133)
+	teolog.Debugf(MODULE,
+		"login command, send to users registrar (teo-cdb): %s, data: %v\n",
+		teoCDB, d)
+	l0.teo.SendTo(teoCDB, CmdAuth, d)
+	r := <-l0.teo.WaitFrom(teoCDB, CmdAuth, 1*time.Second)
+	if r.Err != nil {
+		err = r.Err
+		teolog.Errorf(MODULE,
+			"does not receive answer from users registrar (teo-cdb): %s\n",
+			teoCDB)
+		return
+	}
+	data = r.Data
+	teolog.Debugf(MODULE,
+		"got answer from users registrar (teo-cdb): %s, %v\n",
+		teoCDB, r.Data)
+
+	// Check answer
+	res := &teousers.UserResponce{}
+	err = res.UnmarshalBinary(data)
+	if err != nil {
+		// can't create new user
+		return
+	}
+	fmt.Printf("\nresult: %v\n", res)
+
+	// Set client name in system
+	client := res.Prefix + "-" + res.ID.String()
+	cookies := res.Prefix + "-" + res.AccessToken.String()
+	l0.rename(string(d), client)
+
+	// Send command to client
+	l0.sendTo("", client, 129, []byte(cookies))
+
 	return
 }
 
