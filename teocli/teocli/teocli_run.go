@@ -68,10 +68,12 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 				}
 			}
 		}
+
 		// Stop running if game over
 		if !startCommand.Running() {
 			break
 		}
+		
 		// Disconnect
 		teo.Disconnect()
 		time.Sleep(timeout)
