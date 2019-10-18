@@ -19,6 +19,7 @@ func init() {
 }
 
 // Input command receivers
+type authAnswerCommand struct{}
 type echoAnswerCommand struct{}
 type peerAnswerCommand struct{}
 type roomRequestAnswerCommand struct{ tg *Teogame }
@@ -29,6 +30,7 @@ type clientDisconnecCommand struct{ tg *Teogame }
 // inputCommands combine input commands to slice (to use in teocli.Run() function)
 func inputCommands(tg *Teogame) (com []teocli.Command) {
 	com = append(com,
+		authAnswerCommand{},
 		echoAnswerCommand{},
 		peerAnswerCommand{},
 		roomRequestAnswerCommand{tg},
@@ -37,6 +39,18 @@ func inputCommands(tg *Teogame) (com []teocli.Command) {
 		clientDisconnecCommand{tg},
 	)
 	return
+}
+
+// Auth answer command methods
+func (p authAnswerCommand) Cmd() byte { return 129 }
+func (p authAnswerCommand) Command(packet *teocli.Packet) bool {
+	if packet.From() != "" {
+		return false
+	}
+	// fmt.Printf("got auth command answer from: '%s', data: %s\n", packet.From(),
+	// 	string(packet.Data()))
+	// TODO: Login sucessfully.Start game and save received cookies
+	return true
 }
 
 // Echo answer command methods
