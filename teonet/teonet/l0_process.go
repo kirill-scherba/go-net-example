@@ -97,7 +97,7 @@ func (l0 *l0Conn) process() {
 					// Users registrar return answer [1] if login valid and user
 					// my continue or data structure:
 					// UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}
-					prefix := l0.param.Struct().(*param).Prefix
+					prefix := l0.param.Value().(*param).Prefix
 					for _, p := range prefix {
 						if strings.HasPrefix(pac.client.name, p) {
 							go func() {

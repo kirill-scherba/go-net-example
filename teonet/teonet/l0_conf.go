@@ -46,7 +46,7 @@ func (p *paramConf) eventProcess(ev *EventData) {
 		if err := p.ReadBoth(); err != nil {
 			fmt.Printf("Error: %s\n", err)
 		}
-		var v = p.Struct().(*param)
+		var v = p.Value().(*param)
 		fmt.Printf("Descr: %s\n", v.Descr)
 	}
 }
@@ -57,7 +57,7 @@ func (p *param) Default() []byte {
 }
 
 // Struct real value as interfaxe
-func (p *param) Struct() interface{} {
+func (p *param) Value() interface{} {
 	return p
 }
 
@@ -67,11 +67,11 @@ func (p *param) Dir() string {
 }
 
 // Name return configuration file name.
-func (p *param) FileName() string {
+func (p *param) Name() string {
 	return "l0"
 }
 
 // Key return configuration key.
 func (p *param) Key() string {
-	return "conf.network." + p.FileName()
+	return "conf.network." + p.Name()
 }
