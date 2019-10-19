@@ -1,11 +1,16 @@
 package main
 
-import tl "github.com/JoelOtter/termloop"
+import (
+	"time"
+
+	tl "github.com/JoelOtter/termloop"
+)
 
 // GameMenu is text entries collection
 type GameMenu struct {
-	t  []*tl.Text
-	tg *Teogame
+	t       []*tl.Text
+	tg      *Teogame
+	started bool
 }
 
 // newGameMenu create GameOverText object
@@ -19,7 +24,7 @@ func (tg *Teogame) newGameMenu(level *tl.BaseLevel, txt string) (menu *GameMenu)
 		tl.NewText(0, 0, "   ----------------   ", tl.ColorDefault, tl.ColorBlack),
 		tl.NewText(0, 0, " press Ctrl+C to quit ", tl.ColorDefault, tl.ColorBlack),
 	)
-	menu = &GameMenu{textAr, tg}
+	menu = &GameMenu{textAr, tg, false}
 	level.AddEntity(menu)
 	return
 }
@@ -53,5 +58,14 @@ func (menu *GameMenu) Tick(event tl.Event) {
 		case 'g':
 			menu.tg.com.start.Command(menu.tg.teo, nil)
 		}
+	}
+
+	if !menu.started && !menu.tg.hero.bot {
+		menu.started = true
+		go func() {
+			time.Sleep(1 * time.Second)
+			menu.tg.com.start.Command(menu.tg.teo, nil)
+			menu.started = false
+		}()
 	}
 }

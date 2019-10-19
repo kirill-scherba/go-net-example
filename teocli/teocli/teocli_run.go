@@ -44,7 +44,7 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 		}
 
 		// Send Teonet L0 login (requered after connect)
-		fmt.Printf("send login\n")
+		fmt.Printf("send login: '%s'\n", name)
 		if _, err := teo.SendLogin(name); err != nil {
 			panic(err)
 		}
@@ -73,7 +73,7 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 		if !startCommand.Running() {
 			break
 		}
-		
+
 		// Disconnect
 		teo.Disconnect()
 		time.Sleep(timeout)

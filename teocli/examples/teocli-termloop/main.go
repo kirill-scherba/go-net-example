@@ -65,8 +65,9 @@ func main() {
 	var peer string  // room controller peer name
 	var raddr string // l0 server address
 	var rport int    // l0 server port
-	var timeout int  // reconnect timeout (in seconds)
 	var tcp bool     // connect by TCP flag
+	var timeout int  // reconnect timeout (in seconds)
+	var bot bool     // auto play (bot mode)
 
 	// Flags
 	flag.StringVar(&name, "n", "g001-1", "this application name")
@@ -75,18 +76,24 @@ func main() {
 	flag.IntVar(&rport, "r", 9010, "l0 server port (to connect to l0 server)")
 	flag.BoolVar(&tcp, "tcp", false, "connect by TCP")
 	flag.IntVar(&timeout, "t", 5, "reconnect after timeout (in second)")
+	flag.BoolVar(&bot, "auto", false, "auto play (bot mode)")
 	flag.Parse()
 
+	fmt.Printf("name: '%s'\n", name)
+
 	// Init and read config with login cookies
-	conf, param = newConfig(name)
+	if conf, param = newConfig(name); param.Cookies != "" {
+		name = param.Cookies
+	}
 
 	// Run teonet game (connect to teonet, start game and process received commands)
-	run(param.Cookies, peer, raddr, rport, tcp, time.Duration(timeout)*time.Second)
+	run(name, peer, raddr, rport, tcp, time.Duration(timeout)*time.Second, bot)
 }
 
 // Run connect to teonet, start game and process received commands
-func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration) (tg *Teogame) {
+func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration, bot bool) (tg *Teogame) {
 	tg = &Teogame{peer: peer, player: make(map[byte]*Player), conf: conf, param: param}
+	fmt.Printf("name: '%s'\n", name)
 	teocli.Run(name, raddr, rport, tcp, timeout, startCommand(tg), inputCommands(tg)...)
 	return
 }

@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"math/rand"
 
 	tl "github.com/JoelOtter/termloop"
 )
 
-// Player stucture of player
+// Player data stucture
 type Player struct {
 	*tl.Entity
 	prevX int
@@ -18,12 +19,20 @@ type Player struct {
 
 // Hero struct of hero
 type Hero struct {
-	Player
+	Player       // Player data
+	BotMode      // Bot strategy
+	bot     bool // Bot mode enable
+}
+
+// BotMode is bot strategy
+type BotMode struct {
+	xDirection int
+	yDirection int
 }
 
 // addHero add Hero to game
 func (tg *Teogame) addHero(level *tl.BaseLevel, x, y int) (hero *Hero) {
-	hero = &Hero{Player{
+	hero = &Hero{Player: Player{
 		Entity: tl.NewEntity(1, 1, 1, 1),
 		level:  level,
 		tg:     tg,
@@ -61,31 +70,92 @@ func (tg *Teogame) addPlayer(level *tl.BaseLevel, id byte) (player *Player) {
 // }
 
 // Tick frame tick
-func (player *Hero) Tick(event tl.Event) {
-	if player.tg.state.State() == Running && event.Type == tl.EventKey {
-		player.prevX, player.prevY = player.Position()
+func (hero *Hero) Tick(event tl.Event) {
+	if hero.tg.state.State() == Running && (event.Type == tl.EventKey || !hero.bot) {
+
+		// Get current position
+		hero.prevX, hero.prevY = hero.Position()
 
 		// Save previouse position and set to new position
 		switch event.Key { // If so, switch on the pressed key.
 		case tl.KeyArrowRight:
-			player.SetPosition(player.prevX+1, player.prevY)
+			hero.SetPosition(hero.prevX+1, hero.prevY)
 		case tl.KeyArrowLeft:
-			player.SetPosition(player.prevX-1, player.prevY)
+			hero.SetPosition(hero.prevX-1, hero.prevY)
 		case tl.KeyArrowUp:
-			player.SetPosition(player.prevX, player.prevY-1)
+			hero.SetPosition(hero.prevX, hero.prevY-1)
 		case tl.KeyArrowDown:
-			player.SetPosition(player.prevX, player.prevY+1)
+			hero.SetPosition(hero.prevX, hero.prevY+1)
 		}
 
-		// Check position changed and send to Teonet if so
-		x, y := player.Position()
-		if x != player.prevX || y != player.prevY {
-			_, err := player.tg.com.sendData(player)
+		// Set new position in bot mode
+		if !hero.bot {
+
+			const (
+				MaxX            = 50
+				MaxY            = 50
+				ChangeDirection = 5
+			)
+
+			if hero.BotMode.xDirection == 0 && hero.BotMode.yDirection == 0 {
+				hero.BotMode.xDirection = rand.Intn(2) - 1
+				hero.BotMode.yDirection = rand.Intn(2) - 1
+			}
+
+			hero.SetPosition(hero.prevX+hero.BotMode.xDirection, hero.prevY+hero.BotMode.yDirection)
+
+			if hero.BotMode.xDirection != 0 {
+				switch {
+
+				case hero.prevX > MaxX:
+					hero.BotMode.xDirection = -1
+
+				case hero.prevX <= 1:
+					hero.BotMode.xDirection = 1
+
+				default:
+					if rand.Intn(99) < ChangeDirection {
+						hero.BotMode.xDirection = rand.Intn(2) - 1
+					}
+				}
+			}
+
+			if hero.BotMode.yDirection != 0 {
+				switch {
+
+				case hero.prevY > MaxY:
+					hero.BotMode.yDirection = -1
+
+				case hero.prevY <= 1:
+					hero.BotMode.yDirection = 1
+
+				default:
+					if rand.Intn(99) < ChangeDirection {
+						hero.BotMode.yDirection = rand.Intn(2) - 1
+					}
+				}
+			}
+		}
+
+		// Check position changed and send it to Teonet if so
+		x, y := hero.Position()
+		if x != hero.prevX || y != hero.prevY {
+			_, err := hero.tg.com.sendData(hero)
 			if err != nil {
 				panic(err)
 			}
 		}
 	}
+}
+
+// AutoPlay get auto play mode
+func (hero *Hero) AutoPlay() bool {
+	return hero.bot
+}
+
+// SetAutoPlay set auto play mode on-off
+func (hero *Hero) SetAutoPlay(bot bool) {
+	hero.bot = bot
 }
 
 // Collide check colliding
