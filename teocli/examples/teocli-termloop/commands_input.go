@@ -50,7 +50,7 @@ func (p authAnswerCommand) Command(packet *teocli.Packet) bool {
 	// fmt.Printf("got auth command answer from: '%s', data: %s\n", packet.From(),
 	// 	string(packet.Data()))
 	// TODO: Login sucessfully.Start game and save received cookies
-	p.tg.conf.Struct().(*Config).Cookies = string(packet.Data())
+	p.tg.param.Cookies = string(packet.Data())
 	p.tg.conf.Write()
 	return true
 }

@@ -21,6 +21,7 @@ type Teogame struct {
 	com    *outputCommands        // Teonet output commands receiver
 	rra    *roomRequestAnswerData // Room request answer data
 	conf   *teoconf.Teoconf       // Application config
+	param  *Parameters            // Aplication parameters
 }
 
 // Game levels

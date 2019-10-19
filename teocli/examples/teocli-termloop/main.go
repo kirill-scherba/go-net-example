@@ -86,7 +86,7 @@ func main() {
 
 // Run connect to teonet, start game and process received commands
 func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration) (tg *Teogame) {
-	tg = &Teogame{peer: peer, player: make(map[byte]*Player), conf: conf}
+	tg = &Teogame{peer: peer, player: make(map[byte]*Player), conf: conf, param: param}
 	teocli.Run(name, raddr, rport, tcp, timeout, startCommand(tg), inputCommands(tg)...)
 	return
 }
