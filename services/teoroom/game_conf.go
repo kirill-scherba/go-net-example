@@ -31,15 +31,16 @@ type GameParameters struct {
 	WaitForMaxClients int    `json:"wait_for_max_clients,omitempty"` // Wait for maximum clients connected after minimum clients connected
 }
 
-type paramConf struct {
-	*conf.Teoconf
+//ConfHolder is configuration methods holder
+type ConfHolder struct {
+	*GameParameters
 }
 
 // newGameParameters create new GameParameters, sets default parameters and read
 // parameters from config file
-func (r *Room) newGameParameters(name string) (p *paramConf) {
+func (r *Room) newGameParameters(name string) (p *conf.Teoconf) {
 
-	gp := &GameParameters{
+	r.gparam = &GameParameters{
 		Name:              name,
 		GameTime:          gameTime,
 		GameClosedAfter:   gameClosedAfter,
@@ -49,33 +50,31 @@ func (r *Room) newGameParameters(name string) (p *paramConf) {
 		WaitForMaxClients: waitForMaxClients,
 	}
 
-	p = &paramConf{conf.New(r.tr.teo, gp)}
-
-	r.gparam = gp
+	p = conf.New(r.tr.teo, &ConfHolder{GameParameters: r.gparam})
 	return
 }
 
 // Default return default value in json format.
-func (gp *GameParameters) Default() []byte {
+func (c *ConfHolder) Default() []byte {
 	return nil
 }
 
-// Struct real value as interfaxe
-func (gp *GameParameters) Struct() interface{} {
-	return gp
+// Value real value as interfaxe
+func (c *ConfHolder) Value() interface{} {
+	return c.GameParameters
 }
 
 // Dir return configuration file folder.
-func (gp *GameParameters) Dir() string {
+func (c *ConfHolder) Dir() string {
 	return os.Getenv("HOME") + "/.config/teonet/teoroom/"
 }
 
-// FileName return configuration file name.
-func (gp *GameParameters) FileName() string {
-	return gp.Name
+// Name return configuration file name.
+func (c *ConfHolder) Name() string {
+	return c.GameParameters.Name
 }
 
 // Key return configuration key.
-func (gp *GameParameters) Key() string {
-	return "conf.game." + gp.FileName()
+func (c *ConfHolder) Key() string {
+	return "conf.game." + c.Name()
 }
