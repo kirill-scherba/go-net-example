@@ -19,8 +19,8 @@ type Config struct {
 
 // NewConfig initialize config
 func newConfig(name string) (*teoconf.Teoconf, *Parameters) {
-	conf := &Config{configName: name}
-	return teoconf.New(conf), &conf.Parameters
+	config := &Config{configName: name}
+	return teoconf.New(config), &config.Parameters
 }
 
 // Default set config default values
