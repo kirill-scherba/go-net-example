@@ -50,7 +50,10 @@ import (
 // Version this teonet application version
 const Version = "0.0.1"
 
-var conf = teoconf.New(&Config{})
+var (
+	conf  *teoconf.Teoconf
+	param *Parameters
+)
 
 // main parse aplication parameters and connect to Teonet. When teonet connected
 // the game started
@@ -66,7 +69,7 @@ func main() {
 	var tcp bool     // connect by TCP flag
 
 	// Flags
-	flag.StringVar(&name, "n", conf.Struct().(*Config).Cookies /* "teocli-go-main-test-01" */, "this application name")
+	flag.StringVar(&name, "n", "g001-1", "this application name")
 	flag.StringVar(&peer, "peer", "teo-room", "teo-room peer name (to send commands to)")
 	flag.StringVar(&raddr, "a", "localhost", "remote host address (to connect to remote host)")
 	flag.IntVar(&rport, "r", 9010, "l0 server port (to connect to l0 server)")
@@ -74,8 +77,11 @@ func main() {
 	flag.IntVar(&timeout, "t", 5, "reconnect after timeout (in second)")
 	flag.Parse()
 
+	// Init and read config with login cookies
+	conf, param = newConfig(name)
+
 	// Run teonet game (connect to teonet, start game and process received commands)
-	run(name, peer, raddr, rport, tcp, time.Duration(timeout)*time.Second)
+	run(param.Cookies, peer, raddr, rport, tcp, time.Duration(timeout)*time.Second)
 }
 
 // Run connect to teonet, start game and process received commands
