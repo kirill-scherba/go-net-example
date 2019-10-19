@@ -40,19 +40,19 @@ func New(con teocdbcli.TeoConnector, val Config) (c *Teoconf) {
 	c = &Teoconf{Config: val, con: con}
 	c.fconf = teoconf.New(val)
 	c.ReadBoth()
-	fmt.Println("config name:", c.Config.FileName())
+	fmt.Println("config name:", c.Name())
 	return
 }
 
 // setDefault sets default values from json string
 func (c *Teoconf) setDefault() (err error) {
-	data := c.Config.Default()
+	data := c.Default()
 	if data == nil {
 		return
 	}
 	// Unmarshal json to the value structure
-	if err = json.Unmarshal(data, c.Config); err == nil {
-		fmt.Printf("set default config value: %v\n", c.Config)
+	if err = json.Unmarshal(data, c.Value()); err == nil {
+		fmt.Printf("set default config value: %v\n", c.Value())
 	}
 	return
 }
@@ -86,11 +86,6 @@ func (c *Teoconf) ReadBoth() (err error) {
 	return
 }
 
-// fileName returns file name.
-func (c *Teoconf) fileName() string {
-	return c.Config.Dir() + c.Config.FileName() + ".json"
-}
-
 // ReadCdb read l0 parameters from config in teo-cdb.
 func (c *Teoconf) ReadCdb() (err error) {
 
@@ -98,7 +93,7 @@ func (c *Teoconf) ReadCdb() (err error) {
 	cdb := teocdbcli.New(c.con)
 
 	// Get config from teo-cdb
-	data, err := cdb.Send(teocdbcli.CmdGet, c.Config.Key())
+	data, err := cdb.Send(teocdbcli.CmdGet, c.Key())
 	if err != nil {
 		return
 	} else if data == nil || len(data) == 0 {
@@ -107,12 +102,12 @@ func (c *Teoconf) ReadCdb() (err error) {
 	}
 
 	fmt.Printf("config %s was read from teo-cdb: %s\n",
-		c.Config.Key(), string(data))
+		c.Key(), string(data))
 	// Unmarshal json to the parameters structure
-	if err = json.Unmarshal(data, c.Config); err != nil {
+	if err = json.Unmarshal(data, c.Value()); err != nil {
 		return
 	}
-	fmt.Println("config was read from teo-cdb: ", c.Config)
+	fmt.Println("config was read from teo-cdb: ", c.Value())
 	return
 }
 
@@ -123,15 +118,15 @@ func (c *Teoconf) WriteCdb() (err error) {
 	cdb := teocdbcli.New(c.con)
 
 	// Marshal json from the parameters structure
-	data, err := json.Marshal(c.Config)
+	data, err := json.Marshal(c.Value())
 	if err != nil {
 		return
 	}
 
 	// Send config to teo-cdb
-	if _, err = cdb.Send(teocdbcli.CmdSet, c.Config.Key(), data); err != nil {
+	if _, err = cdb.Send(teocdbcli.CmdSet, c.Key(), data); err != nil {
 		return
 	}
-	fmt.Println("config was write to teo-cdb: ", c.Config)
+	fmt.Println("config was write to teo-cdb: ", c.Value())
 	return
 }
