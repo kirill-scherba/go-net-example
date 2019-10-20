@@ -7,14 +7,12 @@
 package teousers
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
-	"unsafe"
 
 	"github.com/gocql/gocql"
+	cli "github.com/kirill-scherba/teonet-go/services/teouserscli"
 )
 
 var (
@@ -57,7 +55,7 @@ func (p *Process) ComCheckUser(pac TeoPacket) (exists bool, err error) {
 	userID, err := gocql.UUIDFromBytes(pac.Data())
 	if err != nil {
 		// expected: user_prefix + user_id string
-		req := UserRequest{}
+		req := cli.UserRequest{}
 		err = req.UnmarshalText(pac.Data())
 		if err != nil {
 			return
@@ -86,14 +84,14 @@ func (p *Process) ComCheckUser(pac TeoPacket) (exists bool, err error) {
 // Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}.
 //
 // Use UserNew.UnmarshalBinary to decode binary buffer into UserNew.
-func (p *Process) ComCheckAccess(pac TeoPacket) (res *UserResponce, err error) {
+func (p *Process) ComCheckAccess(pac TeoPacket) (res *cli.UserResponce, err error) {
 	// Parse intput data
-	req := UserRequest{}
+	req := cli.UserRequest{}
 	if err = req.UnmarshalText(pac.Data()); err != nil {
 		return
 	}
 	// Check if user exists, get from database by AccessToken
-	res = &UserResponce{AccessToken: req.ID}
+	res = &cli.UserResponce{AccessToken: req.ID}
 	err = p.getAccess(res)
 	if err != nil {
 		//err = ErrUserDoesNotExists
@@ -116,9 +114,9 @@ func (p *Process) ComCheckAccess(pac TeoPacket) (res *UserResponce, err error) {
 // Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}.
 //
 // Use UserNew.UnmarshalBinary to decode binary buffer into UserNew.
-func (p *Process) ComCreateUser(pac TeoPacket) (u *UserResponce, err error) {
+func (p *Process) ComCreateUser(pac TeoPacket) (u *cli.UserResponce, err error) {
 	// Parse intput data
-	req := UserRequest{}
+	req := cli.UserRequest{}
 	if err := req.UnmarshalText(pac.Data()); err != nil {
 		// if there is wrong or empty id in request than create new one and
 		// ignore this error
@@ -144,85 +142,11 @@ func (p *Process) ComCreateUser(pac TeoPacket) (u *UserResponce, err error) {
 		return
 	}
 	// Send answer to teonet
-	u = &UserResponce{user.ID, user.AccessToken, user.Prefix}
+	u = &cli.UserResponce{user.ID, user.AccessToken, user.Prefix}
 	d, err := u.MarshalBinary()
 	if err != nil {
 		return
 	}
 	_, err = p.SendAnswer(pac, pac.Cmd(), d)
-	return
-}
-
-// UserRequest is data structure received by ComCheckUser and ComCreateUser
-// functions.
-type UserRequest struct {
-	Prefix string
-	ID     gocql.UUID
-}
-
-// MarshalText encodes UserRequest data into text buffer.
-func (u *UserRequest) MarshalText() (data []byte, err error) {
-	buf := new(bytes.Buffer)
-	le := binary.LittleEndian
-	binary.Write(buf, le, []byte(u.Prefix))
-	binary.Write(buf, le, []byte{'-'})
-	binary.Write(buf, le, []byte(u.ID.String()))
-	data = buf.Bytes()
-	return
-}
-
-// UnmarshalText decode text buffer into UserRequest receiver data.
-func (u *UserRequest) UnmarshalText(data []byte) (err error) {
-
-	pre := bytes.SplitN(data, []byte{'-'}, 2)
-	l := len(pre)
-
-	if l == 0 {
-		u.Prefix = "def001"
-	} else {
-		u.Prefix = string(pre[0])
-	}
-
-	if l == 2 {
-		if u.ID, err = gocql.ParseUUID(string(pre[1])); err != nil {
-			fmt.Printf("ParseUUID Error: %s\n", err)
-		}
-		return
-	}
-	u.ID = gocql.TimeUUID()
-
-	return
-}
-
-// UserResponce is data structure returned by ComCreateUser function.
-type UserResponce struct {
-	ID          gocql.UUID
-	AccessToken gocql.UUID
-	Prefix      string
-}
-
-// MarshalBinary encodes UserResponce data into binary buffer.
-func (u *UserResponce) MarshalBinary() (data []byte, err error) {
-	buf := new(bytes.Buffer)
-	le := binary.LittleEndian
-	binary.Write(buf, le, u.ID)
-	binary.Write(buf, le, u.AccessToken)
-	binary.Write(buf, le, []byte(u.Prefix))
-	data = buf.Bytes()
-	return
-}
-
-// UnmarshalBinary decode binary buffer into UserResponce receiver data.
-func (u *UserResponce) UnmarshalBinary(data []byte) (err error) {
-	buf := bytes.NewReader(data)
-	le := binary.LittleEndian
-	binary.Read(buf, le, &u.ID)
-	binary.Read(buf, le, &u.AccessToken)
-	l := int(unsafe.Sizeof(u.ID) + unsafe.Sizeof(u.AccessToken))
-	if len(data) > l {
-		d := make([]byte, len(data)-l)
-		binary.Read(buf, le, &d)
-		u.Prefix = string(d)
-	}
 	return
 }

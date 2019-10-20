@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gocql/gocql"
+	cli "github.com/kirill-scherba/teonet-go/services/teouserscli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -16,11 +17,11 @@ func (t *Teoemu) SendAnswer(pac interface{}, cmd byte, data []byte) (int, error)
 
 func TestUserNew(t *testing.T) {
 	var data []byte
-	var in *UserResponce
+	var in *cli.UserResponce
 	var err error
 
 	t.Run("Marshal", func(t *testing.T) {
-		in = &UserResponce{
+		in = &cli.UserResponce{
 			ID:          gocql.TimeUUID(),
 			AccessToken: gocql.TimeUUID(),
 			Prefix:      "game001",
@@ -35,7 +36,7 @@ func TestUserNew(t *testing.T) {
 	})
 
 	t.Run("Unmarshal", func(t *testing.T) {
-		out := &UserResponce{}
+		out := &cli.UserResponce{}
 		if err = out.UnmarshalBinary(data); err != nil {
 			t.Error(err)
 			return
@@ -55,7 +56,7 @@ func TestProcess(t *testing.T) {
 	userID := gocql.TimeUUID()
 	teoemu := &Teoemu{}
 	teo := &teonet.Teonet{}
-	var userNew *UserResponce
+	var userNew *cli.UserResponce
 	var err error
 	var u *Users
 

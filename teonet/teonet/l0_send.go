@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kirill-scherba/teonet-go/services/teousers"
+	"github.com/kirill-scherba/teonet-go/services/teouserscli"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
@@ -124,7 +124,7 @@ func (l0 *l0Conn) sendToRegistrar(d []byte) (data []byte, err error) {
 		teoCDB, r.Data)
 
 	// Check answer
-	res := &teousers.UserResponce{}
+	res := &teouserscli.UserResponce{}
 	err = res.UnmarshalBinary(data)
 	if err != nil {
 		// can't create new user
