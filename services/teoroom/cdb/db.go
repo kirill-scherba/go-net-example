@@ -46,8 +46,8 @@ type Room struct {
 	State   int        // Current rooms state
 }
 
-// cdb data structure and methods receiver.
-type cdb struct {
+// db data structure and methods receiver.
+type db struct {
 	*Rooms
 	session       *gocql.Session
 	roomsTable    *table.Table
@@ -66,8 +66,8 @@ const (
 )
 
 // newCdb creates new cdb structure.
-func newDb(hosts ...string) (d *cdb, err error) {
-	d = &cdb{
+func newDb(hosts ...string) (d *db, err error) {
+	d = &db{
 		roomsMetadata: table.Metadata{
 			Name: "rooms",
 			Columns: []string{
@@ -89,8 +89,8 @@ func newDb(hosts ...string) (d *cdb, err error) {
 	return
 }
 
-// connect to cdb.
-func (d *cdb) connect(hosts ...string) (err error) {
+// connect to database.
+func (d *db) connect(hosts ...string) (err error) {
 	keyspace := "teoroom"
 	cluster := gocql.NewCluster(func() (h []string) {
 		if h = hosts; len(h) > 0 {
@@ -108,8 +108,8 @@ func (d *cdb) connect(hosts ...string) (err error) {
 	return
 }
 
-// close cdb
-func (d *cdb) close() {
+// close database connection.
+func (d *db) close() {
 	d.session.Close()
 }
 
@@ -118,7 +118,7 @@ func (d *cdb) close() {
 // (usaly it may be Room structure with all fields filled). Next parameters
 // is column names which will be set to database, it may be ommited and than
 // all columns sets.
-func (d *cdb) set(r interface{}, columns ...string) (err error) {
+func (d *db) set(r interface{}, columns ...string) (err error) {
 	var stmt string
 	var names []string
 	if len(columns) == 0 {
@@ -132,7 +132,7 @@ func (d *cdb) set(r interface{}, columns ...string) (err error) {
 }
 
 // set using column numbers from roomsMetadata.Columns structure
-func (d *cdb) setMetaColumns(r interface{}, columnsNum ...int) (err error) {
+func (d *db) setByColumnsNumber(r interface{}, columnsNum ...int) (err error) {
 	var columns []string
 	for _, column := range columnsNum {
 		columns = append(columns, d.roomsMetadata.Columns[column])
@@ -141,7 +141,7 @@ func (d *cdb) setMetaColumns(r interface{}, columnsNum ...int) (err error) {
 }
 
 // set creating state (create new rooms record)
-func (d *cdb) setCreating(roomNum int) (roomID gocql.UUID, err error) {
+func (d *db) setCreating(roomNum int) (roomID gocql.UUID, err error) {
 	roomID = gocql.TimeUUID()
 	room := &Room{
 		ID:      roomID,
@@ -153,31 +153,31 @@ func (d *cdb) setCreating(roomNum int) (roomID gocql.UUID, err error) {
 }
 
 // set running state (started)
-func (d *cdb) setRunning(roomID gocql.UUID) (err error) {
+func (d *db) setRunning(roomID gocql.UUID) (err error) {
 	room := &Room{
 		ID:      roomID,
 		Started: time.Now(),
 		State:   teoroom.RoomRunning,
 	}
-	return d.setMetaColumns(room, colStartded, colState)
+	return d.setByColumnsNumber(room, colStartded, colState)
 }
 
 // set closed state
-func (d *cdb) setClosed(roomID gocql.UUID) (err error) {
+func (d *db) setClosed(roomID gocql.UUID) (err error) {
 	room := &Room{
 		ID:     roomID,
 		Closed: time.Now(),
 		State:  teoroom.RoomClosed,
 	}
-	return d.setMetaColumns(room, colClosed, colState)
+	return d.setByColumnsNumber(room, colClosed, colState)
 }
 
 // set stopped state
-func (d *cdb) setStopped(roomID gocql.UUID) (err error) {
+func (d *db) setStopped(roomID gocql.UUID) (err error) {
 	room := &Room{
 		ID:      roomID,
 		Stopped: time.Now(),
 		State:   teoroom.RoomStopped,
 	}
-	return d.setMetaColumns(room, colStopped, colState)
+	return d.setByColumnsNumber(room, colStopped, colState)
 }

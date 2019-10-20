@@ -2,7 +2,7 @@ package cdb
 
 // Rooms is the teoroomcdb data structure and methods receiver
 type Rooms struct {
-	*cdb
+	*db
 	*Process
 	TeoConnector
 }
@@ -12,12 +12,12 @@ type Rooms struct {
 // be 3 hosts - 3 ScyllaDB nodes)
 func Connect(con TeoConnector, hosts ...string) (r *Rooms, err error) {
 	r = &Rooms{TeoConnector: con}
-	r.cdb, err = newDb(hosts...)
+	r.db, err = newDb(hosts...)
 	r.Process = &Process{r}
 	return
 }
 
 // Close closes cql connection and destroy teoregistry receiver
 func (r *Rooms) Close() {
-	r.cdb.close()
+	r.db.close()
 }

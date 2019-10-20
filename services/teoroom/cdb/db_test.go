@@ -12,7 +12,7 @@ func TestCdb(t *testing.T) {
 	roomID := gocql.TimeUUID()
 	roomNum := 1
 	var err error
-	var db *cdb
+	var db *db
 
 	t.Run("Connect", func(t *testing.T) {
 		db, err = newDb()
