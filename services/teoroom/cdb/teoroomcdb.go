@@ -1,3 +1,29 @@
+// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Package cdb (teoroomcdb) is the Teonet room cdb functions and datbase themes.
+//
+// Teoroomcdb provide teroom database functions executed in cdb.
+//
+// Install this go package:
+//
+//   go get github.com/kirill-scherba/teonet-go/services/teoroom/cdb
+//
+// Data base organisation
+//
+// To store database we use ScyllaDB. Run Scylla in Docker:
+//   https://www.scylladb.com/download/open-source/#docker
+//
+// Install database schemas. Before you execute application which used this
+// service, launch `cqlsh`:
+//
+//   docker exec -it scylla cqlsh
+//
+// and execute content of cql/teoroom.cql file.
+//
+// For tests repeat the same instructions but use teoroom_test keyspace.
+//
 package cdb
 
 // Rooms is the teoroomcdb data structure and methods receiver

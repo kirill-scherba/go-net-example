@@ -15,7 +15,7 @@ func TestCdb(t *testing.T) {
 	var db *db
 
 	t.Run("Connect", func(t *testing.T) {
-		db, err = newDb()
+		db, err = newDb("teoroom_test")
 		if err != nil {
 			t.Error(err)
 			return

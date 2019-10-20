@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teousers db module.
+// Teousers database module.
 //
 // This service uses Scylla database and gocql and gocqlx packages to work with
-// bd. Usually teousers package used in Teonet teocdb service application to
+// db. Usually teousers package used in Teonet teocdb service application to
 // provide users database functions to other teonet network applications.
 
 package teousers
