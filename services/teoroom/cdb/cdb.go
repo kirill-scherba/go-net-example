@@ -39,18 +39,31 @@ import (
 type Room struct {
 	ID      gocql.UUID // Room ID
 	RoomNum int        // Room number
-	Started time.Time  // Time when room start
-	Stopped time.Time  // Time when room stop
+	Created time.Time  // Time when room created
+	Started time.Time  // Time when room started
+	Closed  time.Time  // Time when room closed to add players
+	Stopped time.Time  // Time when room stopped
 	State   int        // Current rooms state
 }
 
 // cdb data structure and methods receiver.
 type cdb struct {
-	//*Rooms
+	*Rooms
 	session       *gocql.Session
 	roomsTable    *table.Table
 	roomsMetadata table.Metadata
 }
+
+// Column numbers
+const (
+	colID       = iota // 0
+	colRoomNum         // 1
+	colCreated         // 2
+	colStartded        // 3
+	colClosed          // 4
+	colStopped         // 5
+	colState           // 6
+)
 
 // newCdb creates new cdb structure.
 func newDb(hosts ...string) (d *cdb, err error) {
@@ -58,11 +71,13 @@ func newDb(hosts ...string) (d *cdb, err error) {
 		roomsMetadata: table.Metadata{
 			Name: "rooms",
 			Columns: []string{
-				"id",
-				"room_num",
-				"started",
-				"stopped",
-				"state",
+				"id",       // 0
+				"room_num", // 1
+				"created",  // 2
+				"started",  // 3
+				"closed",   // 4
+				"stopped",  // 5
+				"state",    // 6
 			},
 			PartKey: []string{"id"},
 			SortKey: []string{}, //"room_num", "started", "stopped", "state"},
@@ -116,21 +131,53 @@ func (d *cdb) set(r interface{}, columns ...string) (err error) {
 	return q.ExecRelease()
 }
 
+// set using column numbers from roomsMetadata.Columns structure
+func (d *cdb) setMetaColumns(r interface{}, columnsNum ...int) (err error) {
+	var columns []string
+	for _, column := range columnsNum {
+		columns = append(columns, d.roomsMetadata.Columns[column])
+	}
+	return d.set(r, columns...)
+}
+
+// set creating state (create new rooms record)
 func (d *cdb) setCreating(roomNum int) (roomID gocql.UUID, err error) {
 	roomID = gocql.TimeUUID()
 	room := &Room{
 		ID:      roomID,
 		RoomNum: roomNum,
-		Started: time.Now(),
+		Created: time.Now(),
 		State:   teoroom.RoomCreating,
 	}
 	return roomID, d.set(room)
 }
 
+// set running state (started)
 func (d *cdb) setRunning(roomID gocql.UUID) (err error) {
 	room := &Room{
-		ID:    roomID,
-		State: teoroom.RoomRunning,
+		ID:      roomID,
+		Started: time.Now(),
+		State:   teoroom.RoomRunning,
 	}
-	return d.set(room, d.roomsMetadata.Columns[4])
+	return d.setMetaColumns(room, colStartded, colState)
+}
+
+// set closed state
+func (d *cdb) setClosed(roomID gocql.UUID) (err error) {
+	room := &Room{
+		ID:     roomID,
+		Closed: time.Now(),
+		State:  teoroom.RoomClosed,
+	}
+	return d.setMetaColumns(room, colClosed, colState)
+}
+
+// set stopped state
+func (d *cdb) setStopped(roomID gocql.UUID) (err error) {
+	room := &Room{
+		ID:      roomID,
+		Stopped: time.Now(),
+		State:   teoroom.RoomStopped,
+	}
+	return d.setMetaColumns(room, colStopped, colState)
 }

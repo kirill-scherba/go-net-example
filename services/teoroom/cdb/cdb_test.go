@@ -3,10 +3,8 @@ package cdb
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/kirill-scherba/teonet-go/services/teoroom"
 )
 
 func TestCdb(t *testing.T) {
@@ -27,13 +25,6 @@ func TestCdb(t *testing.T) {
 	defer db.close()
 
 	t.Run("Set-Creating", func(t *testing.T) {
-		// room := &Room{
-		// 	ID:      roomID,
-		// 	RoomNum: roomNum,
-		// 	Started: time.Now(),
-		// 	State:   teoroom.RoomCreating,
-		// }
-		// err = db.set(room)
 		roomID, err = db.setCreating(roomNum)
 		if err != nil {
 			t.Error(err)
@@ -42,11 +33,6 @@ func TestCdb(t *testing.T) {
 	})
 
 	t.Run("Set-Running", func(t *testing.T) {
-		// room := &Room{
-		// 	ID:    roomID,
-		// 	State: teoroom.RoomRunning,
-		// }
-		// err = db.set(room, db.roomsMetadata.Columns[4])
 		err = db.setRunning(roomID)
 		if err != nil {
 			t.Error(err)
@@ -54,13 +40,16 @@ func TestCdb(t *testing.T) {
 		}
 	})
 
-	t.Run("Set-Stopped", func(t *testing.T) {
-		room := &Room{
-			ID:      roomID,
-			State:   teoroom.RoomStopped,
-			Stopped: time.Now(),
+	t.Run("Set-Closed", func(t *testing.T) {
+		err = db.setClosed(roomID)
+		if err != nil {
+			t.Error(err)
+			return
 		}
-		err = db.set(room, db.roomsMetadata.Columns[3], db.roomsMetadata.Columns[4])
+	})
+
+	t.Run("Set-Stopped", func(t *testing.T) {
+		err = db.setStopped(roomID)
 		if err != nil {
 			t.Error(err)
 			return
