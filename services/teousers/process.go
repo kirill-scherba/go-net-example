@@ -142,7 +142,11 @@ func (p *Process) ComCreateUser(pac TeoPacket) (u *cli.UserResponce, err error) 
 		return
 	}
 	// Send answer to teonet
-	u = &cli.UserResponce{user.ID, user.AccessToken, user.Prefix}
+	u = &cli.UserResponce{
+		ID:          user.ID,
+		AccessToken: user.AccessToken,
+		Prefix:      user.Prefix,
+	}
 	d, err := u.MarshalBinary()
 	if err != nil {
 		return
