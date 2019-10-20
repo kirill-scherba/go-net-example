@@ -38,10 +38,10 @@ type ClientInRoom struct {
 
 // Room state
 const (
-	RoomCreating = iota // Creating room state
-	RoomRunning         // Running room state
-	RoomClosed          // Closed room state: running but adding clients is prohibited
-	RoomStopped         // Stopped room state (game over)
+	RoomCreating = iota // 0 - Creating room state
+	RoomRunning         // 1 - Running room state
+	RoomClosed          // 2 - Closed room state: running but adding clients is prohibited
+	RoomStopped         // 3 - Stopped room state (game over)
 )
 
 // newRoom creates new room.
