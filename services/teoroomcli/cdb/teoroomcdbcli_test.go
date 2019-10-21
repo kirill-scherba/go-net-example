@@ -7,10 +7,8 @@ import (
 )
 
 func TestCdb(t *testing.T) {
-
 	var data []byte
 	var err error
-
 	t.Run("RoomCreateRequest", func(t *testing.T) {
 
 		var roomNum uint32 = 123
@@ -35,27 +33,27 @@ func TestCdb(t *testing.T) {
 }
 
 func ExampleRoomCreateRequest_MarshalBinary() {
-	rec := RoomCreateRequest{123}
-	data, _ := rec.MarshalBinary()
+	req := RoomCreateRequest{123}
+	data, _ := req.MarshalBinary()
 	fmt.Println(data)
 	// Output: [123 0 0 0]
 }
 
 func ExampleRoomCreateRequest_UnmarshalBinary() {
 	data := []byte{123, 0, 0, 0}
-	rec := &RoomCreateRequest{}
-	rec.UnmarshalBinary(data)
-	fmt.Println(rec.RoomNum)
+	req := &RoomCreateRequest{}
+	req.UnmarshalBinary(data)
+	fmt.Println(req.RoomNum)
 	// Output: 123
 }
 
 func BenchmarkMarshalBinary(b *testing.B) {
-	rec := RoomCreateRequest{123}
-	rec.MarshalBinary()
+	req := RoomCreateRequest{123}
+	req.MarshalBinary()
 }
 
 func BenchmarkUnmarshalBinary(b *testing.B) {
 	data := []byte{123, 0, 0, 0}
-	rec := &RoomCreateRequest{}
-	rec.UnmarshalBinary(data)
+	req := &RoomCreateRequest{}
+	req.UnmarshalBinary(data)
 }

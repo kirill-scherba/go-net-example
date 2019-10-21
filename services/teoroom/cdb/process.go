@@ -6,7 +6,9 @@
 
 package cdb
 
-import "encoding/binary"
+import (
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
+)
 
 // Process receiver to process teousers commands
 type Process struct{ *Rooms }
@@ -38,9 +40,8 @@ type TeoPacket interface {
 //
 // Output data (byte):  id gocql.uuid
 func (p *Process) ComRoomCreated(pac TeoPacket) (exists bool, err error) {
-
-	roomNum := binary.LittleEndian.Uint32(pac.Data())
-	p.set(roomNum)
-
+	req := &cdb.RoomCreateRequest{}
+	req.UnmarshalBinary(pac.Data())
+	p.set(req.RoomNum)
 	return
 }

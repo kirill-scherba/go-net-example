@@ -16,18 +16,18 @@ type RoomCreateRequest struct {
 }
 
 // MarshalBinary encodes RoomCreateRequest data into binary buffer.
-func (rec *RoomCreateRequest) MarshalBinary() (data []byte, err error) {
+func (req *RoomCreateRequest) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
-	binary.Write(buf, le, rec.RoomNum)
+	binary.Write(buf, le, req.RoomNum)
 	data = buf.Bytes()
 	return
 }
 
 // UnmarshalBinary decode binary buffer into RoomCreateRequest receiver data.
-func (rec *RoomCreateRequest) UnmarshalBinary(data []byte) (err error) {
+func (req *RoomCreateRequest) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
-	err = binary.Read(buf, le, &rec.RoomNum)
+	err = binary.Read(buf, le, &req.RoomNum)
 	return
 }
