@@ -84,7 +84,27 @@ func (r *Room) addClient(cli *Client) (clientID int) {
 // started.
 func (r *Room) clientReady(cliID int) {
 	client := r.client[cliID]
+
+	// If room already closed or stoppet than find new room for client
+	if r.state == RoomClosed || r.state == RoomStopped {
+		// TODO: do somesing if room already closed or stoppet
+	}
+
+	// Set client state 'running' in this room
+	// TODO: possible there should be enother constant
 	r.cliwas[client.name].state = RoomRunning
+
+	// If room already started: send command ComStart to this new client.
+	if r.state == RoomRunning {
+		// TODO:
+		fmt.Printf("Client id %d added to running room id %d (game time: %d)\n",
+			cliID, r.id, r.gparam.GameTime)
+		r.sendToClients(teoroomcli.ComStart, nil)
+		return
+	}
+
+	// If room in Creating state: Check number of ready clients and start game
+	// if it more than 'min clients to start' parameter
 	var numReady int
 	for _, cli := range r.cliwas {
 		if cli.state == RoomRunning {

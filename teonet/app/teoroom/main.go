@@ -97,8 +97,8 @@ func main() {
 			// When received command from teonet peer or client
 			case teonet.EventReceived:
 				pac := ev.Data
-				fmt.Printf("Event Received from: %s, cmd: %d, data: %v\n",
-					pac.From(), pac.Cmd(), pac.Data())
+				// fmt.Printf("Event Received from: %s, cmd: %d, data: %v\n",
+				// 	pac.From(), pac.Cmd(), pac.Data())
 				commands(pac)
 			}
 		}
