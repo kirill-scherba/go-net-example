@@ -23,7 +23,7 @@ import (
 // Room data structure
 type Room struct {
 	ID      gocql.UUID // Room ID
-	RoomNum int        // Room number
+	RoomNum uint32     // Room number
 	Created time.Time  // Time when room created
 	Started time.Time  // Time when room started
 	Closed  time.Time  // Time when room closed to add players
@@ -126,7 +126,7 @@ func (d *db) setByColumnsNumber(r interface{}, columnsNum ...int) (err error) {
 }
 
 // set creating state (create new rooms record)
-func (d *db) setCreating(roomNum int) (roomID gocql.UUID, err error) {
+func (d *db) setCreating(roomNum uint32) (roomID gocql.UUID, err error) {
 	roomID = gocql.TimeUUID()
 	room := &Room{
 		ID:      roomID,

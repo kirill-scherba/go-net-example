@@ -10,7 +10,7 @@ import (
 func TestCdb(t *testing.T) {
 
 	roomID := gocql.TimeUUID()
-	roomNum := 1
+	roomNum := uint32(1)
 	var err error
 	var db *db
 
