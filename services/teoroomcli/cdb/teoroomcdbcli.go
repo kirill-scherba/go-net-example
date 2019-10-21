@@ -8,9 +8,11 @@ package cdb
 import (
 	"bytes"
 	"encoding/binary"
+
+	"github.com/gocql/gocql"
 )
 
-// RoomCreateRequest used in ComRoomCreated command
+// RoomCreateRequest used in ComRoomCreated command as request
 type RoomCreateRequest struct {
 	RoomNum uint32
 }
@@ -29,5 +31,27 @@ func (req *RoomCreateRequest) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
 	err = binary.Read(buf, le, &req.RoomNum)
+	return
+}
+
+// RoomCreateResponce used in ComRoomCreated command as responce
+type RoomCreateResponce struct {
+	RoomID gocql.UUID
+}
+
+// MarshalBinary encodes RoomCreateResponce data into binary buffer.
+func (res *RoomCreateResponce) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, res.RoomID)
+	data = buf.Bytes()
+	return
+}
+
+// UnmarshalBinary decode binary buffer into RoomCreateResponce receiver data.
+func (res *RoomCreateResponce) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data)
+	le := binary.LittleEndian
+	err = binary.Read(buf, le, &res.RoomID)
 	return
 }
