@@ -71,7 +71,7 @@ func (tg *Teogame) addPlayer(level *tl.BaseLevel, id byte) (player *Player) {
 
 // Tick frame tick
 func (hero *Hero) Tick(event tl.Event) {
-	if hero.tg.state.State() == Running && (event.Type == tl.EventKey || !hero.bot) {
+	if hero.tg.state.State() == Running && (event.Type == tl.EventKey || hero.bot) {
 
 		// Get current position
 		hero.prevX, hero.prevY = hero.Position()
@@ -89,7 +89,7 @@ func (hero *Hero) Tick(event tl.Event) {
 		}
 
 		// Set new position in bot mode
-		if !hero.bot {
+		if hero.bot {
 
 			const (
 				MaxX            = 50

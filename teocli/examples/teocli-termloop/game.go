@@ -22,6 +22,7 @@ type Teogame struct {
 	rra    *roomRequestAnswerData // Room request answer data
 	conf   *teoconf.Teoconf       // Application config
 	param  *Parameters            // Aplication parameters
+	bot    bool                   // Auto play (bot) mode
 }
 
 // Game levels
@@ -58,6 +59,7 @@ func (tg *Teogame) start(rra *roomRequestAnswerData) {
 			x = int(rra.clientID) * 3
 		}
 		tg.hero = tg.addHero(level, x, 2)
+		tg.hero.bot = tg.bot
 
 		return
 	}())

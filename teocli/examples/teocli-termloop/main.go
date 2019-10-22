@@ -76,7 +76,7 @@ func main() {
 	flag.IntVar(&rport, "r", 9010, "l0 server port (to connect to l0 server)")
 	flag.BoolVar(&tcp, "tcp", false, "connect by TCP")
 	flag.IntVar(&timeout, "t", 5, "reconnect after timeout (in second)")
-	flag.BoolVar(&bot, "auto", false, "auto play (bot mode)")
+	flag.BoolVar(&bot, "bot", false, "auto play (bot mode)")
 	flag.Parse()
 
 	fmt.Printf("name: '%s'\n", name)
@@ -92,7 +92,7 @@ func main() {
 
 // Run connect to teonet, start game and process received commands
 func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration, bot bool) (tg *Teogame) {
-	tg = &Teogame{peer: peer, player: make(map[byte]*Player), conf: conf, param: param}
+	tg = &Teogame{peer: peer, player: make(map[byte]*Player), conf: conf, param: param, bot: bot}
 	fmt.Printf("name: '%s'\n", name)
 	teocli.Run(name, raddr, rport, tcp, timeout, startCommand(tg), inputCommands(tg)...)
 	return

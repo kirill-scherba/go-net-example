@@ -60,7 +60,7 @@ func (menu *GameMenu) Tick(event tl.Event) {
 		}
 	}
 
-	if !menu.started && !menu.tg.hero.bot {
+	if !menu.started && menu.tg.hero.bot {
 		menu.started = true
 		go func() {
 			time.Sleep(1 * time.Second)
