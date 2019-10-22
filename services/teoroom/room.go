@@ -62,7 +62,7 @@ func (tr *Teoroom) newRoom() (r *Room) {
 	r.newGameParameters("g001")
 
 	// Save room create statistic to cdb
-	r.sendRoomStateCreate()
+	r.sendStateCreate()
 
 	fmt.Printf("Room id %d created, UUID: %s\n", r.id, r.roomID.String())
 
@@ -135,17 +135,15 @@ func (r *Room) clientReady(cliID int) {
 // and start goroutine which will send command ComDisconnect when room closed
 // after `GameTime`.
 func (r *Room) startRoom() {
-	r.state = RoomRunning
 	fmt.Printf("Room id %d started (game time: %d)\n", r.id, r.gparam.GameTime)
+	r.setState(RoomRunning)
 	r.sendToClients(teoroomcli.ComStart, nil)
-	r.sendRoomState()
 
 	// send disconnect to rooms clients after GameTime
 	go func() {
 		<-time.After(time.Duration(r.gparam.GameTime) * time.Millisecond)
-		r.state = RoomStopped
 		fmt.Printf("Room id %d stopped\n", r.id)
-		r.sendRoomState()
+		r.setState(RoomStopped)
 		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
 			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
 			r.tr.Process.ComDisconnect(client)
@@ -161,9 +159,8 @@ func (r *Room) startRoom() {
 		if r.state == RoomStopped {
 			return
 		}
-		r.state = RoomClosed
 		fmt.Printf("Room id %d closed (close to add users)\n", r.id)
-		r.sendRoomState()
+		r.setState(RoomClosed)
 	}()
 }
 
@@ -184,13 +181,19 @@ func (r *Room) sendToClients(cmd int, data []byte) {
 }
 
 // SendRoomCreate sends room created state to cdb room statistic
-func (r *Room) sendRoomStateCreate() {
+func (r *Room) sendStateCreate() {
 	stats.SendRoomCreate(r.tr.teo, r.roomID, r.id)
 }
 
-// sendRoomState sends room state to cdb room statistic
-func (r *Room) sendRoomState() {
+// sendState sends room state to cdb room statistic
+func (r *Room) sendState() {
 	stats.SendRoomStatus(r.tr.teo, r.roomID, r.state)
+}
+
+// setState set room state and send it to cdb room statistic
+func (r *Room) setState(state byte) {
+	r.state = state
+	r.sendState()
 }
 
 // newClient creates new Client (or add Client to Room controller).
@@ -219,16 +222,16 @@ func (cli *Client) roomRequest() (roomID uint32, cliID int, err error) {
 	// send disconnect to rooms clients if can't find clients during WaitForMinClients
 	go func() {
 		<-time.After(time.Duration(r.gparam.WaitForMinClients) * time.Millisecond)
-		if r.state == RoomCreating &&
-			r.numClients() < r.gparam.MinClientsToStart {
-			r.state = RoomStopped
-			fmt.Printf("Room id %d closed. "+
-				"Can't find players during start timeout.\n", r.id)
-			r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
-				r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
-				r.tr.Process.ComDisconnect(client)
-			})
+		if !(r.state == RoomCreating && r.numClients() < r.gparam.MinClientsToStart) {
+			return
 		}
+		fmt.Printf("Room id %d stopped. Can't find players during start "+
+			"timeout.\n", r.id)
+		r.setState(RoomStopped)
+		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
+			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
+			r.tr.Process.ComDisconnect(client)
+		})
 	}()
 	return r.id, r.addClient(cli), nil
 }
