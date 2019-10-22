@@ -16,8 +16,9 @@ func TestRoomCreateRequest(t *testing.T) {
 	t.Run("MarshalUnmarshal", func(t *testing.T) {
 
 		var roomNum uint32 = 123
+		var roomID = gocql.TimeUUID()
 
-		rec := &RoomCreateRequest{roomNum}
+		rec := &RoomCreateRequest{roomID, roomNum}
 		if data, err = rec.MarshalBinary(); err != nil {
 			t.Error(err)
 			return
@@ -37,7 +38,8 @@ func TestRoomCreateRequest(t *testing.T) {
 }
 
 func ExampleRoomCreateRequest_MarshalBinary() {
-	req := RoomCreateRequest{123}
+	var roomID = gocql.TimeUUID()
+	req := RoomCreateRequest{roomID, 123}
 	data, _ := req.MarshalBinary()
 	fmt.Println(data)
 	// Output: [123 0 0 0]
@@ -52,7 +54,8 @@ func ExampleRoomCreateRequest_UnmarshalBinary() {
 }
 
 func BenchmarkRoomCreateRequestMarshalBinary(b *testing.B) {
-	req := &RoomCreateRequest{123}
+	var roomID = gocql.TimeUUID()
+	req := &RoomCreateRequest{roomID, 123}
 	req.MarshalBinary()
 }
 

@@ -26,9 +26,9 @@ const (
 // Teoroom is room controller data
 type Teoroom struct {
 	teo      *teonet.Teonet     // Pointer to teonet
-	roomID   int                // Next room id
-	creating []int              // Creating rooms slice with creating rooms id
-	mroom    map[int]*Room      // Rooms map contain created rooms
+	roomID   uint32             // Next room id
+	creating []uint32           // Creating rooms slice with creating rooms id
+	mroom    map[uint32]*Room   // Rooms map contain created rooms
 	mcli     map[string]*Client // Clients map contain clients connected to room controller
 	*Process
 }
@@ -46,7 +46,7 @@ func (e *errorTeoroom) Error() string {
 
 // New creates teonet room controller.
 func New(teo *teonet.Teonet) (tr *Teoroom, err error) {
-	tr = &Teoroom{teo: teo, mcli: make(map[string]*Client), mroom: make(map[int]*Room)}
+	tr = &Teoroom{teo: teo, mcli: make(map[string]*Client), mroom: make(map[uint32]*Room)}
 	tr.Process = &Process{tr}
 	return
 }

@@ -14,6 +14,7 @@ import (
 
 // RoomCreateRequest used in ComRoomCreated command as request
 type RoomCreateRequest struct {
+	RoomID  gocql.UUID
 	RoomNum uint32
 }
 
@@ -21,6 +22,7 @@ type RoomCreateRequest struct {
 func (req *RoomCreateRequest) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
+	binary.Write(buf, le, req.RoomID)
 	binary.Write(buf, le, req.RoomNum)
 	data = buf.Bytes()
 	return
@@ -30,6 +32,10 @@ func (req *RoomCreateRequest) MarshalBinary() (data []byte, err error) {
 func (req *RoomCreateRequest) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
+	err = binary.Read(buf, le, &req.RoomID)
+	if err != nil {
+		return
+	}
 	err = binary.Read(buf, le, &req.RoomNum)
 	return
 }
@@ -53,5 +59,33 @@ func (res *RoomCreateResponce) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
 	err = binary.Read(buf, le, &res.RoomID)
+	return
+}
+
+// RoomStatusRequest used in ComRoomStatus command as request
+type RoomStatusRequest struct {
+	RoomID gocql.UUID
+	Status byte
+}
+
+// MarshalBinary encodes RoomCreateResponce data into binary buffer.
+func (req *RoomStatusRequest) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, req.RoomID)
+	binary.Write(buf, le, req.Status)
+	data = buf.Bytes()
+	return
+}
+
+// UnmarshalBinary decode binary buffer into RoomCreateResponce receiver data.
+func (req *RoomStatusRequest) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data)
+	le := binary.LittleEndian
+	err = binary.Read(buf, le, &req.RoomID)
+	if err != nil {
+		return
+	}
+	err = binary.Read(buf, le, &req.Status)
 	return
 }

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
@@ -44,14 +45,14 @@ func TestProcess_ComRoomCreated(t *testing.T) {
 
 	t.Run("ComRoomCreated", func(t *testing.T) {
 		// Create request and process it
-		req := &cdb.RoomCreateRequest{RoomNum: 123}
+		req := &cdb.RoomCreateRequest{RoomID: gocql.TimeUUID(), RoomNum: 123}
 		data, err := req.MarshalBinary()
 		if err != nil {
 			t.Error(err)
 			return
 		}
 		pac := teo.PacketCreateNew("teo-from", 129, data)
-		roomID, err := r.ComRoomCreated(pac)
+		err = r.ComRoomCreated(pac)
 		if err != nil {
 			t.Error(err)
 			return
@@ -63,7 +64,7 @@ func TestProcess_ComRoomCreated(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		if res.RoomID.String() != roomID.String() {
+		if res.RoomID.String() != req.RoomID.String() {
 			t.Error(errors.New("roomID in teonet answer does not equal to " +
 				"generated roomID in ComRoomCreated function"))
 		}

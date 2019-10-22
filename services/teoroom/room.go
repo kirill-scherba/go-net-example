@@ -8,14 +8,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Room Data
 type Room struct {
 	tr     *Teoroom                 // Pointer to Teoroom receiver
-	id     int                      // Room id
+	id     uint32                   // Room id
+	roomID gocql.UUID               // Room UUID
 	state  int                      // Room state: 0 - creating; 1 - running; 2 - closed; 3 - stopped
 	client []*Client                // List of clients in room by position: client[0] - position 1 ... client[0] - position 10
 	cliwas map[string]*ClientInRoom // Map of clients which was in room (included clients connected now)
@@ -49,10 +52,24 @@ func (tr *Teoroom) newRoom() (room *Room) {
 	room = &Room{
 		tr:     tr,
 		id:     tr.roomID,
+		roomID: gocql.TimeUUID(),
 		cliwas: make(map[string]*ClientInRoom),
 		state:  RoomCreating,
 	}
 	room.newGameParameters("g001")
+
+	// Save statistic to cdb
+	req := &cdb.RoomCreateRequest{RoomID: room.roomID, RoomNum: room.id}
+	data, _ := req.MarshalBinary()
+	teoCdb := "teo-cdb"
+	tr.teo.SendTo(teoCdb, 134, data)
+	// res := <-tr.teo.WaitFrom(teoCdb, 134)
+	// r := cdb.RoomCreateResponce{}
+	// r.UnmarshalBinary(res.Data)
+	// room.roomID = r.RoomID
+
+	fmt.Printf("Room id %d created, UUID: %s\n", room.id, room.roomID.String())
+
 	tr.creating = append(tr.creating, room.id)
 	tr.mroom[room.id] = room
 	tr.roomID++
@@ -96,7 +113,7 @@ func (r *Room) clientReady(cliID int) {
 
 	// If room already started: send command ComStart to this new client.
 	if r.state == RoomRunning {
-		// TODO:
+		// TODO: send to room statistic
 		fmt.Printf("Client id %d added to running room id %d (game time: %d)\n",
 			cliID, r.id, r.gparam.GameTime)
 		r.sendToClients(teoroomcli.ComStart, nil)
@@ -111,6 +128,7 @@ func (r *Room) clientReady(cliID int) {
 			numReady++
 			if numReady >= r.gparam.MinClientsToStart {
 				r.startRoom()
+				break
 			}
 		}
 	}
@@ -123,6 +141,12 @@ func (r *Room) startRoom() {
 	r.state = RoomRunning
 	fmt.Printf("Room id %d started (game time: %d)\n", r.id, r.gparam.GameTime)
 	r.sendToClients(teoroomcli.ComStart, nil)
+
+	// Save statistic to cdb
+	req := &cdb.RoomStatusRequest{RoomID: r.roomID, Status: RoomRunning}
+	data, _ := req.MarshalBinary()
+	r.tr.teo.SendTo("teo-cdb", 135, data)
+
 	// send disconnect to rooms clients after GameTime
 	go func() {
 		<-time.After(time.Duration(r.gparam.GameTime) * time.Millisecond)
@@ -164,7 +188,7 @@ func (tr *Teoroom) newClient(c *teonet.Packet) (cli *Client) {
 // room. It returns roomID and cliID or error if not found. The RoomID is an
 // unical room number since this application started. The cliID is a client
 // number (and position) in this room.
-func (cli *Client) roomRequest() (roomID, cliID int, err error) {
+func (cli *Client) roomRequest() (roomID uint32, cliID int, err error) {
 	for _, rid := range cli.tr.creating {
 		if r, ok := cli.tr.mroom[rid]; ok &&
 			r.state != RoomClosed && r.state != RoomStopped &&
@@ -194,7 +218,7 @@ func (cli *Client) roomRequest() (roomID, cliID int, err error) {
 // roomClientID finds client in rooms and returns roomID and cliID or error if
 // not found. The RoomID is an unical room number since this application
 // started. The cliID is a client number (and position) in this room.
-func (cli *Client) roomClientID() (roomID, cliID int, err error) {
+func (cli *Client) roomClientID() (roomID uint32, cliID int, err error) {
 	var r *Room
 	for roomID, r = range cli.tr.mroom {
 		for id, c := range r.client {

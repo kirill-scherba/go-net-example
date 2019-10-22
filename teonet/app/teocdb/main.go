@@ -26,6 +26,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry"
+	roomcdb "github.com/kirill-scherba/teonet-go/services/teoroom/cdb"
 	"github.com/kirill-scherba/teonet-go/services/teousers"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
@@ -53,6 +54,10 @@ func main() {
 		Cmd: 132, Descr: "List get not completed key and send answer with array of keys in text or json format from key-value database",
 	}).Add(&teoregistry.Command{
 		Cmd: 133, Descr: "Check and register user",
+	}).Add(&teoregistry.Command{
+		Cmd: 134, Descr: "Room created",
+	}).Add(&teoregistry.Command{
+		Cmd: 135, Descr: "Room state changed",
 	})
 
 	// Read Teonet parameters from configuration file and parse application
@@ -75,6 +80,9 @@ func main() {
 	defer tcdb.Close()
 
 	usr, _ := teousers.Connect(teo)
+	defer usr.Close()
+
+	room, _ := roomcdb.Connect(teo)
 	defer usr.Close()
 
 	// Commands processing
@@ -130,6 +138,14 @@ func main() {
 			}
 			fmt.Printf("User Created: %s, %s, %s\n\n",
 				res.ID, res.AccessToken, res.Prefix)
+
+		// # 134: Room created
+		case 134:
+			room.ComRoomCreated(pac)
+
+		// # 135: Room state changed
+		case 135:
+			room.ComRoomStateChanged(pac)
 		}
 	}
 

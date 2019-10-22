@@ -126,15 +126,14 @@ func (d *db) setByColumnsNumber(r interface{}, columnsNum ...int) (err error) {
 }
 
 // set creating state (create new rooms record)
-func (d *db) setCreating(roomNum uint32) (roomID gocql.UUID, err error) {
-	roomID = gocql.TimeUUID()
+func (d *db) setCreating(roomID gocql.UUID, roomNum uint32) (err error) {
 	room := &Room{
 		ID:      roomID,
 		RoomNum: roomNum,
 		Created: time.Now(),
 		State:   teoroom.RoomCreating,
 	}
-	return roomID, d.set(room)
+	return d.set(room)
 }
 
 // set running state (started)

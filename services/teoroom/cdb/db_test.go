@@ -25,7 +25,7 @@ func TestCdb(t *testing.T) {
 	defer db.close()
 
 	t.Run("Set-Creating", func(t *testing.T) {
-		roomID, err = db.setCreating(roomNum)
+		err = db.setCreating(roomID, roomNum)
 		if err != nil {
 			t.Error(err)
 			return

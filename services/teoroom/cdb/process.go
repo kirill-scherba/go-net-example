@@ -7,7 +7,7 @@
 package cdb
 
 import (
-	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/services/teoroom"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
 )
 
@@ -40,18 +40,34 @@ type TeoPacket interface {
 // Input data (binary): room_num uint32.
 //
 // Output data (byte):  id gocql.uuid
-func (p *Process) ComRoomCreated(pac TeoPacket) (roomID gocql.UUID, err error) {
+func (p *Process) ComRoomCreated(pac TeoPacket) (err error) {
 	req := &cdb.RoomCreateRequest{}
 	req.UnmarshalBinary(pac.Data())
-	roomID, err = p.setCreating(req.RoomNum)
+	err = p.setCreating(req.RoomID, req.RoomNum)
 	if err != nil {
 		return
 	}
-	res := &cdb.RoomCreateResponce{RoomID: roomID}
+	res := &cdb.RoomCreateResponce{RoomID: req.RoomID}
 	d, err := res.MarshalBinary()
 	if err != nil {
 		return
 	}
 	_, err = p.SendAnswer(pac, pac.Cmd(), d)
+	return
+}
+
+// ComRoomStateChanged process state changed command
+func (p *Process) ComRoomStateChanged(pac TeoPacket) (err error) {
+	req := &cdb.RoomStatusRequest{}
+	req.UnmarshalBinary(pac.Data())
+
+	switch req.Status {
+	case teoroom.RoomRunning:
+		err = p.setRunning(req.RoomID)
+	}
+
+	// if err != nil {
+	// 	return
+	// }
 	return
 }
