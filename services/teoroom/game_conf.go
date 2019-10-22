@@ -17,14 +17,14 @@ const (
 	waitForMinClients = 30000 // Wait for minimum clients connected
 	waitForMaxClients = 10000 // Wait for maximum clients connected after minimum clients connected
 	gameTime          = 12000 // Game time in millisecond = 2 min * 60 sec * 1000
-	gameClosedAfter   = 30000 // Game closed after (does not add new clients)
+	gameClosedAfter   = 10000 // Game closed after (does not add new clients after closed)
 )
 
 // GameParameters holds game parameters running in room
 type GameParameters struct {
 	Name              string `json:"name,omitempty"`                 // Name of game
 	GameTime          int    `json:"game_time,omitempty"`            // Game time in millisecond = 2 min * 60 sec * 1000
-	GameClosedAfter   int    `json:"game_closed_after,omitempty"`    // Game closed after (does not add new clients)
+	GameClosedAfter   int    `json:"game_closed_after,omitempty"`    // Game closed after (does not add new clients after closed)
 	MaxClientsInRoom  int    `json:"max_clients_in_room,omitempty"`  // Maximum lients in room
 	MinClientsToStart int    `json:"min_clients_to_start,omitempty"` // Minimum clients to start room
 	WaitForMinClients int    `json:"wait_for_min_clients,omitempty"` // Wait for minimum clients connected

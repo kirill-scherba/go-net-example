@@ -18,18 +18,18 @@ func TestRoomCreateRequest(t *testing.T) {
 		var roomNum uint32 = 123
 		var roomID = gocql.TimeUUID()
 
-		rec := &RoomCreateRequest{roomID, roomNum}
-		if data, err = rec.MarshalBinary(); err != nil {
+		req := &RoomCreateRequest{roomID, roomNum}
+		if data, err = req.MarshalBinary(); err != nil {
 			t.Error(err)
 			return
 		}
 
-		if err = rec.UnmarshalBinary(data); err != nil {
+		if err = req.UnmarshalBinary(data); err != nil {
 			t.Error(err)
 			return
 		}
 
-		if rec.RoomNum != roomNum {
+		if req.RoomNum != roomNum {
 			err = ErrWrongUnmarshalData
 			t.Error(err)
 			return
@@ -72,18 +72,18 @@ func TestRoomCreateResponce(t *testing.T) {
 
 		var RoomID = gocql.TimeUUID()
 
-		rec := &RoomCreateResponce{RoomID}
-		if data, err = rec.MarshalBinary(); err != nil {
+		res := &RoomCreateResponce{RoomID}
+		if data, err = res.MarshalBinary(); err != nil {
 			t.Error(err)
 			return
 		}
 
-		if err = rec.UnmarshalBinary(data); err != nil {
+		if err = res.UnmarshalBinary(data); err != nil {
 			t.Error(err)
 			return
 		}
 
-		if rec.RoomID != RoomID {
+		if res.RoomID != RoomID {
 			err = ErrWrongUnmarshalData
 			t.Error(err)
 			return

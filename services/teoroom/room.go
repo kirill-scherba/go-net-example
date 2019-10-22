@@ -98,18 +98,19 @@ func (r *Room) addClient(cli *Client) (clientID int) {
 func (r *Room) clientReady(cliID int) {
 	client := r.client[cliID]
 
-	// If room already closed or stoppet than find new room for client
+	// If room already closed or stoppet than send disconnect for this client
 	if r.state == RoomClosed || r.state == RoomStopped {
-		// TODO: do somesing if room already closed or stoppet
+		r.tr.teo.SendToClientAddr(client.L0PacketData, client.name,
+			teoroomcli.ComDisconnect, nil)
 	}
 
 	// Set client state 'running' in this room
-	// TODO: possible there should be enother constant
+	// TODO: possible there should be (or may be) enother constant
 	r.cliwas[client.name].state = RoomRunning
 
 	// If room already started: send command ComStart to this new client.
 	if r.state == RoomRunning {
-		// TODO: send to room statistic
+		// TODO: send RoomClientAdd to room statistic
 		fmt.Printf("Client id %d added to running room id %d (game time: %d)\n",
 			cliID, r.id, r.gparam.GameTime)
 		r.sendToClients(teoroomcli.ComStart, nil)
@@ -149,6 +150,20 @@ func (r *Room) startRoom() {
 			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
 			r.tr.Process.ComDisconnect(client)
 		})
+	}()
+
+	// set room state to Closed after CloseAfterTime
+	if r.gparam.GameClosedAfter >= r.gparam.GameTime {
+		return
+	}
+	go func() {
+		<-time.After(time.Duration(r.gparam.GameClosedAfter) * time.Millisecond)
+		if r.state == RoomStopped {
+			return
+		}
+		r.state = RoomClosed
+		fmt.Printf("Room id %d closed (close to add users)\n", r.id)
+		r.sendRoomState()
 	}()
 }
 
