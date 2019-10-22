@@ -24,10 +24,10 @@ import (
 
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
-	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
+	"github.com/kirill-scherba/teonet-go/services/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry"
-	roomcdb "github.com/kirill-scherba/teonet-go/services/teoroom/cdb"
-	roomclicdb "github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
+	teoroomStats "github.com/kirill-scherba/teonet-go/services/teoroom/stats"
+	teoroomStatsCli "github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/services/teousers"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
@@ -83,7 +83,7 @@ func main() {
 	usr, _ := teousers.Connect(teo)
 	defer usr.Close()
 
-	room, _ := roomcdb.Connect(teo)
+	room, _ := teoroomStats.Connect(teo)
 	defer usr.Close()
 
 	// Commands processing
@@ -92,21 +92,21 @@ func main() {
 
 		// # 129: Binary command execute all cammands Set, Get and GetList in
 		// binary format
-		case cdb.CmdBinary:
+		case teocdbcli.CmdBinary:
 			err := tcdb.Process.CmdBinary(pac)
 			if err != nil {
 				fmt.Printf("CmdBinary Error: %s\n", err.Error())
 			}
 
 		// # 130: Set (insert or update) text or json {key,value} to database
-		case cdb.CmdSet:
+		case teocdbcli.CmdSet:
 			err := tcdb.Process.CmdSet(pac)
 			if err != nil {
 				fmt.Printf("CmdSet Error: %s\n", err.Error())
 			}
 
 		// # 131: Get key value and send answer with value in text or json format
-		case cdb.CmdGet:
+		case teocdbcli.CmdGet:
 			err := tcdb.Process.CmdGet(pac)
 			if err != nil {
 				fmt.Printf("CmdGet Error: %s\n", err.Error())
@@ -114,14 +114,14 @@ func main() {
 
 		// # 132: Get list of keys (by not complete key) and send answer with
 		// array of keys in text or json format
-		case cdb.CmdList:
+		case teocdbcli.CmdList:
 			err := tcdb.Process.CmdList(pac)
 			if err != nil {
 				fmt.Printf("CmdList Error: %s\n", err.Error())
 			}
 
 		// # 133: Check and register user
-		case cdb.CheckUser:
+		case teocdbcli.CheckUser:
 			// Check access token
 			res, err := usr.Process.ComCheckAccess(pac)
 			if err == nil {
@@ -141,11 +141,11 @@ func main() {
 				res.ID, res.AccessToken, res.Prefix)
 
 		// # 134: Room created
-		case roomclicdb.CmdRoomCreated:
+		case teoroomStatsCli.CmdRoomCreated:
 			room.ComRoomCreated(pac)
 
 		// # 135: Room state changed
-		case roomclicdb.CmdRoomStatus:
+		case teoroomStatsCli.CmdRoomStatus:
 			room.ComRoomStateChanged(pac)
 		}
 	}

@@ -10,7 +10,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
-	"github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -170,12 +170,12 @@ func (r *Room) sendToClients(cmd int, data []byte) {
 
 // SendRoomCreate sends room created state to cdb room statistic
 func (r *Room) sendRoomStateCreate() {
-	cdb.SendRoomCreate(r.tr.teo, r.roomID, r.id)
+	stats.SendRoomCreate(r.tr.teo, r.roomID, r.id)
 }
 
 // sendRoomState sends room state to cdb room statistic
 func (r *Room) sendRoomState() {
-	cdb.SendRoomStatus(r.tr.teo, r.roomID, r.state)
+	stats.SendRoomStatus(r.tr.teo, r.roomID, r.state)
 }
 
 // newClient creates new Client (or add Client to Room controller).

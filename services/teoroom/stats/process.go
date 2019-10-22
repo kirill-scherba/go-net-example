@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teoroomcdb command processing module.
+// Teoroom stats command processing module.
 
-package cdb
+package stats
 
 import (
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
-	"github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 )
 
 // Process receiver to process teousers commands
@@ -26,13 +26,13 @@ type TeoPacket interface {
 //
 // Output data (byte):  id gocql.uuid
 func (p *Process) ComRoomCreated(pac TeoPacket) (err error) {
-	req := &cdb.RoomCreateRequest{}
+	req := &stats.RoomCreateRequest{}
 	req.UnmarshalBinary(pac.Data())
 	err = p.setCreating(req.RoomID, req.RoomNum)
 	if err != nil {
 		return
 	}
-	res := &cdb.RoomCreateResponce{RoomID: req.RoomID}
+	res := &stats.RoomCreateResponce{RoomID: req.RoomID}
 	d, err := res.MarshalBinary()
 	if err != nil {
 		return
@@ -43,7 +43,7 @@ func (p *Process) ComRoomCreated(pac TeoPacket) (err error) {
 
 // ComRoomStateChanged process state changed command
 func (p *Process) ComRoomStateChanged(pac TeoPacket) (err error) {
-	req := &cdb.RoomStatusRequest{}
+	req := &stats.RoomStatusRequest{}
 	req.UnmarshalBinary(pac.Data())
 	switch req.Status {
 

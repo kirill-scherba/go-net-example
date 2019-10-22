@@ -2,8 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Package cdb is teonet teoroom cdb service client package.
-package cdb
+// Package stats is teonet teoroom statistic (which writing to cdb) service
+// client package.
+package stats
 
 import (
 	"bytes"
@@ -29,7 +30,8 @@ type TeoConnector interface {
 	SendAnswer(pac interface{}, cmd byte, data []byte) (int, error)
 	// WaitFrom wait receiving data from peer. The third function parameter is
 	// timeout. It may be omitted or contain timeout time of time.Duration type.
-	// If timeout parameter is omitted than default timeout value sets to 2 second.
+	// If timeout parameter is omitted than default timeout value sets to 2
+	// second.
 	// WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
 	// 	Data []byte
 	// 	Err  error

@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teoroomcdb database module.
+// Teoroom stats database module.
 //
 // This service uses Scylla database and gocql and gocqlx packages to work with
 // db. Usually teoroomcdb package used in Teonet teocdb service application to
 // provide rooms database functions to other teonet network applications.
 
-package cdb
+package stats
 
 import (
 	"fmt"

@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Package cdb (teoroomcdb) is the Teonet room cdb functions and datbase themes.
+// Package stats is the Teonet room statistic functions and datbase themes.
 //
-// Teoroomcdb provide teroom database functions executed in cdb.
+// Teoroom stats provide teroom database functions executed in cdb.
 //
 // Install this go package:
 //
@@ -24,21 +24,21 @@
 //
 // For tests repeat the same instructions but use teoroom_test keyspace.
 //
-package cdb
+package stats
 
-import "github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
+import "github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 
 // Rooms is the teoroomcdb data structure and methods receiver
 type Rooms struct {
 	*db
 	*Process
-	cdb.TeoConnector
+	stats.TeoConnector
 }
 
 // Connect to the cql cluster and create teoroomcdb receiver.
 // First parameter is keyspace, next parameters is hosts name (usualy it should
 // be 3 hosts - 3 ScyllaDB nodes)
-func Connect(con cdb.TeoConnector, hosts ...string) (r *Rooms, err error) {
+func Connect(con stats.TeoConnector, hosts ...string) (r *Rooms, err error) {
 	r = &Rooms{TeoConnector: con}
 	r.db, err = newDb(hosts...)
 	r.Process = &Process{r}
