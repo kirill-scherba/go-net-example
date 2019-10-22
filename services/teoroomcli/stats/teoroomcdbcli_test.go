@@ -1,4 +1,4 @@
-package cdb
+package stats
 
 import (
 	"errors"
@@ -100,7 +100,10 @@ func ExampleRoomCreateResponce_MarshalBinary() {
 }
 
 func ExampleRoomCreateResponce_UnmarshalBinary() {
-	data := []byte{165, 248, 166, 181, 243, 158, 17, 233, 173, 188, 64, 163, 204, 85, 222, 98}
+	data := []byte{
+		165, 248, 166, 181, 243, 158, 17, 233, 173, 188, 64, 163, 204, 85, 222,
+		98,
+	}
 	res := &RoomCreateResponce{}
 	res.UnmarshalBinary(data)
 	fmt.Println(res.RoomID)
@@ -114,7 +117,10 @@ func BenchmarkRoomCreateResponceMarshalBinary(b *testing.B) {
 }
 
 func BenchmarkRoomCreateResponceUnmarshalBinary(b *testing.B) {
-	data := []byte{165, 248, 166, 181, 243, 158, 17, 233, 173, 188, 64, 163, 204, 85, 222, 98}
+	data := []byte{
+		165, 248, 166, 181, 243, 158, 17, 233, 173, 188, 64, 163, 204, 85, 222,
+		98,
+	}
 	res := &RoomCreateResponce{}
 	res.UnmarshalBinary(data)
 }

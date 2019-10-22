@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teoroomcdb command processing module.
-
-package cdb
+package stats
 
 import (
 	"errors"
@@ -12,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/gocql/gocql"
-	"github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -45,7 +43,7 @@ func TestProcess_ComRoomCreated(t *testing.T) {
 
 	t.Run("ComRoomCreated", func(t *testing.T) {
 		// Create request and process it
-		req := &cdb.RoomCreateRequest{RoomID: gocql.TimeUUID(), RoomNum: 123}
+		req := &stats.RoomCreateRequest{RoomID: gocql.TimeUUID(), RoomNum: 123}
 		data, err := req.MarshalBinary()
 		if err != nil {
 			t.Error(err)
@@ -58,7 +56,7 @@ func TestProcess_ComRoomCreated(t *testing.T) {
 			return
 		}
 		// Check responce
-		res := &cdb.RoomCreateResponce{}
+		res := &stats.RoomCreateResponce{}
 		err = res.UnmarshalBinary(answerData)
 		if err != nil {
 			t.Error(err)
