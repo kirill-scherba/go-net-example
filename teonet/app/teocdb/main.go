@@ -27,6 +27,7 @@ import (
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/services/teoregistry"
 	roomcdb "github.com/kirill-scherba/teonet-go/services/teoroom/cdb"
+	roomclicdb "github.com/kirill-scherba/teonet-go/services/teoroomcli/cdb"
 	"github.com/kirill-scherba/teonet-go/services/teousers"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
@@ -140,11 +141,11 @@ func main() {
 				res.ID, res.AccessToken, res.Prefix)
 
 		// # 134: Room created
-		case 134:
+		case roomclicdb.CmdRoomCreated:
 			room.ComRoomCreated(pac)
 
 		// # 135: Room state changed
-		case 135:
+		case roomclicdb.CmdRoomStatus:
 			room.ComRoomStateChanged(pac)
 		}
 	}

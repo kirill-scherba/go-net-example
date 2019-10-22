@@ -19,7 +19,7 @@ type Room struct {
 	tr     *Teoroom                 // Pointer to Teoroom receiver
 	id     uint32                   // Room id
 	roomID gocql.UUID               // Room UUID
-	state  int                      // Room state: 0 - creating; 1 - running; 2 - closed; 3 - stopped
+	state  byte                     // Room state: 0 - creating; 1 - running; 2 - closed; 3 - stopped
 	client []*Client                // List of clients in room by position: client[0] - position 1 ... client[0] - position 10
 	cliwas map[string]*ClientInRoom // Map of clients which was in room (included clients connected now)
 	gparam *GameParameters          // Game parameters
@@ -48,30 +48,26 @@ const (
 )
 
 // newRoom creates new room.
-func (tr *Teoroom) newRoom() (room *Room) {
-	room = &Room{
+func (tr *Teoroom) newRoom() (r *Room) {
+	r = &Room{
 		tr:     tr,
 		id:     tr.roomID,
 		roomID: gocql.TimeUUID(),
 		cliwas: make(map[string]*ClientInRoom),
 		state:  RoomCreating,
 	}
-	room.newGameParameters("g001")
 
-	// Save statistic to cdb
-	req := &cdb.RoomCreateRequest{RoomID: room.roomID, RoomNum: room.id}
-	data, _ := req.MarshalBinary()
-	teoCdb := "teo-cdb"
-	tr.teo.SendTo(teoCdb, 134, data)
-	// res := <-tr.teo.WaitFrom(teoCdb, 134)
-	// r := cdb.RoomCreateResponce{}
-	// r.UnmarshalBinary(res.Data)
-	// room.roomID = r.RoomID
+	// Read game parameters from config and cdb
+	// TDOD: get game name from new room requrest parameters
+	r.newGameParameters("g001")
 
-	fmt.Printf("Room id %d created, UUID: %s\n", room.id, room.roomID.String())
+	// Save room create statistic to cdb
+	r.sendRoomStateCreate()
 
-	tr.creating = append(tr.creating, room.id)
-	tr.mroom[room.id] = room
+	fmt.Printf("Room id %d created, UUID: %s\n", r.id, r.roomID.String())
+
+	tr.creating = append(tr.creating, r.id)
+	tr.mroom[r.id] = r
 	tr.roomID++
 	return
 }
@@ -141,17 +137,14 @@ func (r *Room) startRoom() {
 	r.state = RoomRunning
 	fmt.Printf("Room id %d started (game time: %d)\n", r.id, r.gparam.GameTime)
 	r.sendToClients(teoroomcli.ComStart, nil)
-
-	// Save statistic to cdb
-	req := &cdb.RoomStatusRequest{RoomID: r.roomID, Status: RoomRunning}
-	data, _ := req.MarshalBinary()
-	r.tr.teo.SendTo("teo-cdb", 135, data)
+	r.sendRoomState()
 
 	// send disconnect to rooms clients after GameTime
 	go func() {
 		<-time.After(time.Duration(r.gparam.GameTime) * time.Millisecond)
 		r.state = RoomStopped
-		fmt.Printf("Room id %d closed\n", r.id)
+		fmt.Printf("Room id %d stopped\n", r.id)
+		r.sendRoomState()
 		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
 			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
 			r.tr.Process.ComDisconnect(client)
@@ -173,6 +166,16 @@ func (r *Room) sendToClients(cmd int, data []byte) {
 	r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
 		r.tr.teo.SendToClientAddr(l0, client, byte(cmd), data)
 	})
+}
+
+// SendRoomCreate sends room created state to cdb room statistic
+func (r *Room) sendRoomStateCreate() {
+	cdb.SendRoomCreate(r.tr.teo, r.roomID, r.id)
+}
+
+// sendRoomState sends room state to cdb room statistic
+func (r *Room) sendRoomState() {
+	cdb.SendRoomStatus(r.tr.teo, r.roomID, r.state)
 }
 
 // newClient creates new Client (or add Client to Room controller).
