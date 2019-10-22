@@ -87,16 +87,16 @@ func (r *Room) addClient(cli *Client) (clientID int) {
 	r.client = append(r.client, cli)
 	clientID = len(r.client) - 1
 	r.cliwas[cli.name] = &ClientInRoom{cli, RoomCreating}
-	fmt.Printf("Client name: %s, id in room: %d, added to room id %d\n",
-		cli.name, clientID, r.id)
+	fmt.Printf("Client %s added to room id %d, id in room: %d,\n",
+		cli.name, r.id, clientID)
 	return
 }
 
 // clientReady calls when client loaded, sends his start position and ready to
 // run. When number of reday clients has reached `MinClientsToStart` the game
 // started.
-func (r *Room) clientReady(cliID int) {
-	client := r.client[cliID]
+func (r *Room) clientReady(clientID int) {
+	client := r.client[clientID]
 
 	// If room already closed or stoppet than send disconnect for this client
 	if r.state == RoomClosed || r.state == RoomStopped {
@@ -111,8 +111,8 @@ func (r *Room) clientReady(cliID int) {
 	// If room already started: send command ComStart to this new client.
 	if r.state == RoomRunning {
 		// TODO: send RoomClientAdd to room statistic
-		fmt.Printf("Client id %d added to running room id %d (game time: %d)\n",
-			cliID, r.id, r.gparam.GameTime)
+		fmt.Printf("Client %s added to running room id %d, id in room: %d\n",
+			client.name, r.id, clientID)
 		r.sendToClients(teoroomcli.ComStart, nil)
 		return
 	}
