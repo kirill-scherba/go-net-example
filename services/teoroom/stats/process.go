@@ -58,3 +58,14 @@ func (p *Process) ComRoomStateChanged(pac TeoPacket) (err error) {
 	}
 	return
 }
+
+// ComClientStatus process rooms client state changed command
+func (p *Process) ComClientStatus(pac TeoPacket) (err error) {
+	req := &stats.ClientStatusRequest{}
+	req.UnmarshalBinary(pac.Data())
+	switch req.Status {
+	case stats.ClientAdded:
+		err = p.setAdded(req.RoomID, req.ID)
+	}
+	return
+}

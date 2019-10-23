@@ -124,3 +124,46 @@ func BenchmarkRoomCreateResponceUnmarshalBinary(b *testing.B) {
 	res := &RoomCreateResponce{}
 	res.UnmarshalBinary(data)
 }
+
+func TestClientStatusRequest(t *testing.T) {
+	var data []byte
+	var err error
+	t.Run("MarshalUnmarshal", func(t *testing.T) {
+
+		roomID, _ := gocql.ParseUUID("a5f8a6b5-f39e-11e9-adbc-40a3cc55de62")
+		id, _ := gocql.ParseUUID("66d68dc9-f4ed-11e9-bd5f-107b4445878a")
+		var gameStat = []byte("Hello!")
+
+		// i = 0 - full request; i = 1 - request with GameStat = nil
+		for i := 0; i < 2; i++ {
+
+			req := &ClientStatusRequest{
+				RoomID:   roomID,
+				ID:       id,
+				GameStat: gameStat,
+			}
+
+			if data, err = req.MarshalBinary(); err != nil {
+				t.Error(err)
+				return
+			}
+
+			req = &ClientStatusRequest{}
+			if err = req.UnmarshalBinary(data); err != nil {
+				t.Error(err)
+				return
+			}
+
+			if !(req.RoomID.String() == roomID.String() &&
+				req.ID.String() == id.String() &&
+				string(req.GameStat) == string(gameStat)) {
+				t.Error(errors.New("ivalid unmarshalled values"))
+				fmt.Printf(" i = %d, %v\n", i, req)
+				return
+			}
+
+			gameStat = nil
+		}
+
+	})
+}

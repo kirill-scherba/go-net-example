@@ -59,6 +59,8 @@ func main() {
 		Cmd: 134, Descr: "Room created",
 	}).Add(&teoregistry.Command{
 		Cmd: 135, Descr: "Room state changed",
+	}).Add(&teoregistry.Command{
+		Cmd: 136, Descr: "Client status changed",
 	})
 
 	// Read Teonet parameters from configuration file and parse application
@@ -129,8 +131,6 @@ func main() {
 					res.ID, res.AccessToken, res.Prefix)
 				break
 			}
-			//fmt.Println(res)
-
 			// Create user
 			res, err = usr.Process.ComCreateUser(pac)
 			if err != nil {
@@ -147,6 +147,11 @@ func main() {
 		// # 135: Room state changed
 		case teoroomStatsCli.CmdRoomStatus:
 			room.ComRoomStateChanged(pac)
+
+		// # 136: Client status changed
+		case teoroomStatsCli.CmdClientStatus:
+			room.ComClientStatus(pac)
+
 		}
 	}
 

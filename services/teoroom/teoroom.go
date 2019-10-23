@@ -13,6 +13,7 @@ import (
 	"fmt"
 
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -135,7 +136,7 @@ func (p *Process) ComRoomRequest(pac *teonet.Packet) (err error) {
 		return
 	}
 	// Find or create room for client
-	_, cliID, err := p.tr.newClient(pac).roomRequest()
+	roomID, cliID, err := p.tr.newClient(pac).roomRequest()
 	if err != nil {
 		return
 	}
@@ -144,6 +145,11 @@ func (p *Process) ComRoomRequest(pac *teonet.Packet) (err error) {
 	//p.tr.teo.SendAnswer(pac, teoroomcli.ComRoomRequestAnswer, data)
 	_, err = p.tr.teo.SendToClientAddr(pac.GetL0(), client,
 		teoroomcli.ComRoomRequestAnswer, data)
+
+	// Send client status ClientAdded to statistic
+	r := p.tr.mroom[roomID]
+	cli := p.tr.mcli[client]
+	cli.sendClientStatus(stats.ClientAdded, r.roomID)
 
 	return
 }

@@ -25,14 +25,6 @@ type Room struct {
 	gparam *GameParameters          // Game parameters
 }
 
-// Client data
-type Client struct {
-	tr                   *Teoroom // Pointer to Teoroom receiver
-	name                 string   // Client name
-	data                 [][]byte // Client data (which sends to new room clients)
-	*teonet.L0PacketData          // Client L0 address
-}
-
 // ClientInRoom Data
 type ClientInRoom struct {
 	*Client
@@ -194,61 +186,4 @@ func (r *Room) sendState() {
 func (r *Room) setState(state byte) {
 	r.state = state
 	r.sendState()
-}
-
-// newClient creates new Client (or add Client to Room controller).
-func (tr *Teoroom) newClient(c *teonet.Packet) (cli *Client) {
-	l0 := c.GetL0()
-	client := c.From()
-	cli = &Client{tr: tr, name: client, L0PacketData: l0}
-	tr.mcli[client] = cli
-	return
-}
-
-// roomRequest finds room for client or create new room and adds client to this
-// room. It returns roomID and cliID or error if not found. The RoomID is an
-// unical room number since this application started. The cliID is a client
-// number (and position) in this room.
-func (cli *Client) roomRequest() (roomID uint32, cliID int, err error) {
-	for _, rid := range cli.tr.creating {
-		if r, ok := cli.tr.mroom[rid]; ok &&
-			r.state != RoomClosed && r.state != RoomStopped &&
-			func() bool { _, ok := r.cliwas[cli.name]; return !ok }() &&
-			len(r.client) < r.gparam.MaxClientsInRoom {
-			return r.id, r.addClient(cli), nil
-		}
-	}
-	r := cli.tr.newRoom()
-	// send disconnect to rooms clients if can't find clients during WaitForMinClients
-	go func() {
-		<-time.After(time.Duration(r.gparam.WaitForMinClients) * time.Millisecond)
-		if !(r.state == RoomCreating && r.numClients() < r.gparam.MinClientsToStart) {
-			return
-		}
-		fmt.Printf("Room id %d stopped. Can't find players during start "+
-			"timeout.\n", r.id)
-		r.setState(RoomStopped)
-		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
-			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
-			r.tr.Process.ComDisconnect(client)
-		})
-	}()
-	return r.id, r.addClient(cli), nil
-}
-
-// roomClientID finds client in rooms and returns roomID and cliID or error if
-// not found. The RoomID is an unical room number since this application
-// started. The cliID is a client number (and position) in this room.
-func (cli *Client) roomClientID() (roomID uint32, cliID int, err error) {
-	var r *Room
-	for roomID, r = range cli.tr.mroom {
-		for id, c := range r.client {
-			if c == cli {
-				cliID = id
-				return
-			}
-		}
-	}
-	err = fmt.Errorf("Can't find client %s in room structure", cli.name)
-	return
 }

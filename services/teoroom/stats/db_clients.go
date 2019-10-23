@@ -91,30 +91,30 @@ func (d *clients) setByColumnsNumber(r interface{}, columnsNum ...int) (err erro
 }
 
 // setAdded client added to room (create new client and set time)
-func (d *clients) setAdded(roomID gocql.UUID, ID gocql.UUID) (err error) {
+func (d *clients) setAdded(roomID gocql.UUID, id gocql.UUID) (err error) {
 	client := &Client{
 		RoomID: roomID,
-		ID:     ID,
+		ID:     id,
 		Added:  time.Now(),
 	}
 	return d.set(client)
 }
 
 // setLeave set client leave time
-func (d *clients) setLeave(roomID gocql.UUID, ID gocql.UUID) (err error) {
+func (d *clients) setLeave(roomID gocql.UUID, id gocql.UUID) (err error) {
 	client := &Client{
 		RoomID: roomID,
-		ID:     ID,
+		ID:     id,
 		Leave:  time.Now(),
 	}
 	return d.setByColumnsNumber(client, cColLeave)
 }
 
 // setGameStat set clients game statistic
-func (d *clients) setGameStat(roomID gocql.UUID, ID gocql.UUID, gameStat []byte) (err error) {
+func (d *clients) setGameStat(roomID gocql.UUID, id gocql.UUID, gameStat []byte) (err error) {
 	client := &Client{
 		RoomID:   roomID,
-		ID:       ID,
+		ID:       id,
 		GameStat: gameStat,
 	}
 	return d.setByColumnsNumber(client, cColGameStat)
