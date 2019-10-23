@@ -122,6 +122,25 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	return
 }
 
+const packetIDlimit = 0x100000000
+
+// modSubU module of subtraction
+func (pac *packetType) modSubU(arga, argb uint32, mod uint64) int64 {
+	sub := (uint64(arga) % mod) + mod - (uint64(argb) % mod)
+	return int64(sub % mod)
+}
+
+// packetDistance check received packet dispance and return integer value
+// lesse than zero than 'id < expectedID' or return integer value more than
+// zero than 'id > tcd.expectedID'
+func (pac *packetType) packetDistance(expectedID uint32, id uint32) int {
+	diff := pac.modSubU(id, expectedID, packetIDlimit)
+	if diff < packetIDlimit/2 {
+		return int(diff)
+	}
+	return int(diff - packetIDlimit)
+}
+
 // packetDataProcess process received data packet, check receivedQueue and
 // send received data and events to user level
 func (pac *packetType) packetDataProcess(tcd *ChannelData) {
@@ -130,7 +149,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 
 	// Valid data packet
 	case id == tcd.expectedID:
-		tcd.expectedID++
+		tcd.incID(&tcd.expectedID)
 		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightGreen,
 			fmt.Sprintf("received valid packet id: %d, channel: %s",
 				int(id), tcd.GetKey())))
@@ -159,7 +178,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 		tcd.trudp.sendEvent(tcd, EvSendReset, nil)
 
 	// Already processed packet (id < expectedID)
-	case id < tcd.expectedID:
+	case pac.packetDistance(tcd.expectedID, id) < 0: //  id < tcd.expectedID:
 		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightBlue,
 			fmt.Sprintf("skip received packet id: %d, channel: %s, "+
 				"already processed", id, tcd.GetKey())))
@@ -168,7 +187,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 
 	// Packet with id more than expectedID placed to receive queue and wait
 	// previouse packets
-	case id > tcd.expectedID:
+	case pac.packetDistance(tcd.expectedID, id) > 0: // id > tcd.expectedID:
 		_, _, err := tcd.receiveQueueFind(id)
 		if err != nil {
 			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSIYellow,

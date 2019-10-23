@@ -55,7 +55,7 @@ func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) {
 		if !tcd.trudp.sendEventAvailable() {
 			teolog.Error(MODULE, "ebzdik-2:"+strconv.Itoa(len(tcd.trudp.chanEvent)))
 		}
-		tcd.expectedID++
+		tcd.incID(&tcd.expectedID)
 		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:", rqd.packet.getID())
 		sendEvent(rqd.packet.getData())
 		tcd.receiveQueueRemove(e)
