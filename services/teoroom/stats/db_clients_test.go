@@ -7,10 +7,11 @@ import (
 	"github.com/gocql/gocql"
 )
 
-func TestCdb(t *testing.T) {
+func TestDbClients(t *testing.T) {
 
 	roomID := gocql.TimeUUID()
-	roomNum := uint32(1)
+	clientID := gocql.TimeUUID()
+	gameStat := []byte("Hello")
 	var err error
 	var db *db
 
@@ -24,32 +25,24 @@ func TestCdb(t *testing.T) {
 	})
 	defer db.close()
 
-	t.Run("Set-Creating", func(t *testing.T) {
-		err = db.setCreating(roomID, roomNum)
+	t.Run("Set-Added", func(t *testing.T) {
+		err = db.setAdded(roomID, clientID)
 		if err != nil {
 			t.Error(err)
 			return
 		}
 	})
 
-	t.Run("Set-Running", func(t *testing.T) {
-		err = db.setRunning(roomID)
+	t.Run("Set-Leave", func(t *testing.T) {
+		err = db.setLeave(roomID, clientID)
 		if err != nil {
 			t.Error(err)
 			return
 		}
 	})
 
-	t.Run("Set-Closed", func(t *testing.T) {
-		err = db.setClosed(roomID)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-	})
-
-	t.Run("Set-Stopped", func(t *testing.T) {
-		err = db.setStopped(roomID)
+	t.Run("Set-GameStat", func(t *testing.T) {
+		err = db.setGameStat(roomID, clientID, gameStat)
 		if err != nil {
 			t.Error(err)
 			return

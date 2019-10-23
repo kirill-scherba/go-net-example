@@ -6,7 +6,8 @@ CREATE KEYSPACE IF NOT EXISTS teoroom WITH replication = {
 
 USE teoroom;
 
-CREATE TABLE IF NOT EXISTS  rooms (
+/* Room state */
+CREATE TABLE IF NOT EXISTS rooms (
    id uuid,
    room_num int,
    created timestamp,
@@ -23,3 +24,14 @@ CREATE TABLE IF NOT EXISTS  rooms (
  CREATE INDEX IF NOT EXISTS ON rooms (stopped);
  CREATE INDEX IF NOT EXISTS ON rooms (state);
  
+ /* Room client state */
+ CREATE TABLE IF NOT EXISTS clients (
+   room_id uuid,
+   id uuid,
+   added timestamp,
+   leave timestamp,
+   game_stat blob,
+   PRIMARY KEY (room_id, id)
+ );
+ CREATE INDEX IF NOT EXISTS ON clients (added);
+ CREATE INDEX IF NOT EXISTS ON clients (leave);
