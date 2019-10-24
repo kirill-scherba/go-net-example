@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teolog is the Teonet loger package
+// Package teolog is the Teonet loger package
 //
 package teolog
 
@@ -140,7 +140,7 @@ func logOutput(calldepth int, level int, p ...interface{}) {
 	if level <= param.level {
 		var pp []interface{}
 		pp = make([]interface{}, 0, 1+len(p))
-		pp = append(append(pp, LevelStringColor(level)), p...)
+		pp = append(append(pp, LoglevelStringColor(level)), p...)
 		msg := fmt.Sprintln(pp...)
 		if checkFilter(msg) {
 			param.log.Output(calldepth+1, msg)
@@ -153,7 +153,7 @@ func logOutputf(calldepth int, level int, module string, format string, p ...int
 	if level <= param.level {
 		var pp []interface{}
 		pp = make([]interface{}, 0, 2+len(p))
-		pp = append(append(pp, LevelStringColor(level), module), p...)
+		pp = append(append(pp, LoglevelStringColor(level), module), p...)
 		msg := fmt.Sprintf("%s %s "+format, pp...)
 		if checkFilter(msg) {
 			param.log.Output(calldepth+1, msg)
@@ -165,7 +165,7 @@ func logOutputf(calldepth int, level int, module string, format string, p ...int
 // Avalable level values: NONE, CONNECT, ERROR, MESSAGE, DEBUG, DEBUGv, DEBUGvv
 func Init(level interface{}, useLogF bool, flags int, filter string) {
 
-	param.log = log.New(os.Stdout, "", flags)
+	param.log = log.New(os.Stdout, teokeys.ANSIDarkGrey, flags)
 
 	// Set log flags
 	if flags == 0 {
@@ -174,28 +174,33 @@ func Init(level interface{}, useLogF bool, flags int, filter string) {
 	log.SetFlags(flags)
 
 	// Set log level
-	switch l := level.(type) {
-	case int:
-		param.level = l
-	case string:
-		param.level = LogLevel(l)
-	default:
-		param.level = DEBUG
-	}
+	SetLoglevel(level)
 
 	// Set log filter
 	SetFilter(filter)
 
 	// Show log level and log filter
-	fmt.Println("log level:", LevelString(param.level))
+	fmt.Println("log level:", LoglevelString(param.level))
 	if param.filter != "" {
 		fmt.Println("log filter:", param.filter)
 	}
 	fmt.Println()
 }
 
-// LogLevel return trudp log level in int format
-func LogLevel(lstr string) (level int) {
+// SetLoglevel sets log level in int or string format
+func SetLoglevel(level interface{}) {
+	switch l := level.(type) {
+	case int:
+		param.level = l
+	case string:
+		param.level = Loglevel(l)
+	default:
+		param.level = DEBUG
+	}
+}
+
+// Loglevel return log level in int format
+func Loglevel(lstr string) (level int) {
 	switch lstr {
 	case strNONE:
 		level = NONE
@@ -217,59 +222,58 @@ func LogLevel(lstr string) (level int) {
 	return
 }
 
-// LevelString return trudp log level in string format
-func LevelString(level int) (strLogLevel string) {
-
+// LoglevelString return trudp log level in string format
+func LoglevelString(level int) (strLoglevel string) {
 	switch level {
 	case NONE:
-		strLogLevel = strNONE
+		strLoglevel = strNONE
 	case CONNECT:
-		strLogLevel = strCONNECT
+		strLoglevel = strCONNECT
 	case ERROR:
-		strLogLevel = strERROR
+		strLoglevel = strERROR
 	case MESSAGE:
-		strLogLevel = strMESSAGE
+		strLoglevel = strMESSAGE
 	case DEBUG:
-		strLogLevel = strDEBUG
+		strLoglevel = strDEBUG
 	case DEBUGv:
-		strLogLevel = strDEBUGv
+		strLoglevel = strDEBUGv
 	case DEBUGvv:
-		strLogLevel = strDEBUGvv
+		strLoglevel = strDEBUGvv
 	default:
-		strLogLevel = strUNKNOWN
+		strLoglevel = strUNKNOWN
 	}
 	return
 }
 
-// LevelStringColor return trudp log level in string format with ansi collor
-func LevelStringColor(level int) (strLogLevel string) {
+// LoglevelStringColor return trudp log level in string format with ansi collor
+func LoglevelStringColor(level int) (strLoglevel string) {
 	switch level {
 	case NONE:
-		strLogLevel = teokeys.Color(teokeys.ANSIGrey, strNONE)
+		strLoglevel = teokeys.Color(teokeys.ANSIGrey, strNONE)
 	case CONNECT:
-		strLogLevel = teokeys.Color(teokeys.ANSIGreen, strCONNECT)
+		strLoglevel = teokeys.Color(teokeys.ANSIGreen, strCONNECT)
 	case ERROR:
-		strLogLevel = teokeys.Color(teokeys.ANSIRed, strERROR)
+		strLoglevel = teokeys.Color(teokeys.ANSIRed, strERROR)
 	case MESSAGE:
-		strLogLevel = teokeys.Color(teokeys.ANSICyan, strMESSAGE)
+		strLoglevel = teokeys.Color(teokeys.ANSICyan, strMESSAGE)
 	case DEBUG:
-		strLogLevel = teokeys.Color(teokeys.ANSIBlue, strDEBUG)
+		strLoglevel = teokeys.Color(teokeys.ANSIBlue, strDEBUG)
 	case DEBUGv:
-		strLogLevel = teokeys.Color(teokeys.ANSIBrown, strDEBUGv)
+		strLoglevel = teokeys.Color(teokeys.ANSIBrown, strDEBUGv)
 	case DEBUGvv:
-		strLogLevel = teokeys.Color(teokeys.ANSIMagenta, strDEBUGvv)
+		strLoglevel = teokeys.Color(teokeys.ANSIMagenta, strDEBUGvv)
 	default:
-		strLogLevel = strUNKNOWN
+		strLoglevel = strUNKNOWN
 	}
 	return
 }
 
-// Get logger filter
-func GetFilter() string {
+// Filter return logger filter
+func Filter() string {
 	return param.filter
 }
 
-// Set logger filter
+// SetFilter sets logger filter
 func SetFilter(filter string) {
 	param.filter = filter
 }
