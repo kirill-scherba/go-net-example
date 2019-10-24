@@ -29,11 +29,15 @@ import (
 	teoroomStats "github.com/kirill-scherba/teonet-go/services/teoroom/stats"
 	teoroomStatsCli "github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/services/teousers"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Version this teonet application version
 const Version = "0.0.1"
+
+// MODULE is this application module name
+const MODULE = "(teo-cdb)"
 
 func main() {
 
@@ -90,6 +94,8 @@ func main() {
 
 	// Commands processing
 	commands := func(pac *teonet.Packet) {
+		teolog.Debugf(MODULE, "got cmd %d: %s, from: %s", pac.Cmd(),
+			api.Descr(pac.Cmd()), pac.From())
 		switch pac.Cmd() {
 
 		// # 129: Binary command execute all cammands Set, Get and GetList in
@@ -182,12 +188,7 @@ func main() {
 
 			// When received command from teonet peer or client
 			case teonet.EventReceived:
-				pac := ev.Data
-				fmt.Printf("Event Received from: %s, cmd: %d, data: %s\n",
-					pac.From(), pac.Cmd(), pac.Data())
-
-				// Commands processing
-				go commands(pac)
+				go commands(ev.Data) // Commands processing
 			}
 		}
 	})

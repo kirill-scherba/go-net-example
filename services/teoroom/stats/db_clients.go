@@ -10,10 +10,10 @@
 package stats
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/table"
 )
@@ -86,7 +86,7 @@ func (d *clients) set(r interface{}, columns ...string) (err error) {
 		stmt, names = d.clientsTable.Update(columns...)
 	}
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(r)
-	fmt.Println(q.String())
+	teolog.Debug(MODULE, q.String())
 	return q.ExecRelease()
 }
 

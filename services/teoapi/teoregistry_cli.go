@@ -42,3 +42,14 @@ func (api *Teoapi) Sprint() (str string) {
 	}
 	return
 }
+
+// Descr return command description
+func (api *Teoapi) Descr(cmd byte) (descr string) {
+	for _, d := range api.com {
+		if int(cmd) == d.Cmd {
+			descr = d.Descr
+			return
+		}
+	}
+	return
+}
