@@ -41,7 +41,8 @@ func (hk *HotkeyMenu) Add(ikey interface{}, usage string, f func()) {
 	case []int:
 		hk.menu = append(hk.menu, Hotkey{hkey: hkey, usage: usage, f: f})
 	case int, int32:
-		hk.menu = append(hk.menu, Hotkey{hkey: append([]int(nil), int(hkey.(int32))), usage: usage, f: f})
+		hk.menu = append(hk.menu, Hotkey{hkey: append([]int(nil),
+			int(hkey.(int32))), usage: usage, f: f})
 	default:
 		panic(fmt.Sprintf("can't use type %T in HotkeyMenu.Add\n", hkey))
 	}
@@ -57,7 +58,8 @@ func (hk *HotkeyMenu) Usage() {
 		fmt.Print(line)
 	}
 	for _, item := range hk.menu {
-		fmt.Printf(Color(ANSIGreen, " "+string(item.hkey[0])) + " - " + item.usage + "\n")
+		fmt.Printf(Color(ANSIGreen, " "+string(item.hkey[0])) + " - " +
+			item.usage + "\n")
 	}
 	fmt.Print(line)
 }
@@ -65,7 +67,7 @@ func (hk *HotkeyMenu) Usage() {
 // Getch wait and return hotkey
 func (hk *HotkeyMenu) Getch() (ch int) {
 	for !hk.quitF {
-		ch = GetchNb()
+		ch = GetchNB()
 		if ch != 0 {
 			break
 		}
@@ -98,10 +100,10 @@ func (hk *HotkeyMenu) Process(ch int) {
 	}
 }
 
-// Run get char and process it once
+// Check get char and process it once
 func (hk *HotkeyMenu) Check() (ch int) {
 	if !hk.stopped {
-		ch = GetchNb()
+		ch = GetchNB()
 		if ch == 0 {
 			return
 		}
@@ -127,7 +129,7 @@ func (hk *HotkeyMenu) Run() {
 	}
 }
 
-// Process quit from Getch(). And the Getch() will reurn 0
+// Quit quit from Getch(). And the Getch() will reurn 0
 func (hk *HotkeyMenu) Quit() {
 	hk.quitF = true
 }

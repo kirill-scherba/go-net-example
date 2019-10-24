@@ -28,7 +28,7 @@ func TestSend(t *testing.T) {
 	version := "1.0.0"
 	param := teonet.Params()
 	param.Name = "teo-test"
-	param.LogLevel = "NONE"
+	param.Loglevel = "NONE"
 	param.L0wsAllow = false
 	teo := teonet.Connect(param, []string{"teo-go", "teo-test"}, version)
 	testSend := func(pac *teonet.Packet) {

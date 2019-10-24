@@ -25,7 +25,7 @@ type Parameters struct {
 	RPort            int    `json:"r-port"`           // remote host port
 	RChan            int    `json:"r-ch"`             // remote host channel(for TRUdp only)
 	Network          string `json:"network"`          // teonet network name
-	LogLevel         string `json:"log-level"`        // show log messages level
+	Loglevel         string `json:"log-level"`        // show log messages level
 	LogFilter        string `json:"log-filter"`       // log messages filter
 	ForbidHotkeysF   bool   `json:"forbid-hotkeys"`   // forbid hotkeys menu
 	ShowTrudpStatF   bool   `json:"show-trudp"`       // show trudp statistic
@@ -62,7 +62,7 @@ func Params(ii ...interface{}) (param *Parameters) {
 	flag.StringVar(&param.RAddr, "a", param.RAddr, "remote host address to connect to remote host")
 	flag.IntVar(&param.RChan, "c", param.RChan, "remote host channel (to connect to remote host TRUDP channel)")
 	flag.IntVar(&param.RPort, "r", param.RPort, "remote host port (to connect to remote host)")
-	flag.StringVar(&param.LogLevel, "log-level", param.LogLevel, "show log messages level")
+	flag.StringVar(&param.Loglevel, "log-level", param.Loglevel, "show log messages level")
 	flag.StringVar(&param.LogFilter, "log-filter", param.LogFilter, "set log messages filter")
 	flag.BoolVar(&param.ForbidHotkeysF, "forbid-hotkeys", param.ForbidHotkeysF, "forbid hotkeys menu")
 	flag.BoolVar(&param.ShowTrudpStatF, "show-trudp", param.ShowTrudpStatF, "show trudp statistic")
@@ -149,7 +149,7 @@ func (param *Parameters) configDir() string {
 func (param *Parameters) setDefault() {
 	param.Network = "local"
 	param.RAddr = "localhost"
-	param.LogLevel = "DEBUG"
+	param.Loglevel = "DEBUG"
 	param.CtrlcF = true
 	param.ShowParametersF = true
 }

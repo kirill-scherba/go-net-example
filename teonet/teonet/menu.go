@@ -9,7 +9,6 @@ package teonet
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -23,15 +22,14 @@ func (teo *Teonet) createMenu() {
 	if !teo.param.ForbidHotkeysF {
 
 		//in := bufio.NewReader(os.Stdin)
-		setLogLevel := func(loglevel int) {
+		setLoglevel := func(loglevel int) {
 			fmt.Print("\b")
-			logstr := teolog.LevelString(loglevel)
-			if teo.param.LogLevel == logstr {
-				logstr = teolog.LevelString(teolog.NONE)
+			logstr := teolog.LoglevelString(loglevel)
+			if teo.param.Loglevel == logstr {
+				logstr = teolog.LoglevelString(teolog.NONE)
 			}
-			teo.param.LogLevel = logstr
-			teolog.Init(teo.param.LogLevel, true,
-				log.LstdFlags|log.Lmicroseconds|log.Lshortfile, teo.param.LogFilter)
+			teo.param.Loglevel = logstr
+			teolog.SetLoglevel(teo.param.Loglevel)
 		}
 		readString := func(in *bufio.Reader, prompt string) (str string) {
 			var err error
@@ -51,8 +49,8 @@ func (teo *Teonet) createMenu() {
 		teo.menu = teokeys.CreateMenu("\bHot keys list:", "")
 
 		teo.menu.Add([]int{'h', '?', 'H'}, "show this help screen", func() {
-			//logLevel := param.LogLevel
-			setLogLevel(teolog.NONE)
+			//logLevel := param.Loglevel
+			setLoglevel(teolog.NONE)
 			teo.menu.Usage()
 		})
 
@@ -102,28 +100,28 @@ func (teo *Teonet) createMenu() {
 			})
 		}
 
-		teo.menu.Add('n', "show 'none' log messages", func() { setLogLevel(teolog.NONE) })
-		teo.menu.Add('c', "show 'connect' log messages", func() { setLogLevel(teolog.CONNECT) })
-		teo.menu.Add('d', "show 'debug' log messages", func() { setLogLevel(teolog.DEBUG) })
-		teo.menu.Add('v', "show 'debug_v log' messages", func() { setLogLevel(teolog.DEBUGv) })
-		teo.menu.Add('w', "show 'debug_vv' log messages", func() { setLogLevel(teolog.DEBUGvv) })
+		teo.menu.Add('n', "show 'none' log messages", func() { setLoglevel(teolog.NONE) })
+		teo.menu.Add('c', "show 'connect' log messages", func() { setLoglevel(teolog.CONNECT) })
+		teo.menu.Add('d', "show 'debug' log messages", func() { setLoglevel(teolog.DEBUG) })
+		teo.menu.Add('v', "show 'debug_v log' messages", func() { setLoglevel(teolog.DEBUGv) })
+		teo.menu.Add('w', "show 'debug_vv' log messages", func() { setLoglevel(teolog.DEBUGvv) })
 
 		teo.menu.Add('f', "set log messages filter", func() {
-			logLevel := teo.param.LogLevel
-			setLogLevel(teolog.NONE)
+			logLevel := teo.param.Loglevel
+			setLoglevel(teolog.NONE)
 			teo.menu.Stop(true)
 
 			go func() {
 				in := bufio.NewReader(os.Stdin)
 				teo.param.LogFilter = readString(in, "\b"+"enter log filter: ")
 				teolog.SetFilter(teo.param.LogFilter)
-				setLogLevel(teolog.LogLevel(logLevel))
+				setLoglevel(teolog.Loglevel(logLevel))
 				teo.menu.Stop(false)
 			}()
 		})
 
 		teo.menu.Add('s', "send command", func() {
-			setLogLevel(teolog.NONE)
+			setLoglevel(teolog.NONE)
 			teo.menu.Stop(true)
 
 			go func() {
@@ -177,13 +175,13 @@ func (teo *Teonet) createMenu() {
 		})
 
 		teo.menu.Add('q', "quit this application", func() {
-			logLevel := teo.param.LogLevel
-			setLogLevel(teolog.NONE)
+			logLevel := teo.param.Loglevel
+			setLoglevel(teolog.NONE)
 			fmt.Printf("\bPress y to quit application: ")
 			teo.menu.Stop(true)
 			ch := teo.menu.Getch()
 			fmt.Println()
-			setLogLevel(teolog.LogLevel(logLevel))
+			setLoglevel(teolog.Loglevel(logLevel))
 			if ch == 'y' || ch == 'Y' {
 				teo.menu.Stop(false)
 				teo.menu.Quit()

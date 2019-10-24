@@ -2,7 +2,7 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Teokeys is the Teonet terminal hotkeys menu, cursor position and colors
+// Package teokeys is the Teonet terminal hotkeys menu, cursor position and colors
 // processing package
 //
 package teokeys
@@ -10,8 +10,7 @@ package teokeys
 // CLI cursor position, colors and hotkeys processing module
 // Created 2019-08-10 by Kirill Scherba <kirill@scherba.ru>
 
-//// CGO definition (don't delay or edit it):
-//#include "rutil.h"
+// #include "rutil.h"
 import "C"
 
 // Version is Teokeys package version
@@ -44,7 +43,7 @@ func Color(color string, text string) string {
 	return color + text + ANSINone
 }
 
-// GetchNb non block getch() return 0 if no keys pressed
-func GetchNb() int {
+// GetchNB non block getch() return 0 if no keys pressed
+func GetchNB() int {
 	return int(C.nb_getch())
 }
