@@ -1,8 +1,7 @@
 package trudp
 
-//// CGO definition (don't delay or edit it):
-//#include <stdlib.h>
-//#include "packet.h"
+// #include <stdlib.h>
+// #include "packet.h"
 import "C"
 import (
 	"unsafe"

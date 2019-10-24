@@ -6,9 +6,8 @@
 //
 package teocli
 
-//// CGO definition (don't delay or edit it):
-//#include <string.h>
-//#include "teonet_l0_client.h"
+// #include <string.h>
+// #include "teonet_l0_client.h"
 /*
 uint8_t packetGetCommand(void *packetPtr) {
 	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
