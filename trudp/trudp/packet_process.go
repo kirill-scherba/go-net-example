@@ -145,10 +145,11 @@ func (pac *packetType) packetDistance(expectedID uint32, id uint32) int {
 // send received data and events to user level
 func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	id := pac.getID()
+	packetDistance := pac.packetDistance(tcd.expectedID, id)
 	switch {
 
 	// Valid data packet
-	case id == tcd.expectedID:
+	case packetDistance == 0: // id == tcd.expectedID:
 		tcd.incID(&tcd.expectedID)
 		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightGreen,
 			fmt.Sprintf("received valid packet id: %d, channel: %s",
@@ -178,7 +179,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 		tcd.trudp.sendEvent(tcd, EvSendReset, nil)
 
 	// Already processed packet (id < expectedID)
-	case pac.packetDistance(tcd.expectedID, id) < 0: //  id < tcd.expectedID:
+	case packetDistance < 0: //  id < tcd.expectedID:
 		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightBlue,
 			fmt.Sprintf("skip received packet id: %d, channel: %s, "+
 				"already processed", id, tcd.GetKey())))
@@ -187,7 +188,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 
 	// Packet with id more than expectedID placed to receive queue and wait
 	// previouse packets
-	case pac.packetDistance(tcd.expectedID, id) > 0: // id > tcd.expectedID:
+	case packetDistance > 0: // id > tcd.expectedID:
 		_, _, err := tcd.receiveQueueFind(id)
 		if err != nil {
 			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSIYellow,

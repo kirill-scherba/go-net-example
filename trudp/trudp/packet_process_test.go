@@ -28,12 +28,41 @@ func BenchmarkChannelData_GetId(b *testing.B) {
 	}
 }
 
+func BenchmarkChannelData_IncId(b *testing.B) {
+	tcd := &ChannelData{}
+	for i := 0; i < b.N; i++ {
+		if uint32(i) != tcd.incID(&tcd.id) && uint32(i+1) != tcd.id {
+			b.FailNow()
+		}
+	}
+}
+
 func TestChannelData_GetId(t *testing.T) {
 	tcd := &ChannelData{}
 	for i := 0; i < packetIDlimit/10000; i++ {
 		if i != int(tcd.getID()) {
 			t.Errorf("wrong id")
 		}
+	}
+
+	tcd.id = packetIDlimit - 1
+	tcd.getID()
+	if id := tcd.getID(); id != 1 {
+		t.Errorf("wrong get id when id overflow")
+	}
+}
+
+func TestChannelData_IncId(t *testing.T) {
+	tcd := &ChannelData{}
+	for i := 0; i < packetIDlimit/10000; i++ {
+		if i != int(tcd.incID(&tcd.id)) && uint32(i+1) != tcd.id {
+			t.Errorf("wrong id")
+		}
+	}
+
+	tcd.id = packetIDlimit - 1
+	if tcd.incID(&tcd.id); tcd.id != 1 {
+		t.Errorf("wrong get id when id overflow")
 	}
 }
 

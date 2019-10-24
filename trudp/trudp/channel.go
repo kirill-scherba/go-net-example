@@ -39,17 +39,6 @@ type ChannelData struct {
 	stat channelStat
 }
 
-// incID return current value and increment packet id
-func (tcd *ChannelData) incID(id *uint32) (currentID uint32) {
-	currentID = *id
-	if *id == packetIDlimit-1 {
-		*id = 1
-	} else {
-		(*id)++
-	}
-	return
-}
-
 // reset exequte reset of this cannel
 func (tcd *ChannelData) reset() {
 	// Clear sendQueue
@@ -98,13 +87,26 @@ func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 	return
 }
 
+// incID return current value and increment packet id
+func (tcd *ChannelData) incID(id *uint32) (currentID uint32) {
+	currentID = *id
+	if (*id)++; (*id) == 0 {
+		(*id)++
+	}
+	return
+}
+
 // getId return new packe id
-func (tcd *ChannelData) getID() (old uint32) {
+func (tcd *ChannelData) getID() (currentID uint32) {
 	for {
-		old = atomic.LoadUint32(&tcd.id)
-		new := old
-		tcd.incID(&new)
-		if ok := atomic.CompareAndSwapUint32(&tcd.id, old, new); ok {
+		currentID = atomic.LoadUint32(&tcd.id)
+		// newID := currentID
+		// tcd.incID(&new)
+		newID := currentID + 1
+		if newID == 0 {
+			newID++
+		}
+		if ok := atomic.CompareAndSwapUint32(&tcd.id, currentID, newID); ok {
 			break
 		}
 	}
