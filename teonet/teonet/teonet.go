@@ -80,7 +80,7 @@ func Connect(param *Parameters, appType []string, appVersion string, ii ...inter
 
 	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
-	teolog.Init(param.LogLevel, true, log.LstdFlags|log.Lmicroseconds|log.Lshortfile, param.LogFilter)
+	teolog.Init(param.Loglevel, true, log.Lmicroseconds|log.Lshortfile, param.LogFilter)
 
 	// Timer ticker and kernel channel init
 	teo.ticker = time.NewTicker(250 * time.Millisecond)
