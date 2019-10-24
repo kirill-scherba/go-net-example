@@ -84,7 +84,7 @@ func (d *rooms) set(r interface{}, columns ...string) (err error) {
 		stmt, names = d.roomsTable.Update(columns...)
 	}
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(r)
-	teolog.Debug(MODULE, q.String())
+	teolog.DebugV(MODULE, q.String())
 	return q.ExecRelease()
 }
 

@@ -11,10 +11,10 @@
 package teousers
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/table"
@@ -105,7 +105,7 @@ func (d *db) set(u interface{}, columns ...string) (err error) {
 		stmt, names = d.usersTable.Update(columns...)
 	}
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
-	fmt.Println(q.String())
+	teolog.DebugV(q.String())
 	return q.ExecRelease()
 }
 
@@ -116,7 +116,7 @@ func (d *db) set(u interface{}, columns ...string) (err error) {
 func (d *db) get(u interface{}, columns ...string) (err error) {
 	stmt, names := d.usersTable.Get(columns...)
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
-	fmt.Println(q.String())
+	teolog.DebugV(q.String())
 	return q.GetRelease(u)
 }
 
@@ -136,7 +136,7 @@ func (d *db) getAccess(u interface{}, columns ...string) (err error) {
 		ToCql()
 
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
-	fmt.Println(q.String())
+	teolog.DebugV(MODULE, q.String())
 	return q.GetRelease(u)
 }
 
@@ -145,6 +145,6 @@ func (d *db) getAccess(u interface{}, columns ...string) (err error) {
 func (d *db) delete(u interface{}) (err error) {
 	stmt, names := d.usersTable.Delete()
 	q := gocqlx.Query(d.session.Query(stmt), names).BindStruct(u)
-	fmt.Println(q.String())
+	teolog.DebugV(q.String())
 	return q.ExecRelease()
 }
