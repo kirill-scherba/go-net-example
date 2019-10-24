@@ -36,7 +36,7 @@ func (api *Teoapi) Add(c Command) *Teoapi {
 
 // Sprint print all added command to output string
 func (api *Teoapi) Sprint() (str string) {
-	str = fmt.Sprintf("The %s api commands:\n", api.app.Name)
+	str = fmt.Sprintf("\nThe %s api commands:\n", api.app.Name)
 	for i, c := range api.com {
 		str += fmt.Sprintf("%2d. Command %d: %s\n", i+1, c.Cmd, c.Descr)
 	}
