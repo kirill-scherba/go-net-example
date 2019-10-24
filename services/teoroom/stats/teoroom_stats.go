@@ -26,10 +26,13 @@
 //
 package stats
 
-import "github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
+import (
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+)
 
-// MODULE is this package name in logs
-var MODULE = "(teoroom/stat)"
+// MODULE is this package module name
+var MODULE = teokeys.Color(teokeys.ANSIBrown, "(teoroom-stat)")
 
 // Rooms is the teoroomcdb data structure and methods receiver
 type Rooms struct {

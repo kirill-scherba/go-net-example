@@ -55,6 +55,11 @@
 //
 package teousers
 
+import "github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+
+// MODULE is this package module name
+var MODULE = teokeys.Color(teokeys.ANSIBrown, "(teousers)")
+
 // Users is the teousers data structure and methods receiver
 type Users struct {
 	*db
