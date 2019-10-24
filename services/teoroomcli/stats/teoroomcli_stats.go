@@ -16,9 +16,9 @@ import (
 
 // Teoroom cdb commands
 const (
-	CmdRoomCreated  = iota + 134
-	CmdRoomStatus   // 135
-	CmdClientStatus // 136
+	CmdRoomCreated = iota + 134
+	CmdRoomState   // 135
+	CmdClientState // 136
 )
 
 // TeoCdb is Teonet teo-cdb peer name
@@ -90,14 +90,14 @@ func (res *RoomCreateResponce) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// RoomStatusRequest used in ComRoomStatus command as request
-type RoomStatusRequest struct {
+// RoomStateRequest used in ComRoomStatus command as request
+type RoomStateRequest struct {
 	RoomID gocql.UUID
 	Status byte
 }
 
 // MarshalBinary encodes RoomStatusRequest data into binary buffer.
-func (req *RoomStatusRequest) MarshalBinary() (data []byte, err error) {
+func (req *RoomStateRequest) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
 	binary.Write(buf, le, req.RoomID)
@@ -107,7 +107,7 @@ func (req *RoomStatusRequest) MarshalBinary() (data []byte, err error) {
 }
 
 // UnmarshalBinary decode binary buffer into RoomStatusRequest receiver data.
-func (req *RoomStatusRequest) UnmarshalBinary(data []byte) (err error) {
+func (req *RoomStateRequest) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
 	err = binary.Read(buf, le, &req.RoomID)
@@ -125,33 +125,36 @@ func SendRoomCreate(teo TeoConnector, roomID gocql.UUID, roomNum uint32) {
 	teo.SendTo(TeoCdb, CmdRoomCreated, data)
 }
 
-// SendRoomStatus sends RoomStatus to cdb
-func SendRoomStatus(teo TeoConnector, roomID gocql.UUID, status byte) {
-	req := &RoomStatusRequest{RoomID: roomID, Status: status}
+// SendRoomState sends RoomStatus to cdb
+func SendRoomState(teo TeoConnector, roomID gocql.UUID, status byte) {
+	req := &RoomStateRequest{RoomID: roomID, Status: status}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdRoomStatus, data)
+	teo.SendTo(TeoCdb, CmdRoomState, data)
 }
 
-// Status of client status request
+// State of client state request
 const (
 	ClientAdded = iota
+	ClientLoadded
+	ClientStarted
 	ClientLeave
+	ClientDisconnected
 	ClientGameStat
 )
 
-// ClientStatusRequest used in ComClientStatus command as request
-type ClientStatusRequest struct {
-	Status   byte // 0 - Added; 1 - Leave; 2 - GameStat;
+// ClientStateRequest used in ComClientState command as request
+type ClientStateRequest struct {
+	State    byte // 0 - Added; 1 - Leave; 2 - GameStat;
 	RoomID   gocql.UUID
 	ID       gocql.UUID
 	GameStat []byte
 }
 
-// MarshalBinary encodes ClientStatusRequest data into binary buffer.
-func (req *ClientStatusRequest) MarshalBinary() (data []byte, err error) {
+// MarshalBinary encodes ClientStateRequest data into binary buffer.
+func (req *ClientStateRequest) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
-	binary.Write(buf, le, req.Status)
+	binary.Write(buf, le, req.State)
 	binary.Write(buf, le, req.RoomID)
 	binary.Write(buf, le, req.ID)
 	binary.Write(buf, le, req.GameStat)
@@ -159,14 +162,14 @@ func (req *ClientStatusRequest) MarshalBinary() (data []byte, err error) {
 	return
 }
 
-// UnmarshalBinary decode binary buffer into ClientStatusRequest receiver data.
-func (req *ClientStatusRequest) UnmarshalBinary(data []byte) (err error) {
+// UnmarshalBinary decode binary buffer into ClientStateRequest receiver data.
+func (req *ClientStateRequest) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
-	err = binary.Read(buf, le, &req.Status)
+	err = binary.Read(buf, le, &req.State)
 	err = binary.Read(buf, le, &req.RoomID)
 	err = binary.Read(buf, le, &req.ID)
-	if l := len(data) - int(unsafe.Sizeof(req.Status)+unsafe.Sizeof(req.RoomID)+
+	if l := len(data) - int(unsafe.Sizeof(req.State)+unsafe.Sizeof(req.RoomID)+
 		unsafe.Sizeof(req.ID)); l > 0 {
 		req.GameStat = make([]byte, l)
 		binary.Read(buf, le, &req.GameStat)
@@ -174,13 +177,13 @@ func (req *ClientStatusRequest) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// SendClientStatus sends ClientStatus to cdb
-func SendClientStatus(teo TeoConnector, status byte, roomID gocql.UUID, id gocql.UUID, statAr ...[]byte) {
+// SendClientState sends ClientState to cdb
+func SendClientState(teo TeoConnector, state byte, roomID gocql.UUID, id gocql.UUID, statAr ...[]byte) {
 	var stat []byte
 	if len(statAr) > 0 {
 		stat = statAr[0]
 	}
-	req := &ClientStatusRequest{Status: status, RoomID: roomID, ID: id, GameStat: stat}
+	req := &ClientStateRequest{State: state, RoomID: roomID, ID: id, GameStat: stat}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdClientStatus, data)
+	teo.SendTo(TeoCdb, CmdClientState, data)
 }

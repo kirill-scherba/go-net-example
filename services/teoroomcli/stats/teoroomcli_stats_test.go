@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"unsafe"
 
 	"github.com/gocql/gocql"
 )
@@ -41,12 +42,14 @@ func ExampleRoomCreateRequest_MarshalBinary() {
 	var roomID = gocql.TimeUUID()
 	req := RoomCreateRequest{roomID, 123}
 	data, _ := req.MarshalBinary()
-	fmt.Println(data)
+	l := int(unsafe.Sizeof(roomID))
+	fmt.Println(data[l:])
 	// Output: [123 0 0 0]
 }
 
 func ExampleRoomCreateRequest_UnmarshalBinary() {
-	data := []byte{123, 0, 0, 0}
+	var roomID = gocql.TimeUUID()
+	data := append(roomID.Bytes(), []byte{123, 0, 0, 0}...)
 	req := &RoomCreateRequest{}
 	req.UnmarshalBinary(data)
 	fmt.Println(req.RoomNum)
@@ -137,7 +140,7 @@ func TestClientStatusRequest(t *testing.T) {
 		// i = 0 - full request; i = 1 - request with GameStat = nil
 		for i := 0; i < 2; i++ {
 
-			req := &ClientStatusRequest{
+			req := &ClientStateRequest{
 				RoomID:   roomID,
 				ID:       id,
 				GameStat: gameStat,
@@ -148,7 +151,7 @@ func TestClientStatusRequest(t *testing.T) {
 				return
 			}
 
-			req = &ClientStatusRequest{}
+			req = &ClientStateRequest{}
 			if err = req.UnmarshalBinary(data); err != nil {
 				t.Error(err)
 				return

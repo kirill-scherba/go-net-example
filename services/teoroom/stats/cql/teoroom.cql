@@ -29,9 +29,15 @@ CREATE TABLE IF NOT EXISTS rooms (
    room_id uuid,
    id uuid,
    added timestamp,
+   loadded timestamp,
+   started timestamp,
    leave timestamp,
+   disconnected timestamp,
    game_stat blob,
    PRIMARY KEY (room_id, id)
  );
  CREATE INDEX IF NOT EXISTS ON clients (added);
+ CREATE INDEX IF NOT EXISTS ON clients (loadded);
+ CREATE INDEX IF NOT EXISTS ON clients (started);
  CREATE INDEX IF NOT EXISTS ON clients (leave);
+ CREATE INDEX IF NOT EXISTS ON clients (disconnected);

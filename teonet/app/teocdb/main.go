@@ -145,11 +145,11 @@ func main() {
 			room.ComRoomCreated(pac)
 
 		// # 135: Room state changed
-		case teoroomStatsCli.CmdRoomStatus:
+		case teoroomStatsCli.CmdRoomState:
 			room.ComRoomStateChanged(pac)
 
 		// # 136: Client status changed
-		case teoroomStatsCli.CmdClientStatus:
+		case teoroomStatsCli.CmdClientState:
 			room.ComClientStatus(pac)
 
 		}

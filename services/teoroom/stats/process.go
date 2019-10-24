@@ -43,7 +43,7 @@ func (p *Process) ComRoomCreated(pac TeoPacket) (err error) {
 
 // ComRoomStateChanged process state changed command
 func (p *Process) ComRoomStateChanged(pac TeoPacket) (err error) {
-	req := &stats.RoomStatusRequest{}
+	req := &stats.RoomStateRequest{}
 	req.UnmarshalBinary(pac.Data())
 	switch req.Status {
 
@@ -61,11 +61,24 @@ func (p *Process) ComRoomStateChanged(pac TeoPacket) (err error) {
 
 // ComClientStatus process rooms client state changed command
 func (p *Process) ComClientStatus(pac TeoPacket) (err error) {
-	req := &stats.ClientStatusRequest{}
+	req := &stats.ClientStateRequest{}
 	req.UnmarshalBinary(pac.Data())
-	switch req.Status {
+	switch req.State {
+
 	case stats.ClientAdded:
 		err = p.setAdded(req.RoomID, req.ID)
+
+	case stats.ClientLoadded:
+		err = p.setLoadded(req.RoomID, req.ID)
+
+	case stats.ClientStarted:
+		err = p.setStarted(req.RoomID, req.ID)
+
+	case stats.ClientLeave:
+		err = p.setLeave(req.RoomID, req.ID)
+
+	case stats.ClientDisconnected:
+		err = p.setDisconnected(req.RoomID, req.ID)
 	}
 	return
 }

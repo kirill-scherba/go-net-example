@@ -20,20 +20,26 @@ import (
 
 // Client data structure
 type Client struct {
-	RoomID   gocql.UUID // Room ID
-	ID       gocql.UUID // ID
-	Added    time.Time  // Time added
-	Leave    time.Time  // Time leave
-	GameStat []byte     // Game statistic
+	RoomID       gocql.UUID // Room ID
+	ID           gocql.UUID // ID
+	Added        time.Time  // Time added
+	Loadded      time.Time  // Time loadded
+	Started      time.Time  // Time started
+	Leave        time.Time  // Time leave
+	Disconnected time.Time  // Time disconnected
+	GameStat     []byte     // Game statistic
 }
 
 // Column numbers
 const (
-	cColRoomID   = iota // 0
-	cColID              // 1
-	cColAdded           // 2
-	cColLeave           // 3
-	cColGameStat        // 4
+	cColRoomID       = iota // 0
+	cColID                  // 1
+	cColAdded               // 2
+	cColLoadded             // 3
+	cColStarted             // 4
+	cColLeave               // 5
+	cColDisconnected        // 6
+	cColGameStat            // 7
 )
 
 type clients struct {
@@ -48,14 +54,17 @@ func (d *db) newClients() *clients {
 		clientsMetadata: table.Metadata{
 			Name: "clients",
 			Columns: []string{
-				"room_id",   // 0
-				"id",        // 1
-				"added",     // 2
-				"leave",     // 3
-				"game_stat", // 4
+				"room_id",      // 0
+				"id",           // 1
+				"added",        // 2
+				"loadded",      // 3
+				"started",      // 4
+				"leave",        // 5
+				"disconnected", // 6
+				"game_stat",    // 7
 			},
 			PartKey: []string{"room_id", "id"},
-			SortKey: []string{}, //"added", "leave"
+			SortKey: []string{},
 		},
 	}
 	// clientsTable allows for simple CRUD operations based on personMetadata.
@@ -100,7 +109,27 @@ func (d *clients) setAdded(roomID gocql.UUID, id gocql.UUID) (err error) {
 	return d.set(client)
 }
 
-// setLeave set client leave time
+// setLoadded client loaded to room
+func (d *clients) setLoadded(roomID gocql.UUID, id gocql.UUID) (err error) {
+	client := &Client{
+		RoomID:  roomID,
+		ID:      id,
+		Loadded: time.Now(),
+	}
+	return d.setByColumnsNumber(client, cColLoadded)
+}
+
+// setStarted client started play in room
+func (d *clients) setStarted(roomID gocql.UUID, id gocql.UUID) (err error) {
+	client := &Client{
+		RoomID:  roomID,
+		ID:      id,
+		Started: time.Now(),
+	}
+	return d.setByColumnsNumber(client, cColStarted)
+}
+
+// setLeave set client leave from rom
 func (d *clients) setLeave(roomID gocql.UUID, id gocql.UUID) (err error) {
 	client := &Client{
 		RoomID: roomID,
@@ -108,6 +137,16 @@ func (d *clients) setLeave(roomID gocql.UUID, id gocql.UUID) (err error) {
 		Leave:  time.Now(),
 	}
 	return d.setByColumnsNumber(client, cColLeave)
+}
+
+// setDisconnected client loaded to room
+func (d *clients) setDisconnected(roomID gocql.UUID, id gocql.UUID) (err error) {
+	client := &Client{
+		RoomID:       roomID,
+		ID:           id,
+		Disconnected: time.Now(),
+	}
+	return d.setByColumnsNumber(client, cColDisconnected)
 }
 
 // setGameStat set clients game statistic

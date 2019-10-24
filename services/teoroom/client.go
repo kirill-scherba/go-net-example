@@ -81,20 +81,20 @@ func (cli *Client) roomClientID() (roomID uint32, cliID int, err error) {
 	return
 }
 
-// sendClientStatus set client status and send it to cdb room statistic
-func (cli *Client) sendClientStatus(status byte, roomID gocql.UUID) (err error) {
+// sendState set client state and send it to cdb room statistic
+func (cli *Client) sendState(state byte, roomID gocql.UUID) (err error) {
 
 	cliID := strings.SplitN(cli.name, "-", 2)
 	if len(cliID) != 2 {
 		err = errors.New("wrong name")
 		return
 	}
-	fmt.Printf("sendClientStatus Added id: %s, game: %s, roomID: %s\n",
-		cliID[1], cliID[0], roomID.String())
+	fmt.Printf("Send client state %d, id: %s, game: %s, roomID: %s\n",
+		state, cliID[1], cliID[0], roomID.String())
 	clientID, err := gocql.ParseUUID(cliID[1])
 	if err != nil {
 		return
 	}
-	stats.SendClientStatus(cli.tr.teo, status, roomID, clientID)
+	stats.SendClientState(cli.tr.teo, state, roomID, clientID)
 	return
 }

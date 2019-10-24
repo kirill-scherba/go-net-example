@@ -88,23 +88,26 @@ func (r *Room) addClient(cli *Client) (clientID int) {
 // run. When number of reday clients has reached `MinClientsToStart` the game
 // started.
 func (r *Room) clientReady(clientID int) {
-	client := r.client[clientID]
+	cli := r.client[clientID]
+	cli.sendState(stats.ClientLoadded, r.roomID)
 
 	// If room already closed or stoppet than send disconnect for this client
 	if r.state == RoomClosed || r.state == RoomStopped {
-		r.tr.teo.SendToClientAddr(client.L0PacketData, client.name,
+		cli.sendState(stats.ClientDisconnected, r.roomID)
+		r.tr.teo.SendToClientAddr(cli.L0PacketData, cli.name,
 			teoroomcli.ComDisconnect, nil)
 	}
 
 	// Set client state 'running' in this room
 	// TODO: possible there should be (or may be) enother constant
-	r.cliwas[client.name].state = RoomRunning
+	r.cliwas[cli.name].state = RoomRunning
 
 	// If room already started: send command ComStart to this new client.
 	if r.state == RoomRunning {
 		// TODO: send RoomClientAdd to room statistic
 		fmt.Printf("Client %s added to running room id %d, id in room: %d\n",
-			client.name, r.id, clientID)
+			cli.name, r.id, clientID)
+		cli.sendState(stats.ClientAdded, r.roomID)
 		r.sendToClients(teoroomcli.ComStart, nil)
 		return
 	}
@@ -129,7 +132,13 @@ func (r *Room) clientReady(clientID int) {
 func (r *Room) startRoom() {
 	fmt.Printf("Room id %d started (game time: %d)\n", r.id, r.gparam.GameTime)
 	r.setState(RoomRunning)
+
 	r.sendToClients(teoroomcli.ComStart, nil)
+	r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
+		if cli, ok := r.tr.mcli[client]; ok {
+			cli.sendState(stats.ClientStarted, r.roomID)
+		}
+	})
 
 	// send disconnect to rooms clients after GameTime
 	go func() {
@@ -137,6 +146,9 @@ func (r *Room) startRoom() {
 		fmt.Printf("Room id %d stopped\n", r.id)
 		r.setState(RoomStopped)
 		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
+			if cli, ok := r.tr.mcli[client]; ok {
+				cli.sendState(stats.ClientDisconnected, r.roomID)
+			}
 			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
 			r.tr.Process.ComDisconnect(client)
 		})
@@ -179,7 +191,7 @@ func (r *Room) sendStateCreate() {
 
 // sendState sends room state to cdb room statistic
 func (r *Room) sendState() {
-	stats.SendRoomStatus(r.tr.teo, r.roomID, r.state)
+	stats.SendRoomState(r.tr.teo, r.roomID, r.state)
 }
 
 // setState set room state and send it to cdb room statistic

@@ -149,7 +149,7 @@ func (p *Process) ComRoomRequest(pac *teonet.Packet) (err error) {
 	// Send client status ClientAdded to statistic
 	r := p.tr.mroom[roomID]
 	cli := p.tr.mcli[client]
-	cli.sendClientStatus(stats.ClientAdded, r.roomID)
+	cli.sendState(stats.ClientAdded, r.roomID)
 
 	return
 }
