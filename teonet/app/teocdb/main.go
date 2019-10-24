@@ -29,6 +29,7 @@ import (
 	teoroomStats "github.com/kirill-scherba/teonet-go/services/teoroom/stats"
 	teoroomStatsCli "github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/services/teousers"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
@@ -37,7 +38,7 @@ import (
 const Version = "0.0.1"
 
 // MODULE is this application module name
-const MODULE = "(teo-cdb)"
+var MODULE = teokeys.Color(teokeys.ANSIMagenta, "(teocdb)")
 
 func main() {
 
@@ -50,13 +51,13 @@ func main() {
 		Version: Version,
 		Descr:   "Teonet-go CQL Database service",
 	}).Add(&teoregistry.Command{
-		Cmd: 129, Descr: "Binary set, get or get list binary {key,value} to/from key-value database",
+		Cmd: 129, Descr: "Binary set, get or get list",
 	}).Add(&teoregistry.Command{
-		Cmd: 130, Descr: "Set (insert or update) text or json {key,value} to key-value database",
+		Cmd: 130, Descr: "Set text or json {key,value} to key-value database",
 	}).Add(&teoregistry.Command{
-		Cmd: 131, Descr: "Get key and send answer with value in text or json format from key-value database",
+		Cmd: 131, Descr: "Get key and send answer with value in text or json format",
 	}).Add(&teoregistry.Command{
-		Cmd: 132, Descr: "List get not completed key and send answer with array of keys in text or json format from key-value database",
+		Cmd: 132, Descr: "List get not completed key and send answer with array of keys in text or json format",
 	}).Add(&teoregistry.Command{
 		Cmd: 133, Descr: "Check and register user",
 	}).Add(&teoregistry.Command{
@@ -64,7 +65,7 @@ func main() {
 	}).Add(&teoregistry.Command{
 		Cmd: 135, Descr: "Room state changed",
 	}).Add(&teoregistry.Command{
-		Cmd: 136, Descr: "Client status changed",
+		Cmd: 136, Descr: "Client state changed",
 	})
 
 	// Read Teonet parameters from configuration file and parse application
@@ -94,7 +95,7 @@ func main() {
 
 	// Commands processing
 	commands := func(pac *teonet.Packet) {
-		teolog.Debugf(MODULE, "got cmd %d: %s, from: %s", pac.Cmd(),
+		teolog.Debugf(MODULE, "got cmd %d: '%s', from: %s", pac.Cmd(),
 			api.Descr(pac.Cmd()), pac.From())
 		switch pac.Cmd() {
 
@@ -133,7 +134,7 @@ func main() {
 			// Check access token
 			res, err := usr.Process.ComCheckAccess(pac)
 			if err == nil {
-				fmt.Printf("User Validated: %s, %s, %s\n\n",
+				teolog.Debugf(MODULE, "user Validated: %s, %s, %s\n",
 					res.ID, res.AccessToken, res.Prefix)
 				break
 			}
@@ -143,7 +144,7 @@ func main() {
 				fmt.Printf("ComCreateUser Error: %s\n", err.Error())
 				break
 			}
-			fmt.Printf("User Created: %s, %s, %s\n\n",
+			teolog.Debugf(MODULE, "User Created: %s, %s, %s\n\n",
 				res.ID, res.AccessToken, res.Prefix)
 
 		// # 134: Room created
