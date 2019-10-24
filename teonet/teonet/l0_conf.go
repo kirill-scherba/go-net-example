@@ -27,11 +27,23 @@ type param struct {
 // paramConf is module receiver.
 type paramConf struct {
 	*conf.Teoconf
+	chanEvent
+	l0 *l0Conn
 }
 
 // parametersNew initialize parameters module.
 func (l0 *l0Conn) parametersNew() (p *paramConf) {
-	p = &paramConf{conf.New(l0.teo, &param{})}
+	p = &paramConf{conf.New(l0.teo, &param{}), l0.teo.ev.subscribe(), l0}
+	fmt.Printf("!!! Subscribed - peer connected !!!\n")
+	go func() {
+		// TODO: uncomment wg using when normolise close channel during exit
+		l0.teo.wg.Add(1)
+		for ev := range p.chanEvent {
+			p.eventProcess(ev)
+		}
+		fmt.Printf("!!! Subscribed channel closed !!!\n")
+		l0.teo.wg.Done()
+	}()
 	return
 }
 
@@ -40,7 +52,7 @@ func (p *paramConf) eventProcess(ev *EventData) {
 	if p == nil {
 		return
 	}
-	// Pocss event #3:  New peer connected to this host
+	// Process event #3:  New peer connected to this host
 	if ev.Event == EventConnected && ev.Data.From() == "teo-cdb" {
 		fmt.Printf("Teo-cdb peer connectd. Read config...\n")
 		if err := p.ReadBoth(); err != nil {
@@ -49,6 +61,12 @@ func (p *paramConf) eventProcess(ev *EventData) {
 		var v = p.Value().(*param)
 		fmt.Printf("Descr: %s\n", v.Descr)
 	}
+
+	// // Process event #4:  Peer disconnected to this host
+	// if ev.Event == EventDisconnected && ev.Data.From() == "teo-cdb" {
+	// 	p.l0.teo.ev.unsubscribe(p.chanEvent)
+	// 	fmt.Printf("!!! Unsubscribed - peer disconnected !!!\n")
+	// }
 }
 
 // Default return default value in json format.
