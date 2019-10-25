@@ -25,7 +25,6 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
 	"github.com/kirill-scherba/teonet-go/services/teocdbcli"
-	"github.com/kirill-scherba/teonet-go/services/teoregistry"
 	teoroomStats "github.com/kirill-scherba/teonet-go/services/teoroom/stats"
 	teoroomStatsCli "github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/services/teousers"
@@ -46,26 +45,10 @@ func main() {
 	teonet.Logo("Teonet-go CQL Database service", Version)
 
 	// Applications teonet registy api description
-	api := teoapi.NewTeoapi(&teoregistry.Application{
+	api := teoapi.New(&teoapi.Application{
 		Name:    "teocdb",
 		Version: Version,
 		Descr:   "Teonet-go CQL Database service",
-	}).Add(&teoregistry.Command{
-		Cmd: 129, Descr: "Binary set, get or get list",
-	}).Add(&teoregistry.Command{
-		Cmd: 130, Descr: "Set text or json {key,value} to key-value database",
-	}).Add(&teoregistry.Command{
-		Cmd: 131, Descr: "Get key and send answer with value in text or json format",
-	}).Add(&teoregistry.Command{
-		Cmd: 132, Descr: "List get not completed key and send answer with array of keys in text or json format",
-	}).Add(&teoregistry.Command{
-		Cmd: 133, Descr: "Check and register user",
-	}).Add(&teoregistry.Command{
-		Cmd: 134, Descr: "Room created",
-	}).Add(&teoregistry.Command{
-		Cmd: 135, Descr: "Room state changed",
-	}).Add(&teoregistry.Command{
-		Cmd: 136, Descr: "Client state changed",
 	})
 
 	// Read Teonet parameters from configuration file and parse application
@@ -93,74 +76,112 @@ func main() {
 	room, _ := teoroomStats.Connect(teo)
 	defer usr.Close()
 
-	// Commands processing
-	commands := func(pac *teonet.Packet) {
-		teolog.Debugf(MODULE, "got cmd %d: '%s', from: %s", pac.Cmd(),
-			api.Descr(pac.Cmd()), pac.From())
-		switch pac.Cmd() {
-
+	// Teoapi command description
+	api.Add(&teoapi.Command{
 		// # 129: Binary command execute all cammands Set, Get and GetList in
 		// binary format
-		case teocdbcli.CmdBinary:
-			err := tcdb.Process.CmdBinary(pac)
+		Cmd:   teocdbcli.CmdBinary,
+		Descr: "Binary set, get or get list",
+		Func: func(pac teoapi.Packet) (err error) {
+			err = tcdb.Process.CmdBinary(pac)
 			if err != nil {
 				fmt.Printf("CmdBinary Error: %s\n", err.Error())
 			}
-
+			return
+		},
+	}).Add(&teoapi.Command{
 		// # 130: Set (insert or update) text or json {key,value} to database
-		case teocdbcli.CmdSet:
-			err := tcdb.Process.CmdSet(pac)
+		Cmd:   teocdbcli.CmdSet,
+		Descr: "Set text or json {key,value} to key-value database",
+		Func: func(pac teoapi.Packet) (err error) {
+			err = tcdb.Process.CmdSet(pac)
 			if err != nil {
 				fmt.Printf("CmdSet Error: %s\n", err.Error())
 			}
-
+			return
+		},
+	}).Add(&teoapi.Command{
 		// # 131: Get key value and send answer with value in text or json format
-		case teocdbcli.CmdGet:
-			err := tcdb.Process.CmdGet(pac)
+		Cmd:   teocdbcli.CmdGet,
+		Descr: "Get key and send answer with value in text or json format",
+		Func: func(pac teoapi.Packet) (err error) {
+			err = tcdb.Process.CmdGet(pac)
 			if err != nil {
 				fmt.Printf("CmdGet Error: %s\n", err.Error())
 			}
-
+			return
+		},
+	}).Add(&teoapi.Command{
 		// # 132: Get list of keys (by not complete key) and send answer with
 		// array of keys in text or json format
-		case teocdbcli.CmdList:
-			err := tcdb.Process.CmdList(pac)
+		Cmd:   teocdbcli.CmdList,
+		Descr: "List get not completed key and send answer with array of keys in text or json format",
+		Func: func(pac teoapi.Packet) (err error) {
+			err = tcdb.Process.CmdList(pac)
 			if err != nil {
 				fmt.Printf("CmdList Error: %s\n", err.Error())
 			}
-
+			return
+		},
+	}).Add(&teoapi.Command{
 		// # 133: Check and register user
-		case teocdbcli.CheckUser:
+		Cmd:   teocdbcli.CheckUser,
+		Descr: "Check and register user",
+		Func: func(pac teoapi.Packet) (err error) {
 			// Check access token
 			res, err := usr.Process.ComCheckAccess(pac)
 			if err == nil {
 				teolog.Debugf(MODULE, "user Validated: %s, %s, %s\n",
 					res.ID, res.AccessToken, res.Prefix)
-				break
+				return
 			}
 			// Create user
 			res, err = usr.Process.ComCreateUser(pac)
 			if err != nil {
 				fmt.Printf("ComCreateUser Error: %s\n", err.Error())
-				break
+				return
 			}
 			teolog.Debugf(MODULE, "User Created: %s, %s, %s\n\n",
 				res.ID, res.AccessToken, res.Prefix)
-
+			return
+		},
+	}).Add(&teoapi.Command{
 		// # 134: Room created
-		case teoroomStatsCli.CmdRoomCreated:
+		Cmd:   teoroomStatsCli.CmdRoomCreated,
+		Descr: "Room created",
+		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomCreated(pac)
-
+			return
+		},
+	}).Add(&teoapi.Command{
 		// # 135: Room state changed
-		case teoroomStatsCli.CmdRoomState:
+		Cmd:   teoroomStatsCli.CmdRoomState,
+		Descr: "Room state changed",
+		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomStateChanged(pac)
-
+			return
+		},
+	}).Add(&teoapi.Command{
 		// # 136: Client status changed
-		case teoroomStatsCli.CmdClientState:
+		Cmd:   teoroomStatsCli.CmdClientState,
+		Descr: "Client state changed",
+		Func: func(pac teoapi.Packet) (err error) {
 			room.ComClientStatus(pac)
+			return
+		},
+	})
 
+	// Commands processing
+	commandChan := make(chan teoapi.Packet, 16)
+	go func() {
+		for {
+			pac, ok := <-commandChan
+			if !ok {
+				return
+			}
+			api.Process(pac)
 		}
-	}
+	}()
 
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
@@ -189,7 +210,11 @@ func main() {
 
 			// When received command from teonet peer or client
 			case teonet.EventReceived:
-				go commands(ev.Data) // Commands processing
+				pac := ev.Data
+				teolog.Debugf(MODULE, "got cmd %d: '%s', from: %s", pac.Cmd(),
+					api.Descr(pac.Cmd()), pac.From())
+				//go api.Process(pac)
+				commandChan <- pac
 			}
 		}
 	})

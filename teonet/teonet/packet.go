@@ -17,6 +17,12 @@ import (
 	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
+// receiveData recived data structure
+type receiveData struct {
+	rd  *C.ksnCorePacketData
+	tcd *trudp.ChannelData
+}
+
 // PacketCreateNew create teonet packet
 func (teo *Teonet) PacketCreateNew(from string, cmd byte, data []byte) (packet *Packet) {
 	fromC := C.CString(from)
@@ -38,12 +44,6 @@ func (teo *Teonet) PacketCreateNew(from string, cmd byte, data []byte) (packet *
 	return
 }
 
-// Packet is Teonet packet data and method receiver
-type Packet struct {
-	packet []byte
-	l0     *L0PacketData
-}
-
 // L0PacketData is l0 data of Teonet packet
 type L0PacketData struct {
 	addr string
@@ -59,6 +59,12 @@ func (l *L0PacketData) Addr() string {
 // Port l0 port getter
 func (l *L0PacketData) Port() int {
 	return l.port
+}
+
+// Packet is Teonet packet data and method receiver
+type Packet struct {
+	packet []byte
+	l0     *L0PacketData
 }
 
 // Len return packet length
@@ -109,12 +115,6 @@ func (pac *Packet) GetL0() *L0PacketData {
 	return pac.l0
 }
 
-// receiveData recived data structure
-type receiveData struct {
-	rd  *C.ksnCorePacketData
-	tcd *trudp.ChannelData
-}
-
 // Parse parse teonet packet to 'rd' structure and return it
 func (pac *Packet) Parse() (rd *C.ksnCorePacketData, err error) {
 	rd = &C.ksnCorePacketData{}
@@ -123,6 +123,12 @@ func (pac *Packet) Parse() (rd *C.ksnCorePacketData, err error) {
 		err = errors.New("not valid packet")
 	}
 	return
+}
+
+// RemoveTrailingZero remove trailing zero in byte slice
+func (pac *Packet) RemoveTrailingZero(data []byte) []byte { 
+	com := &command{}; 
+	return com.removeTrailingZero(data) 
 }
 
 // Packet return packet

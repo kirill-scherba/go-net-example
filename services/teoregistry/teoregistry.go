@@ -62,6 +62,7 @@ import (
 	"fmt"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 )
@@ -83,40 +84,10 @@ type Com struct {
 	tre *Teoregistry
 }
 
-// Application is the Table 'applications': Teonet applications (services)
-// description
-type Application struct {
-	UUID    gocql.UUID
-	Name    string
-	Version string
-	Descr   string
-	Author  string
-	License string
-	Goget   string
-	Git     string
-	Com     []Command
-}
-
 // Applist is short application representation used in list function and commands
 type Applist struct {
 	UUID gocql.UUID
 	Name string
-}
-
-// Command is the Table 'commands': Teonet applications commands description
-// - cmdType values:  0 - input; 1 - input/output (same parameters); 2 - output
-type Command struct {
-	AppID       gocql.UUID
-	Cmd         int
-	Type        uint8
-	Descr       string
-	TxtF        bool
-	TxtNum      uint8
-	TxtDescr    string
-	JSONF       bool
-	JSON        string
-	BinaryF     bool
-	BinaryDescr string
 }
 
 // Connect to the cql cluster and create teoregistry receiver.
@@ -149,7 +120,7 @@ func (tre *Teoregistry) Close() {
 }
 
 // Set inserts or updates application info
-func (app *App) Set(a *Application) (uuid gocql.UUID, err error) {
+func (app *App) Set(a *teoapi.Application) (uuid gocql.UUID, err error) {
 	stmt, names := qb.Update("applications").Set(
 		"name", "descr", "author", "license", "goget", "git",
 	).Where(qb.Eq("uuid")).ToCql()
@@ -163,8 +134,8 @@ func (app *App) Set(a *Application) (uuid gocql.UUID, err error) {
 }
 
 // Get gets application info
-func (app *App) Get(uuid gocql.UUID) (a *Application, err error) {
-	a = &Application{UUID: uuid}
+func (app *App) Get(uuid gocql.UUID) (a *teoapi.Application, err error) {
+	a = &teoapi.Application{UUID: uuid}
 	stmt, names := qb.Select("applications").Where(qb.Eq("uuid")).Limit(1).ToCql()
 	q := gocqlx.Query(app.tre.session.Query(stmt), names).BindMap(qb.M{
 		"uuid": uuid,
@@ -209,7 +180,7 @@ func (app *App) List() (listApp []Applist, err error) {
 }
 
 // Set inserts or updates command info
-func (com *Com) Set(c *Command) (err error) {
+func (com *Com) Set(c *teoapi.Command) (err error) {
 	stmt, names := qb.Update("commands").Set(
 		"descr", "txt_f", "txt_num", "txt_descr", "jsonf", "json",
 		"binary_f", "binary_descr",
@@ -241,7 +212,7 @@ func (com *Com) RemoveAll(appid gocql.UUID) (err error) {
 }
 
 // List gets list of commands
-func (com *Com) List(appid gocql.UUID) (listCom []Command, err error) {
+func (com *Com) List(appid gocql.UUID) (listCom []teoapi.Command, err error) {
 	stmt, names := qb.Select("commands").Where(qb.Eq("app_id")).ToCql()
 	q := gocqlx.Query(com.tre.session.Query(stmt), names).BindMap(qb.M{
 		"app_id": appid,

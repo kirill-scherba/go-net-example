@@ -16,9 +16,9 @@ import (
 
 // Teoroom cdb commands
 const (
-	CmdRoomCreated = iota + 134
-	CmdRoomState   // 135
-	CmdClientState // 136
+	CmdRoomCreated = iota + 134 // Room created
+	CmdRoomState                // 135 Room state changed
+	CmdClientState              // 136 Client state changed
 )
 
 // TeoCdb is Teonet teo-cdb peer name

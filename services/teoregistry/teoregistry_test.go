@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/services/teoapi"
 )
 
 func TestTeoregistry(t *testing.T) {
@@ -34,8 +35,8 @@ func TestTeoregistry(t *testing.T) {
 	const AppName = "teotest-7755"
 	var tre *Teoregistry
 	var uuid gocql.UUID
-	var app Application
-	var com Command
+	var app teoapi.Application
+	var com teoapi.Command
 	var err error
 
 	t.Run("Connect", func(t *testing.T) {
@@ -48,7 +49,7 @@ func TestTeoregistry(t *testing.T) {
 	})
 	defer tre.Close()
 
-	app = Application{
+	app = teoapi.Application{
 		UUID:   gocql.TimeUUID(),
 		Name:   AppName,
 		Descr:  "Teonet test application",
@@ -120,7 +121,7 @@ func TestTeoregistry(t *testing.T) {
 		}
 	})
 
-	com = Command{
+	com = teoapi.Command{
 		AppID:       uuid,
 		Cmd:         129,
 		Type:        0,

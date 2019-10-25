@@ -37,8 +37,8 @@ import (
 	"fmt"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
-	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
 // Teocdb is teocdb packet receiver
@@ -127,7 +127,7 @@ func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 type Process struct{ tcdb *Teocdb }
 
 // CmdBinary process CmdBinary command
-func (p *Process) CmdBinary(pac *teonet.Packet) (err error) {
+func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 	var request, responce cdb.KeyValue
 	err = request.UnmarshalBinary(pac.Data())
 	if err != nil {
@@ -161,8 +161,8 @@ func (p *Process) CmdBinary(pac *teonet.Packet) (err error) {
 }
 
 // CmdSet process CmdSet command
-func (p *Process) CmdSet(pac *teonet.Packet) (err error) {
-	data := teonet.RemoveTrailingZero(pac.Data())
+func (p *Process) CmdSet(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
 		return
@@ -181,8 +181,8 @@ func (p *Process) CmdSet(pac *teonet.Packet) (err error) {
 }
 
 // CmdGet process CmdGet command
-func (p *Process) CmdGet(pac *teonet.Packet) (err error) {
-	data := teonet.RemoveTrailingZero(pac.Data())
+func (p *Process) CmdGet(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
 		return
@@ -200,9 +200,9 @@ func (p *Process) CmdGet(pac *teonet.Packet) (err error) {
 }
 
 // CmdList process CmdList command
-func (p *Process) CmdList(pac *teonet.Packet) (err error) {
+func (p *Process) CmdList(pac teoapi.Packet) (err error) {
 	var keys cdb.KeyList
-	data := teonet.RemoveTrailingZero(pac.Data())
+	data := pac.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
 		return
