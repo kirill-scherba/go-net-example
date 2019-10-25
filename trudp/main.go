@@ -20,6 +20,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/trudp/trudp"
 )
 
+// MODULE is name in log
 const MODULE = "main"
 
 func main() {
@@ -63,7 +64,7 @@ func main() {
 
 	for reconnectF := false; ; {
 
-		tru := trudp.Init(port)
+		tru := trudp.Init(&port)
 
 		// Set log level
 		teolog.Init(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds, logFilter)
@@ -91,7 +92,7 @@ func main() {
 							time.Sleep(time.Duration(sendSleepTime) * time.Microsecond)
 						}
 						data := []byte("Hello-" + strconv.Itoa(num) + "!")
-						err := tcd.WriteTo(data)
+						_, err := tcd.Write(data)
 						if err != nil {
 							break
 						}
@@ -116,31 +117,31 @@ func main() {
 			for ev := range tru.ChanEvent() {
 				switch ev.Event {
 
-				case trudp.GOT_DATA:
+				case trudp.EvGotData:
 					teolog.Log(teolog.DEBUG, MODULE, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 					if sendAnswer {
-						ev.Tcd.WriteTo([]byte(string(ev.Data) + " - answer"))
+						ev.Tcd.Write([]byte(string(ev.Data) + " - answer"))
 					}
 
 				// case trudp.SEND_DATA:
 				// 	teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_DATA:", ev.Data, string(ev.Data))
 
-				case trudp.INITIALIZE:
+				case trudp.EvInitialize:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) INITIALIZE, listen at:", string(ev.Data))
 
-				case trudp.DESTROY:
+				case trudp.EvDestroy:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) DESTROY", string(ev.Data))
 
-				case trudp.CONNECTED:
+				case trudp.EvConnected:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) CONNECTED", string(ev.Data))
 
-				case trudp.DISCONNECTED:
+				case trudp.EvDisconnected:
 					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED", string(ev.Data))
 
-				case trudp.RESET_LOCAL:
+				case trudp.EvResetLocal:
 					teolog.Log(teolog.DEBUG, MODULE, "(main) RESET_LOCAL executed at channel:", ev.Tcd.GetKey())
 
-				case trudp.SEND_RESET:
+				case trudp.EvSendReset:
 					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:", ev.Tcd.GetKey())
 
 				default:
