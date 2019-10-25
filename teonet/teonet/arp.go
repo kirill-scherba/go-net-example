@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/kirill-scherba/teonet-go/teocli/teocli"
 	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
@@ -35,11 +36,15 @@ type arpData struct {
 type arp struct {
 	teo *Teonet             // ponter to Teonet
 	m   map[string]*arpData // arp map
+	mx  sync.RWMutex        // arp map mutex
 }
 
 // peerAdd create new peer in art table map without TCD. Used to create record
 // for this host only.
 func (arp *arp) peerAdd(peer, version string) (peerArp *arpData) {
+	arp.mx.Lock()
+	defer arp.mx.Unlock()
+
 	peerArp, ok := arp.m[peer]
 	if ok {
 		return
@@ -55,7 +60,6 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 
 	peer := rec.rd.From()
 
-	//peerArp, ok := arp.m[peer]
 	var ok bool
 	if peerArp, ok = arp.find(peer); ok {
 		if rec.tcd != peerArp.tcd {
@@ -79,7 +83,9 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 	if arp.teo.rhost.isrhost(rec.tcd) {
 		peerArp.mode = 1
 	}
+	arp.mx.Lock()
 	arp.m[peer] = peerArp
+	arp.mx.Unlock()
 	arp.print()
 	arp.teo.sendToTcd(rec.tcd, CmdNone, []byte{0})
 	arp.teo.sendToTcd(rec.tcd, CmdHostInfo, []byte{0})
@@ -103,6 +109,8 @@ func (arp *arp) peerNew(rec *receiveData) (peerArp *arpData) {
 //  - find by addr, port (channel = 0): <addr string, port int>
 //  - find by addr, port and channel: <addr string, port int, channel int>
 func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
+	arp.mx.RLock()
+	defer arp.mx.RUnlock()
 	switch len(i) {
 	case 1:
 		switch p := i[0].(type) {
@@ -145,12 +153,14 @@ func (arp *arp) find(i ...interface{}) (peerArp *arpData, ok bool) {
 
 // deletePeer remove peer from arp table
 func (arp *arp) deletePeer(peer string) {
-	if peerArp, ok := arp.m[peer]; ok {
+	if peerArp, ok := arp.find(peer); ok {
 		if peerArp.mode != -1 {
 			arp.teo.ev.send(EventDisconnected,
 				arp.teo.PacketCreateNew(peer, 0, nil))
 		}
+		arp.mx.Lock()
 		delete(arp.m, peer)
+		arp.mx.Unlock()
 		arp.print()
 	}
 }
@@ -158,7 +168,7 @@ func (arp *arp) deletePeer(peer string) {
 // delete remove peer from arp table and close trudp channel (by receiveData)
 func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 	peer := rec.rd.From()
-	peerArp, ok := arp.m[peer]
+	peerArp, ok := arp.find(peer)
 	if !ok {
 		return
 	}
@@ -171,6 +181,8 @@ func (arp *arp) delete(rec *receiveData) (peerArp *arpData) {
 
 // peer return peer name (find by tcd)
 func (arp *arp) peer(tcd *trudp.ChannelData) (string, error) {
+	arp.mx.RLock()
+	defer arp.mx.RUnlock()
 	for peer, peerArp := range arp.m {
 		if peerArp.tcd == tcd {
 			return peer, nil
@@ -181,18 +193,24 @@ func (arp *arp) peer(tcd *trudp.ChannelData) (string, error) {
 
 // delete remove peer from arp table /*and close trudp channel*/ (by trudp channel key)
 func (arp *arp) deleteKey(key string) (peerArp *arpData) {
-	for peer, peerArp := range arp.m {
+	arp.mx.RLock()
+	var peer string
+	for peer, peerArp = range arp.m {
 		if peerArp.tcd != nil && peerArp.tcd.GetKey() == key {
 			peerArp.tcd.Close()
+			arp.mx.RUnlock()
 			arp.deletePeer(peer)
-			break
+			return
 		}
 	}
+	arp.mx.RUnlock()
 	return
 }
 
 // deleteAll remove all peers from arp table
 func (arp *arp) deleteAll() {
+	arp.mx.RLock()
+	defer arp.mx.RUnlock()
 	for peer, arpData := range arp.m {
 		if arpData.tcd != nil {
 			if arpData.mode == 1 {
@@ -214,7 +232,9 @@ func (arp *arp) deleteAll() {
 		}
 		// delete(arp.m, peer)
 		// arp.print()
+		arp.mx.RUnlock()
 		arp.deletePeer(peer)
+		arp.mx.RLock()
 	}
 }
 
@@ -244,7 +264,7 @@ func (arp *arp) sprint() (str string) {
 	// Body
 	keys := arp.sort()
 	for _, peer := range keys {
-		peerArp, ok := arp.m[peer]
+		peerArp, ok := arp.find(peer)
 		if !ok {
 			continue
 		}
@@ -289,6 +309,8 @@ func (arp *arp) sprint() (str string) {
 
 // sort Sorts peers table
 func (arp *arp) sort() (keys []string) {
+	arp.mx.RLock()
+	defer arp.mx.RUnlock()
 	for key := range arp.m {
 		keys = append(keys, key)
 	}
@@ -303,7 +325,7 @@ func (arp *arp) binary() (peersDataAr []byte, peersDataArLen int) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, uint32(len(keys))) // Number of peers
 	for _, peer := range keys {
-		peerArp, ok := arp.m[peer]
+		peerArp, ok := arp.find(peer)
 		if !ok {
 			continue
 		}
@@ -378,7 +400,7 @@ func (arp *arp) json() (data []byte, peersDataArLen int) {
 	peersDataAr.Length = len(keys)
 	peersDataArLen = peersDataAr.Length
 	for _, peer := range keys {
-		peerArp, ok := arp.m[peer]
+		peerArp, ok := arp.find(peer)
 		if !ok {
 			continue
 		}
