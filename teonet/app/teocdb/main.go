@@ -171,17 +171,21 @@ func main() {
 		},
 	})
 
-	// Commands processing
+	// Commands processing workers pool
 	commandChan := make(chan teoapi.Packet, 16)
-	go func() {
-		for {
-			pac, ok := <-commandChan
-			if !ok {
-				return
+	for i := 0; i < 4; i++ {
+		go func(workerID int) {
+			for {
+				pac, ok := <-commandChan
+				if !ok {
+					return
+				}
+				teolog.Debugf(MODULE, "worker #%d got cmd %d: '%s', from: %s",
+					workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
+				api.Process(pac)
 			}
-			api.Process(pac)
-		}
-	}()
+		}(i)
+	}
 
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
@@ -211,9 +215,6 @@ func main() {
 			// When received command from teonet peer or client
 			case teonet.EventReceived:
 				pac := ev.Data
-				teolog.Debugf(MODULE, "got cmd %d: '%s', from: %s", pac.Cmd(),
-					api.Descr(pac.Cmd()), pac.From())
-				//go api.Process(pac)
 				commandChan <- pac
 			}
 		}

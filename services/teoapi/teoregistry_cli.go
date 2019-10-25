@@ -52,6 +52,7 @@ type Teoapi struct {
 // Packet implement teonet packet interface.
 type Packet interface {
 	Cmd() byte
+	From() string
 	Data() []byte
 	RemoveTrailingZero(data []byte) []byte
 }
