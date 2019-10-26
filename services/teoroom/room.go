@@ -6,6 +6,7 @@ package teoroom
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -41,9 +42,11 @@ const (
 
 // newRoom creates new room.
 func (tr *Teoroom) newRoom() (r *Room) {
+
+	id := atomic.AddUint32(&tr.roomID, 1) - 1
 	r = &Room{
 		tr:     tr,
-		id:     tr.roomID,
+		id:     id,
 		roomID: gocql.TimeUUID(),
 		cliwas: make(map[string]*ClientInRoom),
 		state:  RoomCreating,
@@ -59,8 +62,8 @@ func (tr *Teoroom) newRoom() (r *Room) {
 	fmt.Printf("Room id %d created, UUID: %s\n", r.id, r.roomID.String())
 
 	tr.creating = append(tr.creating, r.id)
-	tr.mroom[r.id] = r
-	tr.roomID++
+
+	tr.mroom.set(r.id, r)
 	return
 }
 

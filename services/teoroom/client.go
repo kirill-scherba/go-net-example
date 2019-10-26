@@ -39,7 +39,7 @@ func (tr *Teoroom) newClient(c *teonet.Packet) (cli *Client) {
 // number (and position) in this room.
 func (cli *Client) roomRequest() (roomID uint32, cliID int, err error) {
 	for _, rid := range cli.tr.creating {
-		if r, ok := cli.tr.mroom[rid]; ok &&
+		if r, ok := cli.tr.mroom.find(rid); ok &&
 			r.state != RoomClosed && r.state != RoomStopped &&
 			func() bool { _, ok := r.cliwas[cli.name]; return !ok }() &&
 			len(r.client) < r.gparam.MaxClientsInRoom {
@@ -69,7 +69,9 @@ func (cli *Client) roomRequest() (roomID uint32, cliID int, err error) {
 // started. The cliID is a client number (and position) in this room.
 func (cli *Client) roomClientID() (roomID uint32, cliID int, err error) {
 	var r *Room
-	for roomID, r = range cli.tr.mroom {
+	cli.tr.mroom.mx.RLock()
+	defer cli.tr.mroom.mx.RUnlock()
+	for roomID, r = range cli.tr.mroom.m {
 		for id, c := range r.client {
 			if c == cli {
 				cliID = id
@@ -77,7 +79,7 @@ func (cli *Client) roomClientID() (roomID uint32, cliID int, err error) {
 			}
 		}
 	}
-	err = fmt.Errorf("Can't find client %s in room structure", cli.name)
+	err = fmt.Errorf("can't find client %s in room structure", cli.name)
 	return
 }
 
