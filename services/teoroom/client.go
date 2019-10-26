@@ -29,7 +29,7 @@ func (tr *Teoroom) newClient(c *teonet.Packet) (cli *Client) {
 	l0 := c.GetL0()
 	client := c.From()
 	cli = &Client{tr: tr, name: client, L0PacketData: l0}
-	tr.mcli[client] = cli
+	tr.mcli.set(client, cli)
 	return
 }
 

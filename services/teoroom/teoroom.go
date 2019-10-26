@@ -11,7 +11,6 @@ package teoroom
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
@@ -27,47 +26,12 @@ const (
 
 // Teoroom is room controller data
 type Teoroom struct {
-	teo      *teonet.Teonet     // Pointer to teonet
-	roomID   uint32             // Next room id
-	creating []uint32           // Creating rooms slice with creating rooms id
-	mroom    *mroomType         // Rooms map contained created rooms and map mutex
-	mcli     map[string]*Client // Clients map contain clients connected to room controller
-	mclix    sync.RWMutex       // Clients map mutex
+	teo      *teonet.Teonet // Pointer to teonet
+	roomID   uint32         // Next room id
+	creating []uint32       // Creating rooms slice with creating rooms id
+	mroom    *mroomType     // Rooms map contained created rooms and map mutex
+	mcli     *mcliType      // Clients map contain clients connected to room controller and map mutes
 	*Process
-}
-
-type mroomType struct {
-	m  map[uint32]*Room
-	mx sync.RWMutex
-}
-
-// newMroom return new mroomType
-func newMroom() *mroomType {
-	return &mroomType{m: make(map[uint32]*Room)}
-}
-
-// find value by key from mroomType map
-func (m *mroomType) find(key uint32) (val *Room, ok bool) {
-	m.mx.RLock()
-	val, ok = m.m[key]
-	m.mx.RUnlock()
-	return
-}
-
-// get value by key from mroomType map and return error if key does not not exists
-func (m *mroomType) get(key uint32) (val *Room, err error) {
-	var ok bool
-	if val, ok = m.find(key); !ok {
-		err = fmt.Errorf("roomID %d does not exists", key)
-	}
-	return
-}
-
-// set value by key from mroomType map
-func (m *mroomType) set(key uint32, val *Room) {
-	m.mx.Lock()
-	m.m[key] = val
-	m.mx.Unlock()
 }
 
 // errorTeoroom is Teoroom errors data structure
@@ -83,7 +47,7 @@ func (e *errorTeoroom) Error() string {
 
 // New creates teonet room controller.
 func New(teo *teonet.Teonet) (tr *Teoroom, err error) {
-	tr = &Teoroom{teo: teo, mcli: make(map[string]*Client), mroom: newMroom()}
+	tr = &Teoroom{teo: teo, mcli: newMcli(), mroom: newMroom()}
 	tr.Process = &Process{tr}
 	return
 }
@@ -96,9 +60,8 @@ func (tr *Teoroom) Destroy() {}
 func (tr *Teoroom) sendExistingData(client string, f func(
 	l0 *teonet.L0PacketData, client string, cmd byte, data []byte) error) (err error) {
 
-	c, ok := tr.mcli[client]
-	if !ok {
-		err = fmt.Errorf("client %s does not exists", client)
+	c, err := tr.mcli.get(client)
+	if err != nil {
 		return
 	}
 	roomID, cliID, err := c.roomClientID()
@@ -126,9 +89,8 @@ func (tr *Teoroom) resendData(client string, cmd byte, data []byte, f func(
 	l0 *teonet.L0PacketData, client string, cmd byte, data []byte) error) (err error) {
 
 	// If client does not exists in map - skip this request
-	cli, ok := tr.mcli[client]
-	if !ok {
-		err = fmt.Errorf("client %s does not in room", client)
+	cli, err := tr.mcli.get(client)
+	if err != nil {
 		return
 	}
 
@@ -153,10 +115,10 @@ func (tr *Teoroom) resendData(client string, cmd byte, data []byte, f func(
 	}
 
 	// Save client data (todo: this is first position only)
-	if len(tr.mcli[client].data) == 0 {
-		tr.mcli[client].data = append(tr.mcli[client].data, []byte{})
+	if len(cli.data) == 0 {
+		cli.data = append(cli.data, []byte{})
 	}
-	tr.mcli[client].data[0] = data
+	cli.data[0] = data
 
 	// Send data to all (connected and loaded) clients except himself
 	r, err := tr.mroom.get(roomID)
@@ -184,7 +146,7 @@ func (p *Process) ComRoomRequest(pac *teonet.Packet) (err error) {
 
 	// Find client in room map
 	client := pac.From()
-	if _, ok := p.tr.mcli[client]; ok {
+	if _, ok := p.tr.mcli.find(client); ok {
 		err = fmt.Errorf("client %s is already in room", client)
 		return
 	}
@@ -195,7 +157,8 @@ func (p *Process) ComRoomRequest(pac *teonet.Packet) (err error) {
 	}
 	// Send answer with client room id (room position)
 	data := append([]byte{}, byte(cliID))
-	//p.tr.teo.SendAnswer(pac, teoroomcli.ComRoomRequestAnswer, data)
+	// TODO: do than SendAnswer can send answer to client
+	// p.tr.teo.SendAnswer(pac, teoroomcli.ComRoomRequestAnswer, data)
 	_, err = p.tr.teo.SendToClientAddr(pac.GetL0(), client,
 		teoroomcli.ComRoomRequestAnswer, data)
 
@@ -204,7 +167,10 @@ func (p *Process) ComRoomRequest(pac *teonet.Packet) (err error) {
 	if err != nil {
 		return
 	}
-	cli := p.tr.mcli[client]
+	cli, err := p.tr.mcli.get(client)
+	if err != nil {
+		return err
+	}
 	cli.sendState(stats.ClientAdded, r.roomID)
 
 	return
@@ -234,9 +200,8 @@ func (p *Process) ComDisconnect(pac interface{}) (err error) {
 	}
 
 	// Find client
-	cli, ok := p.tr.mcli[client]
-	if !ok {
-		err = fmt.Errorf("client %s not fount in room", client)
+	cli, err := p.tr.mcli.get(client)
+	if err != nil {
 		return
 	}
 
@@ -254,7 +219,7 @@ func (p *Process) ComDisconnect(pac interface{}) (err error) {
 		}
 		r.client[cliID] = nil
 	}
-	delete(p.tr.mcli, client)
+	p.tr.mcli.delete(client)
 
 	return
 }

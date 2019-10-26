@@ -138,7 +138,7 @@ func (r *Room) startRoom() {
 
 	r.sendToClients(teoroomcli.ComStart, nil)
 	r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
-		if cli, ok := r.tr.mcli[client]; ok {
+		if cli, ok := r.tr.mcli.find(client); ok {
 			cli.sendState(stats.ClientStarted, r.roomID)
 		}
 	})
@@ -149,12 +149,13 @@ func (r *Room) startRoom() {
 		fmt.Printf("Room id %d stopped\n", r.id)
 		r.setState(RoomStopped)
 		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
-			if cli, ok := r.tr.mcli[client]; ok {
+			if cli, ok := r.tr.mcli.find(client); ok {
 				cli.sendState(stats.ClientDisconnected, r.roomID)
 			}
 			r.tr.teo.SendToClientAddr(l0, client, teoroomcli.ComDisconnect, nil)
 			r.tr.Process.ComDisconnect(client)
 		})
+		// TODO: delete room from map now or after some time
 	}()
 
 	// set room state to Closed after CloseAfterTime
