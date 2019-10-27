@@ -21,7 +21,7 @@ func termui(api *teoapi.Teoapi, workerRun []uint64) {
 	p := widgets.NewParagraph()
 	p.Title = "Teonet cdb"
 	p.Text = "PRESS m TO QUIT DEMO"
-	p.SetRect(0, 0, 50, 5)
+	p.SetRect(0, 0, 54, 5)
 	p.TextStyle.Fg = ui.ColorWhite
 	p.BorderStyle.Fg = ui.ColorCyan
 	// Update paragraph to draw
@@ -69,10 +69,11 @@ func termui(api *teoapi.Teoapi, workerRun []uint64) {
 	// }
 	bc := widgets.NewBarChart()
 	bc.Title = "Workers"
-	bc.SetRect(50, 0, 75, 5)
+	bc.SetRect(54, 0, 102, 5)
 	bc.Labels = []string{"W0", "W1", "W2", "W3", "W4", "W5"}
+	bc.BarWidth = 7
 	bc.BarColors[0] = ui.ColorGreen
-	bc.NumStyles[0] = ui.NewStyle(ui.ColorBlack)
+	bc.NumStyles[0] = ui.NewStyle(ui.ColorWhite | ui.ColorBlack)
 
 	draw := func(tickerCount int) {
 		updateParagraph(tickerCount)
