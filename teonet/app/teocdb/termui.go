@@ -11,7 +11,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 )
 
-func termui(api *teoapi.Teoapi) {
+func termui(api *teoapi.Teoapi, workerRun []uint64) {
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
 	}
@@ -63,21 +63,30 @@ func termui(api *teoapi.Teoapi) {
 		table1.Rows[cmdsNumber+1][1] = sprintCount(tCount)
 	}
 
-	barchartData := []float64{
-		0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1,
-		0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0,
-	}
+	// barchartData := []float64{
+	// 	0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1,
+	// 	0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0,
+	// }
 	bc := widgets.NewBarChart()
-	bc.Title = "Workerss"
+	bc.Title = "Workers"
 	bc.SetRect(50, 0, 75, 5)
-	bc.Labels = []string{"S0", "S1", "S2", "S3", "S4", "S5"}
+	bc.Labels = []string{"W0", "W1", "W2", "W3", "W4", "W5"}
 	bc.BarColors[0] = ui.ColorGreen
 	bc.NumStyles[0] = ui.NewStyle(ui.ColorBlack)
 
-	draw := func(count int) {
-		bc.Data = barchartData[count/2%10:]
+	draw := func(tickerCount int) {
+		updateParagraph(tickerCount)
+		updateTable(tickerCount)
+		bc.Data = func() (far []float64) {
+			for _, v := range workerRun {
+				far = append(far, float64(v))
+			}
+			return
+		}()
 		ui.Render(p, table1, bc)
-
+		// for i := 0; i < len(workerRun); i++ {
+		// 	atomic.StoreUint64(&workerRun[i], 0)
+		// }
 	}
 
 	tickerCount := 1
@@ -93,8 +102,6 @@ func termui(api *teoapi.Teoapi) {
 				return
 			}
 		case <-ticker:
-			updateParagraph(tickerCount)
-			updateTable(tickerCount)
 			draw(tickerCount)
 			tickerCount++
 		}

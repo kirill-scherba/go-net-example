@@ -21,6 +21,7 @@ package main
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
@@ -168,28 +169,32 @@ func main() {
 		},
 	})
 
-	// Add teonet hotkey menu item to call termui interface
-	teo.Menu().Add('m', "mui dashboard", func() {
-		teo.SetLoglevel(teolog.NONE)
-		fmt.Print("\b \b")
-		go termui(api)
-	})
-
 	// Commands processing workers pool
-	commandChan := make(chan teoapi.Packet, 16)
-	for i := 0; i < 4; i++ {
+	const numWorkers = 6
+	workerRun := make([]uint64, numWorkers)
+	commandChan := make(chan teoapi.Packet, numWorkers*4)
+	for i := 0; i < numWorkers; i++ {
 		go func(workerID int) {
 			for {
 				pac, ok := <-commandChan
 				if !ok {
 					return
 				}
+				//workerRun[workerID]++
+				atomic.AddUint64(&workerRun[workerID], 1)
 				teolog.Debugf(MODULE, "worker #%d got cmd %d: '%s', from: %s",
 					workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
 				api.Process(pac)
 			}
 		}(i)
 	}
+
+	// Add teonet hotkey menu item to call termui interface
+	teo.Menu().Add('m', "mui dashboard", func() {
+		teo.SetLoglevel(teolog.NONE)
+		fmt.Print("\b \b")
+		go termui(api, workerRun)
+	})
 
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
