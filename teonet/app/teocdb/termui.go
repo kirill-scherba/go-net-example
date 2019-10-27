@@ -63,8 +63,21 @@ func termui(api *teoapi.Teoapi) {
 		table1.Rows[cmdsNumber+1][1] = sprintCount(tCount)
 	}
 
+	barchartData := []float64{
+		0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1,
+		0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0,
+	}
+	bc := widgets.NewBarChart()
+	bc.Title = "Workerss"
+	bc.SetRect(50, 0, 75, 5)
+	bc.Labels = []string{"S0", "S1", "S2", "S3", "S4", "S5"}
+	bc.BarColors[0] = ui.ColorGreen
+	bc.NumStyles[0] = ui.NewStyle(ui.ColorBlack)
+
 	draw := func(count int) {
-		ui.Render(p, table1)
+		bc.Data = barchartData[count/2%10:]
+		ui.Render(p, table1, bc)
+
 	}
 
 	tickerCount := 1
