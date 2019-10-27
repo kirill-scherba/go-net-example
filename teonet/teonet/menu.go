@@ -18,18 +18,22 @@ import (
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
+// SetLoglevel set current log level
+func (teo *Teonet) SetLoglevel(loglevel int) {
+	logstr := teolog.LoglevelString(loglevel)
+	if teo.param.Loglevel == logstr {
+		logstr = teolog.LoglevelString(teolog.NONE)
+	}
+	teo.param.Loglevel = logstr
+	teolog.SetLoglevel(logstr)
+}
+
 func (teo *Teonet) createMenu() {
 	if !teo.param.ForbidHotkeysF {
 
-		//in := bufio.NewReader(os.Stdin)
 		setLoglevel := func(loglevel int) {
 			fmt.Print("\b")
-			logstr := teolog.LoglevelString(loglevel)
-			if teo.param.Loglevel == logstr {
-				logstr = teolog.LoglevelString(teolog.NONE)
-			}
-			teo.param.Loglevel = logstr
-			teolog.SetLoglevel(teo.param.Loglevel)
+			teo.SetLoglevel(loglevel)
 		}
 		readString := func(in *bufio.Reader, prompt string) (str string) {
 			var err error

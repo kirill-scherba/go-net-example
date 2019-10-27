@@ -7,6 +7,7 @@ package teoapi
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/gocql/gocql"
 )
@@ -41,6 +42,7 @@ type Command struct {
 	BinaryDescr string
 	Func        func(pac Packet) (err error)
 	Message     func(pac Packet) (err error)
+	Count       uint64 // Command processed count
 }
 
 // Teoapi is api receiver.
@@ -77,6 +79,36 @@ func (api *Teoapi) Sprint() (str string) {
 	return
 }
 
+// Cmds return slice of added commands
+func (api *Teoapi) Cmds() (cmds []byte) {
+	if l := len(api.com); l > 0 {
+		cmds = make([]byte, l)
+		for i := 0; i < l; i++ {
+			cmds[i] = api.com[i].Cmd
+		}
+	}
+	return
+}
+
+// find command in command array by cmd number
+func (api *Teoapi) find(cmd byte) (c *Command, ok bool) {
+	for _, c = range api.com {
+		if cmd == c.Cmd {
+			ok = true
+			return
+		}
+	}
+	return
+}
+
+// Count return count command processing
+func (api *Teoapi) Count(cmd byte) (count uint64) {
+	if com, ok := api.find(cmd); ok {
+		count = com.Count
+	}
+	return
+}
+
 // Descr return command description.
 func (api *Teoapi) Descr(cmd byte) (descr string) {
 	for _, d := range api.com {
@@ -96,6 +128,7 @@ func (api *Teoapi) Process(pac Packet) (err error) {
 				err = com.Message(pac)
 			}
 			err = com.Func(pac)
+			atomic.AddUint64(&com.Count, 1)
 			return
 		}
 	}

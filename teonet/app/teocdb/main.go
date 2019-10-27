@@ -61,18 +61,15 @@ func main() {
 	// Teonet connect
 	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version, api)
 
-	// Connect to the cql cluster
-	// cluster := gocql.NewCluster("172.17.0.2", "172.17.0.3", "172.17.0.4")
-	// cluster.Keyspace = "teocdb"
-	// cluster.Consistency = gocql.Quorum
-	// session, _ := cluster.CreateSession()
-	// defer session.Close()
+	// Teonet cdb database
 	tcdb, _ := teocdb.Connect(teo)
 	defer tcdb.Close()
 
+	// Teonet users database
 	usr, _ := teousers.Connect(teo)
 	defer usr.Close()
 
+	// Teonet room controller statistic database
 	room, _ := teoroomStats.Connect(teo)
 	defer usr.Close()
 
@@ -169,6 +166,13 @@ func main() {
 			room.ComClientStatus(pac)
 			return
 		},
+	})
+
+	// Add teonet hotkey menu item to call termui interface
+	teo.Menu().Add('m', "mui dashboard", func() {
+		teo.SetLoglevel(teolog.NONE)
+		fmt.Print("\b \b")
+		go termui(api)
 	})
 
 	// Commands processing workers pool
