@@ -41,6 +41,8 @@ var MODULE = teokeys.Color(teokeys.ANSIMagenta, "(teocdb)")
 
 func main() {
 
+	var log []string
+
 	// Teonet logo
 	teonet.Logo("Teonet-go CQL Database service", Version)
 
@@ -181,8 +183,13 @@ func main() {
 					return
 				}
 				workerRun[workerID]++
-				teolog.Debugf(MODULE, "worker #%d got cmd %d: '%s', from: %s",
+				logStr := fmt.Sprintf("worker #%d got cmd %d: '%s', from: %s",
 					workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
+				teolog.Debug(MODULE, logStr)
+				log = append([]string{logStr}, log...)
+				if len(log) > 40 {
+					log = log[:30]
+				}
 				api.Process(pac)
 			}
 		}(i)
@@ -192,7 +199,7 @@ func main() {
 	teo.Menu().Add('m', "mui dashboard", func() {
 		teo.SetLoglevel(teolog.NONE)
 		fmt.Print("\b \b")
-		go termui(api, workerRun)
+		go termui(api, workerRun, &log)
 	})
 
 	// Teonet run

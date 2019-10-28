@@ -12,7 +12,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 )
 
-func termui(api *teoapi.Teoapi, workerRun []float64) {
+func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
 	}
@@ -71,6 +71,7 @@ func termui(api *teoapi.Teoapi, workerRun []float64) {
 		table1Total.Text = "Total commands count: " + strings.TrimSpace(table1.Rows[cmdsNumber+1][1])
 	}
 
+	// Bar chart with workers
 	bc := widgets.NewBarChart()
 	bc.Title = "Workers"
 	bc.SetRect(78, 0, 103, 8)
@@ -79,11 +80,19 @@ func termui(api *teoapi.Teoapi, workerRun []float64) {
 	bc.BarColors[0] = ui.ColorGreen
 	bc.NumStyles[0] = ui.NewStyle(ui.ColorWhite | ui.ColorBlack)
 
+	// Log with commands log
+	l := widgets.NewList()
+	l.Title = "Log"
+	l.Rows = *logData
+	l.SetRect(0, 21, 103, 36)
+	l.TextStyle.Fg = ui.ColorYellow
+
 	draw := func(tickerCount int) {
 		updateParagraph(tickerCount)
 		updateTable(tickerCount)
+		l.Rows = *logData
 		bc.Data = workerRun
-		ui.Render(p, table1, table1Total, bc)
+		ui.Render(p, table1, table1Total, bc, l)
 		for i := 0; i < len(workerRun); i++ {
 			if workerRun[i] >= 15 {
 				workerRun[i] = 3
