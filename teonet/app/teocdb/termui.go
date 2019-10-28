@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	ui "github.com/gizak/termui/v3"
@@ -21,7 +22,7 @@ func termui(api *teoapi.Teoapi, workerRun []float64) {
 	p := widgets.NewParagraph()
 	p.Title = "Teonet cdb"
 	p.Text = "PRESS m TO QUIT DEMO"
-	p.SetRect(0, 0, 48, 8)
+	p.SetRect(0, 0, 78, 8)
 	p.TextStyle.Fg = ui.ColorWhite
 	p.BorderStyle.Fg = ui.ColorCyan
 	// Update paragraph to draw
@@ -36,22 +37,28 @@ func termui(api *teoapi.Teoapi, workerRun []float64) {
 	// Table with number of requests
 	table1 := widgets.NewTable()
 	table1.Title = "Commands processed"
-	table1.ColumnWidths = []int{5, 7, 88}
-	table1.Rows = [][]string{[]string{" Cmd ", " Count ", " Description"}}
+	table1.ColumnWidths = []int{5, 8, 88}
+	table1.Rows = [][]string{[]string{" Cmd ", "  Count ", " Description"}}
+	table1.RowSeparator = false
+	//table1.FillRow = true
+	table1.RowStyles[0] = ui.NewStyle(ui.ColorBlack, ui.ColorGreen) //, ui.ModifierBold)
 	cmds := api.Cmds()
 	cmdsNumber := len(cmds)
 	sprintCount := func(count uint64) string {
-		return fmt.Sprintf(" %5d", count)
+		return fmt.Sprintf("%7d", count)
 	}
 	for i := 0; i < cmdsNumber; i++ {
 		table1.Rows = append(table1.Rows, []string{
 			" " + strconv.Itoa(int(cmds[i])), sprintCount(0), " " + api.Descr(cmds[i]),
 		})
 	}
-	table1.Rows = append(table1.Rows, []string{"", fmt.Sprintf("%6d", 0), " "})
+	table1.Rows = append(table1.Rows, []string{"", sprintCount(0), " "})
 	table1.TextStyle = ui.NewStyle(ui.ColorWhite)
 	table1.BorderStyle.Fg = ui.ColorCyan
-	table1.SetRect(0, 8, 102, 29)
+	table1.SetRect(0, 8, 103, 19)
+	table1Total := widgets.NewParagraph()
+	table1Total.SetRect(0, 18, 103, 21)
+	table1Total.BorderStyle.Fg = ui.ColorCyan
 	// Update table to draw
 	updateTable := func(count int) {
 		var tCount uint64
@@ -61,17 +68,14 @@ func termui(api *teoapi.Teoapi, workerRun []float64) {
 			tCount += count
 		}
 		table1.Rows[cmdsNumber+1][1] = sprintCount(tCount)
+		table1Total.Text = "Total commands count: " + strings.TrimSpace(table1.Rows[cmdsNumber+1][1])
 	}
 
-	// barchartData := []float64{
-	// 	0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1,
-	// 	0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0,
-	// }
 	bc := widgets.NewBarChart()
 	bc.Title = "Workers"
-	bc.SetRect(48, 0, 102, 8)
+	bc.SetRect(78, 0, 103, 8)
 	bc.Labels = []string{"W0", "W1", "W2", "W3", "W4", "W5"}
-	bc.BarWidth = 8
+	bc.BarWidth = 3
 	bc.BarColors[0] = ui.ColorGreen
 	bc.NumStyles[0] = ui.NewStyle(ui.ColorWhite | ui.ColorBlack)
 
@@ -79,9 +83,11 @@ func termui(api *teoapi.Teoapi, workerRun []float64) {
 		updateParagraph(tickerCount)
 		updateTable(tickerCount)
 		bc.Data = workerRun
-		ui.Render(p, table1, bc)
+		ui.Render(p, table1, table1Total, bc)
 		for i := 0; i < len(workerRun); i++ {
-			//workerRun[i] = 0
+			if workerRun[i] >= 15 {
+				workerRun[i] = 3
+			}
 		}
 	}
 
@@ -89,7 +95,7 @@ func termui(api *teoapi.Teoapi, workerRun []float64) {
 	draw(tickerCount)
 	tickerCount++
 	uiEvents := ui.PollEvents()
-	ticker := time.NewTicker(time.Second).C
+	ticker := time.NewTicker(250 * time.Millisecond).C
 	for {
 		select {
 		case e := <-uiEvents:
