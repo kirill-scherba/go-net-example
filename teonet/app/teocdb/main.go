@@ -174,6 +174,7 @@ func main() {
 	commandChan := make(chan teoapi.Packet, numWorkers*4)
 	for i := 0; i < numWorkers; i++ {
 		go func(workerID int) {
+			workerRun[workerID] = 1
 			for {
 				pac, ok := <-commandChan
 				if !ok {
