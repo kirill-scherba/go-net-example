@@ -11,7 +11,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 )
 
-func termui(api *teoapi.Teoapi, workerRun []uint64) {
+func termui(api *teoapi.Teoapi, workerRun []float64) {
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
 	}
@@ -21,7 +21,7 @@ func termui(api *teoapi.Teoapi, workerRun []uint64) {
 	p := widgets.NewParagraph()
 	p.Title = "Teonet cdb"
 	p.Text = "PRESS m TO QUIT DEMO"
-	p.SetRect(0, 0, 54, 5)
+	p.SetRect(0, 0, 48, 8)
 	p.TextStyle.Fg = ui.ColorWhite
 	p.BorderStyle.Fg = ui.ColorCyan
 	// Update paragraph to draw
@@ -48,10 +48,10 @@ func termui(api *teoapi.Teoapi, workerRun []uint64) {
 			" " + strconv.Itoa(int(cmds[i])), sprintCount(0), " " + api.Descr(cmds[i]),
 		})
 	}
-	table1.Rows = append(table1.Rows, []string{"", fmt.Sprintf(" %5d", 0), " "})
+	table1.Rows = append(table1.Rows, []string{"", fmt.Sprintf("%6d", 0), " "})
 	table1.TextStyle = ui.NewStyle(ui.ColorWhite)
 	table1.BorderStyle.Fg = ui.ColorCyan
-	table1.SetRect(0, 5, 102, 26)
+	table1.SetRect(0, 8, 102, 29)
 	// Update table to draw
 	updateTable := func(count int) {
 		var tCount uint64
@@ -69,25 +69,20 @@ func termui(api *teoapi.Teoapi, workerRun []uint64) {
 	// }
 	bc := widgets.NewBarChart()
 	bc.Title = "Workers"
-	bc.SetRect(54, 0, 102, 5)
+	bc.SetRect(48, 0, 102, 8)
 	bc.Labels = []string{"W0", "W1", "W2", "W3", "W4", "W5"}
-	bc.BarWidth = 7
+	bc.BarWidth = 8
 	bc.BarColors[0] = ui.ColorGreen
 	bc.NumStyles[0] = ui.NewStyle(ui.ColorWhite | ui.ColorBlack)
 
 	draw := func(tickerCount int) {
 		updateParagraph(tickerCount)
 		updateTable(tickerCount)
-		bc.Data = func() (far []float64) {
-			for _, v := range workerRun {
-				far = append(far, float64(v))
-			}
-			return
-		}()
+		bc.Data = workerRun
 		ui.Render(p, table1, bc)
-		// for i := 0; i < len(workerRun); i++ {
-		// 	atomic.StoreUint64(&workerRun[i], 0)
-		// }
+		for i := 0; i < len(workerRun); i++ {
+			//workerRun[i] = 0
+		}
 	}
 
 	tickerCount := 1

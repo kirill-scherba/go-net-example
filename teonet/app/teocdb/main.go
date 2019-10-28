@@ -21,7 +21,6 @@ package main
 
 import (
 	"fmt"
-	"sync/atomic"
 
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	"github.com/kirill-scherba/teonet-go/services/teocdb"
@@ -171,7 +170,7 @@ func main() {
 
 	// Commands processing workers pool
 	const numWorkers = 6
-	workerRun := make([]uint64, numWorkers)
+	workerRun := make([]float64, numWorkers)
 	commandChan := make(chan teoapi.Packet, numWorkers*4)
 	for i := 0; i < numWorkers; i++ {
 		go func(workerID int) {
@@ -180,8 +179,7 @@ func main() {
 				if !ok {
 					return
 				}
-				//workerRun[workerID]++
-				atomic.AddUint64(&workerRun[workerID], 1)
+				workerRun[workerID]++
 				teolog.Debugf(MODULE, "worker #%d got cmd %d: '%s', from: %s",
 					workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
 				api.Process(pac)
