@@ -89,6 +89,7 @@ TRUDP_API void *trudpPacketGetData(void *packet);
 uint16_t trudpPacketGetDataLength(void *packet);
 size_t trudpPacketGetHeaderLength(void *packet);
 uint32_t trudpPacketGetTimestamp(void *packet);
+void trudpPacketUpdateTimestamp(void *packet);
 
 void *trudpPacketPINGcreateNew(uint32_t id, unsigned int channel, void *data,
                                size_t data_length, size_t *packetLength);

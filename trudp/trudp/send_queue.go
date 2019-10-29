@@ -32,12 +32,13 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 		}
 		// Destroy this trudp channel if resendAttemp more than maxResendAttemp
 		if sqd.resendAttempt >= maxResendAttempt {
-			tcd.destroy(teolog.DEBUGv, fmt.Sprint("destroy channel ", tcd.GetKey(),
-				": too much resends happens: ", sqd.resendAttempt))
+			tcd.destroy(teolog.DEBUGv, fmt.Sprint("destroy channel ",
+				tcd.GetKey(), ": too much resends happens: ",
+				sqd.resendAttempt))
 			break
 		}
 		// Resend packet, save resend to statistic and show message
-		sqd.packet.writeTo(tcd)
+		sqd.packet.updateTimestamp().writeTo(tcd)
 		tcd.stat.repeat(true)
 		teolog.Log(teolog.DEBUGvv, MODULE, "resend sendQueue packet ",
 			"id:", sqd.packet.getID(),
@@ -69,16 +70,19 @@ func (tcd *ChannelData) sendQueueAdd(packet *packetType) {
 			sendTime:    now,
 			arrivalTime: arrivalTime,
 		})
-		teolog.Log(teolog.DEBUGvv, MODULE, "add to send queue, id:", packet.getID())
+		teolog.Log(teolog.DEBUGvv, MODULE, "add to send queue, id:",
+			packet.getID())
 	} else {
 		sqd.arrivalTime = arrivalTime
 		sqd.resendAttempt++
-		teolog.Log(teolog.DEBUGvv, MODULE, "update in send queue, id", packet.getID())
+		teolog.Log(teolog.DEBUGvv, MODULE, "update in send queue, id",
+			packet.getID())
 	}
 }
 
 // sendQueueFind find packet in sendQueue
-func (tcd *ChannelData) sendQueueFind(packet *packetType) (e *list.Element, sqd *sendQueueData, id uint32, err error) {
+func (tcd *ChannelData) sendQueueFind(packet *packetType) (e *list.Element,
+	sqd *sendQueueData, id uint32, err error) {
 	id = packet.getID()
 	for e = tcd.sendQueue.Front(); e != nil; e = e.Next() {
 		sqd = e.Value.(*sendQueueData)
@@ -110,7 +114,8 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 		moreDefaultSize := tcd.maxQueueSize > tcd.trudp.defaultQueueSize
 		//  if queue capacity less max capacity size
 		if lessMaxSize {
-			// if repeat speed is nil (0 repeat packets during second) and queue is full
+			// if repeat speed is nil (0 repeat packets during second) and
+			// queue is full
 			if tcd.stat.packets.repeatRT.SpeedPacSec == 0 && queueIsFull {
 				tcd.maxQueueSize += 8
 			}
@@ -119,7 +124,8 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 		if moreDefaultSize {
 			// if repeat speed more than 20 packets per second or
 			// if repeat speed more than 10 packets per second and queue is full
-			if tcd.stat.packets.repeatRT.SpeedPacSec > 20 || tcd.stat.packets.repeatRT.SpeedPacSec > 10 && queueIsFull {
+			if tcd.stat.packets.repeatRT.SpeedPacSec > 20 ||
+				tcd.stat.packets.repeatRT.SpeedPacSec > 10 && queueIsFull {
 				tcd.maxQueueSize -= 8
 			}
 		}
