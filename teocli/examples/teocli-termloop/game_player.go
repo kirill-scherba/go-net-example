@@ -87,6 +87,16 @@ func (hero *Hero) Tick(event tl.Event) {
 		case tl.KeyArrowDown:
 			hero.SetPosition(hero.prevX, hero.prevY+1)
 		}
+		switch event.Ch {
+		case 'd':
+			hero.SetPosition(hero.prevX+1, hero.prevY)
+		case 'a':
+			hero.SetPosition(hero.prevX-1, hero.prevY)
+		case 'w':
+			hero.SetPosition(hero.prevX, hero.prevY-1)
+		case 'z':
+			hero.SetPosition(hero.prevX, hero.prevY+1)
+		}
 
 		// Set new position in bot mode
 		if hero.bot {
