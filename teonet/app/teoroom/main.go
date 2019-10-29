@@ -20,8 +20,13 @@ import (
 
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
+
+// MODULE is this application module name
+var MODULE = teokeys.Color(teokeys.ANSIMagenta, "(teoroom)")
 
 func main() {
 
@@ -53,19 +58,19 @@ func main() {
 		// Command #129: [in,out] Room request
 		case teoroomcli.ComRoomRequest:
 			if err := tr.Process.ComRoomRequest(pac); err != nil {
-				fmt.Printf("%s\n", err.Error())
+				teolog.Debugf(MODULE, "%s\n", err.Error())
 			}
 
 		// Command #130: [in,out] Data transfer
 		case teoroomcli.ComRoomData:
 			if err := tr.Process.ComRoomData(pac); err != nil {
-				fmt.Printf("%s\n", err.Error())
+				teolog.Debugf(MODULE, "%s\n", err.Error())
 			}
 
 		// Command #131 [in] Disconnect (exit) from room
 		case teoroomcli.ComDisconnect:
 			if err := tr.Process.ComDisconnect(pac); err != nil {
-				fmt.Printf("Error Disconnect %s: %s\n", pac.From(), err.Error())
+				teolog.Debugf(MODULE, "Error Disconnect %s: %s\n", pac.From(), err.Error())
 			}
 		}
 	}

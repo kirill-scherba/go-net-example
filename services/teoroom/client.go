@@ -13,6 +13,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -91,7 +92,7 @@ func (cli *Client) sendState(state byte, roomID gocql.UUID) (err error) {
 		err = errors.New("wrong name")
 		return
 	}
-	fmt.Printf("Send client state %d, id: %s, game: %s, roomID: %s\n",
+	teolog.Debugf(MODULE, "Send client state %d, id: %s, game: %s, roomID: %s\n",
 		state, cliID[1], cliID[0], roomID.String())
 	clientID, err := gocql.ParseUUID(cliID[1])
 	if err != nil {

@@ -5,15 +5,19 @@
 package teoroom
 
 import (
-	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
+
+// MODULE is this package module name
+var MODULE = teokeys.Color(teokeys.ANSIBrown, "(teoroom)")
 
 // Room Data
 type Room struct {
@@ -59,7 +63,8 @@ func (tr *Teoroom) newRoom() (r *Room) {
 	// Save room create statistic to cdb
 	r.sendStateCreate()
 
-	fmt.Printf("Room id %d created, UUID: %s\n", r.id, r.roomID.String())
+	teolog.Debugf(MODULE, "Room id %d created, UUID: %s\n", r.id,
+		r.roomID.String())
 
 	tr.creating = append(tr.creating, r.id)
 
@@ -82,7 +87,7 @@ func (r *Room) addClient(cli *Client) (clientID int) {
 	r.client = append(r.client, cli)
 	clientID = len(r.client) - 1
 	r.cliwas[cli.name] = &ClientInRoom{cli, RoomCreating}
-	fmt.Printf("Client %s added to room id %d, id in room: %d,\n",
+	teolog.Debugf(MODULE, "Client %s added to room id %d, id in room: %d,\n",
 		cli.name, r.id, clientID)
 	return
 }
@@ -107,9 +112,10 @@ func (r *Room) clientReady(clientID int) {
 
 	// If room already started: send command ComStart to this new client.
 	if r.state == RoomRunning {
-		// TODO: send RoomClientAdd to room statistic
-		fmt.Printf("Client %s added to running room id %d, id in room: %d\n",
-			cli.name, r.id, clientID)
+		teolog.Debugf(MODULE,
+			"Client %s added to running room id %d, id in room: %d\n",
+			cli.name, r.id, clientID,
+		)
 		cli.sendState(stats.ClientAdded, r.roomID)
 		r.sendToClients(teoroomcli.ComStart, nil)
 		return
@@ -133,7 +139,8 @@ func (r *Room) clientReady(clientID int) {
 // and start goroutine which will send command ComDisconnect when room closed
 // after `GameTime`.
 func (r *Room) startRoom() {
-	fmt.Printf("Room id %d started (game time: %d)\n", r.id, r.gparam.GameTime)
+	teolog.Debugf(MODULE, "Room id %d started (game time: %d)\n", r.id,
+		r.gparam.GameTime)
 	r.setState(RoomRunning)
 
 	r.sendToClients(teoroomcli.ComStart, nil)
@@ -146,7 +153,7 @@ func (r *Room) startRoom() {
 	// send disconnect to rooms clients after GameTime
 	go func() {
 		<-time.After(time.Duration(r.gparam.GameTime) * time.Millisecond)
-		fmt.Printf("Room id %d stopped\n", r.id)
+		teolog.Debugf(MODULE, "Room id %d stopped\n", r.id)
 		r.setState(RoomStopped)
 		r.funcToClients(func(l0 *teonet.L0PacketData, client string) {
 			if cli, ok := r.tr.mcli.find(client); ok {
@@ -167,7 +174,7 @@ func (r *Room) startRoom() {
 		if r.state == RoomStopped {
 			return
 		}
-		fmt.Printf("Room id %d closed (close to add users)\n", r.id)
+		teolog.Debugf(MODULE, "Room id %d closed (close to add users)\n", r.id)
 		r.setState(RoomClosed)
 	}()
 }

@@ -9,7 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
+
+// MODULE is this package module name
+var MODULE = teokeys.Color(teokeys.ANSICyan, "(teoconf)")
 
 // Config is an configration data interface
 type Config interface {
@@ -79,7 +85,7 @@ func (c *Teoconf) Read() (err error) {
 	}
 	// Unmarshal json to the parameters structure
 	if err = json.Unmarshal(data, c.Value()); err == nil {
-		fmt.Printf("config was read from file %s, value: %v\n",
+		teolog.Debugf(MODULE, "config was read from file %s, value: %v\n",
 			c.fileName(), c.Value())
 	}
 	return
@@ -99,7 +105,7 @@ func (c *Teoconf) Write() (err error) {
 	if _, err = f.Write(data); err != nil {
 		return
 	}
-	fmt.Printf("config was write to file %s, value: %v\n", c.fileName(),
-		c.Value())
+	teolog.Debugf(MODULE, "config was write to file %s, value: %v\n",
+		c.fileName(), c.Value())
 	return
 }

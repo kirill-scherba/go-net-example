@@ -14,6 +14,7 @@ import (
 
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
@@ -103,7 +104,7 @@ func (tr *Teoroom) resendData(client string, cmd byte, data []byte, f func(
 	// If client send first data than it looaded and ready to play - send him
 	// data saved by existing and ready clients
 	if cli.data == nil {
-		fmt.Printf(
+		teolog.Debugf(MODULE,
 			"Client %s loaded and ready to play, roomID: %d, client id: %d\n",
 			client, roomID, cliID)
 		tr.sendExistingData(client, f)

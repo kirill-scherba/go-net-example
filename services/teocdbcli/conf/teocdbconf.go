@@ -9,11 +9,15 @@ package conf
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/kirill-scherba/teonet-go/services/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/services/teoconf"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
+
+// MODULE is this package module name
+var MODULE = teokeys.Color(teokeys.ANSICyan, "(cdbconf)")
 
 var (
 	// ErrConfigCdbDoesNotExists error returns by cdb config read function when
@@ -40,7 +44,7 @@ func New(con teocdbcli.TeoConnector, val Config) (c *Teoconf) {
 	c = &Teoconf{Config: val, con: con}
 	c.fconf = teoconf.New(val)
 	c.ReadBoth()
-	fmt.Println("config name:", c.Name())
+	teolog.Debug(MODULE, "config name:", c.Name())
 	return
 }
 
@@ -52,7 +56,7 @@ func (c *Teoconf) setDefault() (err error) {
 	}
 	// Unmarshal json to the value structure
 	if err = json.Unmarshal(data, c.Value()); err == nil {
-		fmt.Printf("set default config value: %v\n", c.Value())
+		teolog.Debugf(MODULE, "set default config value: %v\n", c.Value())
 	}
 	return
 }
@@ -66,21 +70,21 @@ func (c *Teoconf) ReadBoth() (err error) {
 
 	// Read from local file
 	if err := c.fconf.Read(); err != nil {
-		fmt.Printf("read config error: %s\n", err)
+		teolog.Debugf(MODULE, "read config error: %s\n", err)
 	}
 
 	// Read parameters from teo-cdb and applay it if changed, than write
 	// it to local config file
 	go func() {
 		if err := c.ReadCdb(); err != nil {
-			fmt.Printf("read cdb config error: %s\n", err)
+			teolog.Debugf(MODULE, "read cdb config error: %s\n", err)
 			if err == ErrConfigCdbDoesNotExists {
 				c.WriteCdb()
 			}
 			return
 		}
 		if err = c.fconf.Write(); err != nil {
-			fmt.Printf("write config error: %s\n", err)
+			teolog.Debugf(MODULE, "write config error: %s\n", err)
 		}
 	}()
 	return
@@ -101,13 +105,13 @@ func (c *Teoconf) ReadCdb() (err error) {
 		return
 	}
 
-	fmt.Printf("config %s was read from teo-cdb: %s\n",
+	teolog.Debugf(MODULE, "config %s was read from teo-cdb: %s\n",
 		c.Key(), string(data))
 	// Unmarshal json to the parameters structure
 	if err = json.Unmarshal(data, c.Value()); err != nil {
 		return
 	}
-	fmt.Println("config was read from teo-cdb: ", c.Value())
+	teolog.Debug(MODULE, "config was read from teo-cdb: ", c.Value())
 	return
 }
 
@@ -127,6 +131,6 @@ func (c *Teoconf) WriteCdb() (err error) {
 	if _, err = cdb.Send(teocdbcli.CmdSet, c.Key(), data); err != nil {
 		return
 	}
-	fmt.Println("config was write to teo-cdb: ", c.Value())
+	teolog.Debug(MODULE, "config was write to teo-cdb: ", c.Value())
 	return
 }
