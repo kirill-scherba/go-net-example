@@ -23,7 +23,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	processed = false
 
 	ch := pac.getChannel()
-	tcd, key, ok := pac.trudp.newChannelData(addr, ch, pac.getType() == DATA)
+	tcd, key, ok := pac.trudp.newChannelData(addr, ch, pac.getType() == DATA, true)
 	if !ok {
 		return
 	}

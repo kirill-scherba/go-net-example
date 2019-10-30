@@ -37,6 +37,8 @@ type ChannelData struct {
 
 	// TRUDP channel statistic
 	stat channelStat
+
+	connected bool // Channel is connected when it resive data or ack to data
 }
 
 // reset exequte reset of this cannel
@@ -82,7 +84,9 @@ func (tcd *ChannelData) destroy(msgLevel int, msg string) (err error) {
 	// Remove trudp channel from channels map
 	delete(tcd.trudp.tcdmap, tcd.key)
 	teolog.Log(teolog.CONNECT, MODULE, "channel with key", tcd.key, "disconnected")
-	tcd.trudp.sendEvent(tcd, EvDisconnected, []byte(tcd.key))
+	if tcd.connected {
+		tcd.trudp.sendEvent(tcd, EvDisconnected, []byte(tcd.key))
+	}
 
 	return
 }
@@ -123,7 +127,7 @@ func (tcd *ChannelData) TripTime() float32 {
 	return tcd.stat.triptime
 }
 
-// WriteTo send data to remote host
+// Write send data to remote host
 func (tcd *ChannelData) Write(data []byte) (n int, err error) {
 	if tcd.stoppedF {
 		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
@@ -147,12 +151,24 @@ func (trudp *TRUDP) makeKey(addr net.Addr, ch int) string {
 }
 
 // newChannelData create new TRUDP ChannelData or select existing
-func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate bool) (tcd *ChannelData, key string, ok bool) {
+func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate,
+	sendEvConnected bool) (tcd *ChannelData, key string, ok bool) {
 
-	key = trudp.makeKey(addr, ch)
+	// Send event connected
+	sendEventConnected := func() {
+		if sendEvConnected {
+			tcd.connected = true
+			teolog.Log(teolog.CONNECT, MODULE, "channel", key, "connected")
+			tcd.trudp.sendEvent(tcd, EvConnected, []byte(key))
+		}
+	}
 
 	// Channel data select
+	key = trudp.makeKey(addr, ch)
 	tcd, ok = trudp.tcdmap[key]
+	if ok && !tcd.connected {
+		sendEventConnected()
+	}
 	if ok || !ok && !canCreate {
 		//teolog.Log(teolog.DEBUGvv, MODULE, "the ChannelData with key", key, "selected")
 		return
@@ -179,8 +195,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate bool) (t
 	// Add to channels map
 	trudp.tcdmap[key] = tcd
 
-	teolog.Log(teolog.CONNECT, MODULE, "channel", key, "connected")
-	tcd.trudp.sendEvent(tcd, EvConnected, []byte(key))
+	sendEventConnected()
 
 	return
 }
@@ -194,8 +209,9 @@ func (trudp *TRUDP) ConnectChannel(rhost string, rport int, ch int) (tcd *Channe
 	}
 	teolog.Log(teolog.CONNECT, MODULE, "connecting to host", rUDPAddr, "at channel", ch)
 	done := make(chan bool)
+	// Create new trudp channel and wait while channel created in kernel level
 	go trudp.kernel(func() {
-		tcd, _, _ = trudp.newChannelData(rUDPAddr, ch, true)
+		tcd, _, _ = trudp.newChannelData(rUDPAddr, ch, true, false)
 		done <- true
 	})
 	<-done
@@ -233,6 +249,11 @@ func (tcd *ChannelData) GetKey() string {
 // GetTriptime return trudp channel triptime
 func (tcd *ChannelData) GetTriptime() (float32, float32) {
 	return tcd.stat.triptime, tcd.stat.triptimeMiddle
+}
+
+// Connected return channel is connected flag
+func (tcd *ChannelData) Connected() bool {
+	return tcd.connected
 }
 
 // canWrine return true if writeTo is allowed

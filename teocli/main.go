@@ -58,7 +58,7 @@ func main() {
 		} else {
 			network = "TRUDP"
 		}
-		fmt.Printf("try %s connecting to %s:%d ...\n", network, raddr, rport)
+		fmt.Printf("Try %s connecting to %s:%d ...\n", network, raddr, rport)
 		teo, err := teocli.Connect(raddr, rport, tcp)
 		if err != nil {
 			fmt.Println(err)

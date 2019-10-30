@@ -35,7 +35,7 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 	// Reconnect loop, reconnect if disconnected afer timeout time (in sec)
 	for {
 		// Connect to L0 server
-		fmt.Printf("try %s connecting to %s:%d ...\n", network(tcp), raddr, rport)
+		fmt.Printf("Try %s connecting to %s:%d ...\n", network(tcp), raddr, rport)
 		teo, err = Connect(raddr, rport, tcp)
 		if err != nil {
 			fmt.Println(err)
