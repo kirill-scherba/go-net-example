@@ -30,9 +30,14 @@ func (trudp *TRUDP) getTimestamp() uint32 {
 
 // dataCreateNew creates DATA package, it should be free with freeCreated
 func (pac *packetType) dataCreateNew(id uint32, channel int, data []byte) *packetType {
-	var length C.size_t
+	var dataLen, length C.size_t
+	dataPtr := C.NULL
+	if data != nil {
+		dataPtr = unsafe.Pointer(&data[0])
+		dataLen = C.size_t(len(data))
+	}
 	packet := C.trudpPacketDATAcreateNew(C.uint32_t(id), C.uint(channel),
-		unsafe.Pointer(&data[0]), C.size_t(len(data)), &length)
+		dataPtr, dataLen, &length)
 	return &packetType{trudp: pac.trudp, data: goBytesUnsafe(packet, length),
 		sendQueueF: true, destoryF: true}
 }

@@ -140,8 +140,8 @@ func (tcd *ChannelData) Write(data []byte) (n int, err error) {
 	return
 }
 
-// WriteToUnsafe send data to remote host by UDP
-func (tcd *ChannelData) WriteToUnsafe(data []byte) (int, error) {
+// WriteUnsafe send data to remote host by UDP
+func (tcd *ChannelData) WriteUnsafe(data []byte) (int, error) {
 	return tcd.trudp.udp.writeTo(data, tcd.addr)
 }
 

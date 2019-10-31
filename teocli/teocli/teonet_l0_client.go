@@ -259,20 +259,18 @@ func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
 		teo.td = trudp.Init(&localport)
 		teo.tcd = teo.td.ConnectChannel(addr, port, 0)
 		go teo.td.Run()
-		// Wait channel connected
+		// Wait channel answer and marked as connected
+		const timeout = 2500 * time.Millisecond
 		done := make(chan bool)
-		const timeout = 2500*time.Millisecond
 		go func() {
-			teo.tcd.Write([]byte{0})
 			t := time.Now()
-			for {
-				time.Sleep(10 * time.Millisecond)
-				if teo.tcd.Connected() {
-					break
-				} else if time.Since(t) > timeout {
+			teo.tcd.Write(nil)
+			for !teo.tcd.Connected() {
+				if time.Since(t) > timeout {
 					err = errors.New("can't connect during timeout")
 					break
 				}
+				time.Sleep(10 * time.Millisecond)
 			}
 			done <- true
 		}()

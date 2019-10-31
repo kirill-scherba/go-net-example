@@ -454,7 +454,7 @@ func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd byte, data []byte
 	// much unfsafe packets and than combine it. So sugest return err "too large
 	// data packet" if the length more than 1024 - 1280 (more than mtu, more than
 	// udp packet)... or lets him try send any size packets :-)
-	return tcd.WriteToUnsafe(teo.cry.encrypt(pac.packet))
+	return tcd.WriteUnsafe(teo.cry.encrypt(pac.packet))
 }
 
 // Type return this teonet application type (array of types)
