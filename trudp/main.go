@@ -41,20 +41,20 @@ func main() {
 		sendSleepTime int
 
 		// Control flags parameters
-		noLogTime  bool
-		sendTest   bool
-		showStat   bool
-		sendAnswer bool
+		logToSyslogF bool
+		sendTest     bool
+		showStat     bool
+		sendAnswer   bool
 	)
 
 	flag.IntVar(&maxQueueSize, "Q", trudp.DefaultQueueSize, "maximum send and receive queues size")
-	flag.BoolVar(&noLogTime, "no-log-time", false, "don't show time in application log")
 	flag.IntVar(&port, "p", 0, "this host port (to remote hosts connect to this host)")
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&logLevel, "log-level", "CONNECT", "application log level")
 	flag.StringVar(&logFilter, "log-filter", "", "application log filter")
+	flag.BoolVar(&logToSyslogF, "log-to-syslog", false, "save log to syslog")
 	flag.IntVar(&sendSleepTime, "t", 0, "send timeout in microseconds")
 	flag.BoolVar(&sendTest, "send-test", false, "send test data")
 	flag.BoolVar(&sendAnswer, "answer", false, "send answer")
@@ -67,7 +67,8 @@ func main() {
 		tru := trudp.Init(&port)
 
 		// Set log level
-		teolog.Init(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds, logFilter)
+		teolog.Init(logLevel, log.LstdFlags|log.Lmicroseconds, logFilter,
+			logToSyslogF, "trudp")
 
 		// Set 'show statictic' flag
 		tru.ShowStatistic(showStat)
@@ -99,7 +100,8 @@ func main() {
 						num++
 					}
 
-					teolog.Log(teolog.CONNECT, MODULE, "(main) channel "+tcd.GetKey()+" sender stopped")
+					teolog.Log(teolog.CONNECT, MODULE, "(main) channel "+
+						tcd.GetKey()+" sender stopped")
 					if !tru.Running() {
 						break
 					}
@@ -118,7 +120,8 @@ func main() {
 				switch ev.Event {
 
 				case trudp.EvGotData:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+					teolog.Log(teolog.DEBUG, MODULE, "(main) GOT_DATA: ",
+						ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 					if sendAnswer {
 						ev.Tcd.Write([]byte(string(ev.Data) + " - answer"))
 					}
@@ -127,22 +130,28 @@ func main() {
 				// 	teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_DATA:", ev.Data, string(ev.Data))
 
 				case trudp.EvInitialize:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) INITIALIZE, listen at:", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) INITIALIZE, listen at:",
+						string(ev.Data))
 
 				case trudp.EvDestroy:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) DESTROY", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) DESTROY",
+						string(ev.Data))
 
 				case trudp.EvConnected:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) CONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) CONNECTED",
+						string(ev.Data))
 
 				case trudp.EvDisconnected:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED", string(ev.Data))
+					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED",
+						string(ev.Data))
 
 				case trudp.EvResetLocal:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) RESET_LOCAL executed at channel:", ev.Tcd.GetKey())
+					teolog.Log(teolog.DEBUG, MODULE, "(main) RESET_LOCAL executed at channel:",
+						ev.Tcd.GetKey())
 
 				case trudp.EvSendReset:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:", ev.Tcd.GetKey())
+					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:",
+						ev.Tcd.GetKey())
 
 				default:
 					teolog.Log(teolog.ERROR, MODULE, "(main) event:", ev.Event)

@@ -9,6 +9,7 @@ package teolog
 import (
 	"fmt"
 	"log"
+	"log/syslog"
 	"os"
 	"strings"
 
@@ -38,9 +39,10 @@ const (
 )
 
 type logParam struct {
-	level  int
-	log    *log.Logger
-	filter string
+	log      *log.Logger
+	level    int
+	filter   string
+	toSyslog bool
 }
 
 var param logParam
@@ -143,7 +145,7 @@ func logOutput(calldepth int, level int, p ...interface{}) {
 		pp = append(append(pp, LoglevelStringColor(level)), p...)
 		msg := fmt.Sprintln(pp...)
 		if checkFilter(msg) {
-			param.log.Output(calldepth+1, msg)
+			param.log.Output(calldepth+1, removeTEsc(msg, param.toSyslog))
 		}
 	}
 }
@@ -156,16 +158,22 @@ func logOutputf(calldepth int, level int, module string, format string, p ...int
 		pp = append(append(pp, LoglevelStringColor(level), module), p...)
 		msg := fmt.Sprintf("%s %s "+format, pp...)
 		if checkFilter(msg) {
-			param.log.Output(calldepth+1, msg)
+			param.log.Output(calldepth+1, removeTEsc(msg, param.toSyslog))
 		}
 	}
 }
 
 // Init initial module and sets log level
 // Avalable level values: NONE, CONNECT, ERROR, MESSAGE, DEBUG, DEBUGv, DEBUGvv
-func Init(level interface{}, useLogF bool, flags int, filter string) {
+func Init(level interface{}, flags int, filter string, toSyslogF bool, syslogPrefix string) {
 
-	param.log = log.New(os.Stdout, teokeys.ANSIDarkGrey, flags)
+	if toSyslogF {
+		param.log, _ = syslog.NewLogger(syslog.LOG_DEBUG, flags)
+		param.log.SetPrefix(syslogPrefix + ": ")
+		param.toSyslog = toSyslogF
+	} else {
+		param.log = log.New(os.Stdout, teokeys.ANSIDarkGrey, flags)
+	}
 
 	// Set log flags
 	if flags == 0 {
@@ -284,4 +292,26 @@ func checkFilter(message string) bool {
 		return true
 	}
 	return strings.Contains(message, param.filter)
+}
+
+// removeTEsc removes terminal escape text formating in input string and return
+// new string without this format
+func removeTEsc(str string, toSyslog bool) (retStr string) {
+	if !toSyslog {
+		retStr = str
+		return
+	}
+	var skipEsc bool
+	l := len(str)
+	for i := 0; i < l; i++ {
+		switch {
+		case skipEsc && str[i] == 'm':
+			skipEsc = false
+		case !skipEsc && str[i] == '\033':
+			skipEsc = true
+		case !skipEsc:
+			retStr += string(str[i])
+		}
+	}
+	return
 }

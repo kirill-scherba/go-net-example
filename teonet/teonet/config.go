@@ -27,6 +27,7 @@ type Parameters struct {
 	Network          string `json:"network"`          // teonet network name
 	Loglevel         string `json:"log-level"`        // show log messages level
 	LogFilter        string `json:"log-filter"`       // log messages filter
+	LogToSyslogF     bool   `json:"log-to-syslog"`    // forbid hotkeys menu
 	ForbidHotkeysF   bool   `json:"forbid-hotkeys"`   // forbid hotkeys menu
 	ShowTrudpStatF   bool   `json:"show-trudp"`       // show trudp statistic
 	ShowPeersStatF   bool   `json:"show-peers"`       // show peers table
@@ -64,6 +65,7 @@ func Params(ii ...interface{}) (param *Parameters) {
 	flag.IntVar(&param.RPort, "r", param.RPort, "remote host port (to connect to remote host)")
 	flag.StringVar(&param.Loglevel, "log-level", param.Loglevel, "show log messages level")
 	flag.StringVar(&param.LogFilter, "log-filter", param.LogFilter, "set log messages filter")
+	flag.BoolVar(&param.LogToSyslogF, "log-to-syslog", param.LogToSyslogF, "save log messages to syslog")
 	flag.BoolVar(&param.ForbidHotkeysF, "forbid-hotkeys", param.ForbidHotkeysF, "forbid hotkeys menu")
 	flag.BoolVar(&param.ShowTrudpStatF, "show-trudp", param.ShowTrudpStatF, "show trudp statistic")
 	flag.BoolVar(&param.ShowPeersStatF, "show-peers", param.ShowPeersStatF, "show peers table")
