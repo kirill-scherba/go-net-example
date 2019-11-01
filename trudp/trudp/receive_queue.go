@@ -44,20 +44,25 @@ func (tcd *ChannelData) receiveQueueReset() {
 }
 
 // receiveQueueProcess find packets in received queue sendEvent and remove packet
-func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) {
+func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) (err error) {
 	for {
 		e, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
 		if err != nil {
 			break
 		}
-		// \TODO: this a critical place where we have packet in received queue but
-		// has not place in event queue and can't read new packet bekause afraid deadlock
+		// \TODO: this a critical place where we have packet in received queue
+		// but has not place in event queue and can't read new packet because
+		// afraid deadlock
 		if !tcd.trudp.sendEventAvailable() {
 			teolog.Error(MODULE, "ebzdik-2:"+strconv.Itoa(len(tcd.trudp.chanEvent)))
+			err = errors.New("can't process all receive queue")
+			break
 		}
 		tcd.incID(&tcd.expectedID)
-		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:", rqd.packet.getID())
+		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:",
+			rqd.packet.getID())
 		sendEvent(rqd.packet.getData())
 		tcd.receiveQueueRemove(e)
 	}
+	return
 }

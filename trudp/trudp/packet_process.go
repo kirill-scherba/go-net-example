@@ -195,6 +195,11 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 				fmt.Sprintf("put packet id: %d, channel: %s to received queue, "+
 					"wait previouse packets", id, tcd.GetKey())))
 			tcd.receiveQueueAdd(pac)
+			// <<<< Added to fix overload receve queueu
+			tcd.receiveQueueProcess(func(data []byte) {
+				tcd.trudp.sendEvent(tcd, EvGotData, data)
+			})
+			// <<<<
 		} else {
 			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightBlue,
 				fmt.Sprintf("skip received packet id: %d, channel: %s, "+

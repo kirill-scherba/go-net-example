@@ -236,7 +236,8 @@ func Init(port *int) (trudp *TRUDP) {
 
 // sendEventAvailable return true if send event available
 func (trudp *TRUDP) sendEventAvailable() bool {
-	return len(trudp.chanEvent) < (chEventSize - maxRQueue - 16)
+	//return len(trudp.chanEvent) < (chEventSize - maxRQueue - 16)
+	return len(trudp.chanEvent) < chEventSize-16
 }
 
 // sendEvent Send event to user level (to event callback or channel)
