@@ -120,7 +120,7 @@ func main() {
 				switch ev.Event {
 
 				case trudp.EvGotData:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) GOT_DATA: ",
+					teolog.Log(teolog.DEBUGv, MODULE, "(main) GOT_DATA: ",
 						ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
 					if sendAnswer {
 						ev.Tcd.Write([]byte(string(ev.Data) + " - answer"))
