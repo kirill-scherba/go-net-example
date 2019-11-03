@@ -320,8 +320,10 @@ func (trudp *TRUDP) Run() {
 		default:
 			teolog.Log(teolog.DEBUGv, MODULE, "got (---==Not TRUDP==---)", nRead,
 				"bytes from:", addr)
-			tcd, _, _ := trudp.newChannelData(addr, 0, true, false)
-			tcd.trudp.sendEvent(tcd, EvGotDataNotrudp, buffer[:nRead])
+			go trudp.kernel(func() {
+				tcd, _, _ := trudp.newChannelData(addr, 0, true, false)
+				tcd.trudp.sendEvent(tcd, EvGotDataNotrudp, buffer[:nRead])
+			})
 		}
 	}
 }
