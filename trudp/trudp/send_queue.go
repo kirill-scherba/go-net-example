@@ -10,13 +10,13 @@ import (
 )
 
 type sendQueueData struct {
-	packet        *packetType
-	sendTime      time.Time
-	arrivalTime   time.Time
-	resendAttempt int
+	packet        *packetType // packet
+	sendTime      time.Time   // time when packet was send
+	arrivalTime   time.Time   // time when packet need resend
+	resendAttempt int         // number of resend was done
 }
 
-// sendQueueResendProcess Resend packet from send queue if it does not got
+// sendQueueResendProcess resend packet from send queue if it does not got
 // ACK during selected time. Destroy channel if too much resends happens =
 // maxResendAttempt constant
 // \TODO check this resend and calculate new resend time algorithm
@@ -41,7 +41,7 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 		sqd.packet.updateTimestamp().writeTo(tcd)
 		tcd.stat.repeat(true)
 		teolog.Log(teolog.DEBUGvv, MODULE, "resend sendQueue packet ",
-			"id:", sqd.packet.getID(),
+			"id:", sqd.packet.ID(),
 			"attempt:", sqd.resendAttempt)
 	}
 	// Next time to run sendQueueResendProcess
@@ -71,22 +71,22 @@ func (tcd *ChannelData) sendQueueAdd(packet *packetType) {
 			arrivalTime: arrivalTime,
 		})
 		teolog.Log(teolog.DEBUGvv, MODULE, "add to send queue, id:",
-			packet.getID())
+			packet.ID())
 	} else {
 		sqd.arrivalTime = arrivalTime
 		sqd.resendAttempt++
 		teolog.Log(teolog.DEBUGvv, MODULE, "update in send queue, id",
-			packet.getID())
+			packet.ID())
 	}
 }
 
 // sendQueueFind find packet in sendQueue
 func (tcd *ChannelData) sendQueueFind(packet *packetType) (e *list.Element,
 	sqd *sendQueueData, id uint32, err error) {
-	id = packet.getID()
+	id = packet.ID()
 	for e = tcd.sendQueue.Front(); e != nil; e = e.Next() {
 		sqd = e.Value.(*sendQueueData)
-		if sqd.packet.getID() == id {
+		if sqd.packet.ID() == id {
 			return
 		}
 	}
@@ -109,15 +109,15 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 	// Calculate new send queue length if send packets speed more than 30 pac/sec
 	if tcd.stat.packets.sendRT.SpeedPacSec > 30 {
 		//currentLen := tcd.sendQueue.Len()
-		lessMaxSize := tcd.maxQueueSize < 1024
+		lessMaxSize := tcd.maxQueueSize < 2048 //1024
 		queueIsFull := tcd.sendQueue.Len() >= tcd.maxQueueSize
-		moreDefaultSize := tcd.maxQueueSize > tcd.trudp.defaultQueueSize
+		moreDefaultSize := tcd.maxQueueSize > 4 //tcd.trudp.defaultQueueSize
 		//  if queue capacity less max capacity size
 		if lessMaxSize {
 			// if repeat speed is nil (0 repeat packets during second) and
 			// queue is full
 			if tcd.stat.packets.repeatRT.SpeedPacSec == 0 && queueIsFull {
-				tcd.maxQueueSize += 8
+				tcd.maxQueueSize += 4
 			}
 		}
 		// if queue capacity more default(minimal) capacity size
@@ -126,7 +126,7 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 			// if repeat speed more than 10 packets per second and queue is full
 			if tcd.stat.packets.repeatRT.SpeedPacSec > 20 ||
 				tcd.stat.packets.repeatRT.SpeedPacSec > 10 && queueIsFull {
-				tcd.maxQueueSize -= 8
+				tcd.maxQueueSize -= 4
 			}
 		}
 	}
