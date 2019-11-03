@@ -154,7 +154,10 @@ func main() {
 						ev.Tcd.GetKey())
 
 				default:
-					teolog.Log(teolog.ERROR, MODULE, "(main) event:", ev.Event)
+					teolog.Errorf(MODULE,
+						"(main) event: %d, data_len: %d, data: %v %s\n",
+						ev.Event, len(ev.Data), ev.Data, string(ev.Data),
+					)
 				}
 			}
 		}()

@@ -323,6 +323,10 @@ func (trudp *TRUDP) Run() {
 			go trudp.kernel(func() {
 				tcd, _, _ := trudp.newChannelData(addr, 0, true, false)
 				tcd.trudp.sendEvent(tcd, EvGotDataNotrudp, buffer[:nRead])
+				// packet := &packetType{trudp: trudp, data: buffer[:nRead]}
+				// d := packet.Data()
+				// l := len(d)
+				// fmt.Printf("data_len: %d\n", l) 
 			})
 		}
 	}
