@@ -117,7 +117,7 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 			// if repeat speed is nil (0 repeat packets during second) and
 			// queue is full
 			if tcd.stat.packets.repeatRT.SpeedPacSec == 0 && queueIsFull {
-				tcd.maxQueueSize += 4
+				tcd.maxQueueSize += 32
 			}
 		}
 		// if queue capacity more default(minimal) capacity size
