@@ -67,7 +67,7 @@ func main() {
 		tru := trudp.Init(&port)
 
 		// Set log level
-		teolog.Init(logLevel, log.LstdFlags|log.Lmicroseconds, logFilter,
+		teolog.Init(logLevel, log.Lmicroseconds|log.Lshortfile, logFilter,
 			logToSyslogF, "trudp")
 
 		// Set 'show statictic' flag
