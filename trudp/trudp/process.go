@@ -114,7 +114,8 @@ func (proc *process) init(trudp *TRUDP) *process {
 					readPac.packet.process(readPac.addr)
 					ebzdik1 = 0
 				} else {
-					teolog.Error(MODULE, "ebzdik-1 chanEvent: "+strconv.Itoa(len(trudp.chanEvent))+" <===- ", ebzdik1)
+					teolog.Error(MODULE, "ebzdik-1 chanEvent: "+
+						strconv.Itoa(len(trudp.chanEvent))+" <===- ", ebzdik1)
 					ebzdik1++
 				}
 
@@ -131,10 +132,11 @@ func (proc *process) init(trudp *TRUDP) *process {
 				}
 				f()
 
-			// Process send queue (resend packets from send queue), check Keep alive
-			// and show statistic (check after 30 ms)
+			// Process send queue (resend packets from send queue), check Keep
+			// alive and show statistic (check after 30 ms)
 			case <-proc.timerResend:
-				// Loop trudp channels map and check Resend send queue and/or send keep alive signal (ping)
+				// Loop trudp channels map and check Resend send queue and/or
+				// send keep alive signal (ping)
 				for _, tcd := range proc.trudp.tcdmap {
 					// Resend
 					tcd.sendQueueResendProcess()
@@ -161,7 +163,10 @@ func (proc *process) init(trudp *TRUDP) *process {
 	go func() {
 		proc.wg.Add(1)
 		teolog.Log(teolog.CONNECT, MODULE, "writer worker started")
-		defer func() { teolog.Log(teolog.CONNECT, MODULE, "writer worker stopped"); proc.wg.Done() }()
+		defer func() {
+			teolog.Log(teolog.CONNECT, MODULE, "writer worker stopped")
+			proc.wg.Done()
+		}()
 		for w := range proc.chanWriter {
 			proc.trudp.udp.writeTo(w.packet.data, w.addr)
 			if !w.packet.sendQueueF {
@@ -173,7 +178,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 	return proc
 }
 
-// writeTo  write packet to trudp channel or write packet to write queue
+// writeTo write packet to trudp channel or write packet to write queue
 func (proc *process) writeTo(writePac *writeType) {
 	tcd := writePac.tcd
 	if len(tcd.writeQueue) == 0 && tcd.canWrite() {
@@ -187,7 +192,7 @@ func (proc *process) writeTo(writePac *writeType) {
 func (proc *process) writeToDirect(writePac *writeType) {
 	tcd := writePac.tcd
 	writePac.chanAnswer <- true
-	proc.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, writePac.data).writeTo(tcd)
+	proc.trudp.packet.newData(tcd.ID(), tcd.ch, writePac.data).writeTo(tcd)
 }
 
 // writeToQueue add write packet to write queue
@@ -238,7 +243,8 @@ func (proc *process) showStatistic() {
 
 	// Get fotter and print statistic string
 	tcs := &channelStat{trudp: trudp} // Empty Methods holder
-	str = tcs.statHeader(time.Since(trudp.startTime), time.Since(t)) + str + tcs.statFooter(idx)
+	str = tcs.statHeader(time.Since(trudp.startTime), time.Since(t)) + str +
+		tcs.statFooter(idx)
 	fmt.Print(str)
 }
 

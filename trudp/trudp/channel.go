@@ -100,8 +100,8 @@ func (tcd *ChannelData) incID(id *uint32) (currentID uint32) {
 	return
 }
 
-// getId return new packe id
-func (tcd *ChannelData) getID() (currentID uint32) {
+// ID return new packe id
+func (tcd *ChannelData) ID() (currentID uint32) {
 	for {
 		currentID = atomic.LoadUint32(&tcd.id)
 		// newID := currentID
@@ -266,7 +266,7 @@ func (tcd *ChannelData) keepAlive() {
 
 	// Send ping after sleep time
 	if time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime {
-		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+		tcd.trudp.packet.newPing(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 		teolog.Log(teolog.DEBUGv, MODULE, "send ping to channel: ", tcd.key)
 	}
 
@@ -282,6 +282,6 @@ func (tcd *ChannelData) keepAlive() {
 	// \TODO send test data - remove it
 	if tcd.sendTestMsgF {
 		data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
-		tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
+		tcd.trudp.packet.newData(tcd.ID(), tcd.ch, data).writeTo(tcd)
 	}
 }

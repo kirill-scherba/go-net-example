@@ -19,10 +19,10 @@ func BenchmarkPacketType_PacketDistanceSimple(b *testing.B) {
 	}
 }
 
-func BenchmarkChannelData_GetId(b *testing.B) {
+func BenchmarkChannelData_ID(b *testing.B) {
 	tcd := &ChannelData{}
 	for i := 0; i < b.N; i++ {
-		if i != int(tcd.getID()) {
+		if i != int(tcd.ID()) {
 			b.FailNow()
 		}
 	}
@@ -40,14 +40,14 @@ func BenchmarkChannelData_IncId(b *testing.B) {
 func TestChannelData_GetId(t *testing.T) {
 	tcd := &ChannelData{}
 	for i := 0; i < packetIDlimit/10000; i++ {
-		if i != int(tcd.getID()) {
+		if i != int(tcd.ID()) {
 			t.Errorf("wrong id")
 		}
 	}
 
 	tcd.id = packetIDlimit - 1
-	tcd.getID()
-	if id := tcd.getID(); id != 1 {
+	tcd.ID()
+	if id := tcd.ID(); id != 1 {
 		t.Errorf("wrong get id when id overflow")
 	}
 }

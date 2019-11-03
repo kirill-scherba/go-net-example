@@ -17,14 +17,14 @@ type receiveQueueData struct {
 // receiveQueueAdd add packet to receive queue
 func (tcd *ChannelData) receiveQueueAdd(packet *packetType) {
 	tcd.receiveQueue.PushBack(&receiveQueueData{packet: packet})
-	teolog.Log(teolog.DEBUGvv, MODULE, "add to receive queue, id", packet.getID())
+	teolog.Log(teolog.DEBUGvv, MODULE, "add to receive queue, id", packet.ID())
 }
 
 // receiveQueueFind find packet with selected id in receiveQueue
 func (tcd *ChannelData) receiveQueueFind(id uint32) (e *list.Element, rqd *receiveQueueData, err error) {
 	for e = tcd.receiveQueue.Front(); e != nil; e = e.Next() {
 		rqd = e.Value.(*receiveQueueData)
-		if rqd.packet.getID() == id {
+		if rqd.packet.ID() == id {
 			return
 		}
 	}
@@ -35,7 +35,8 @@ func (tcd *ChannelData) receiveQueueFind(id uint32) (e *list.Element, rqd *recei
 // receiveQueueRemove remove previousely found element from receive queue by index
 func (tcd *ChannelData) receiveQueueRemove(e *list.Element) {
 	tcd.receiveQueue.Remove(e)
-	teolog.Log(teolog.DEBUGvv, MODULE, "remove from receive queue, e", e.Value.(*receiveQueueData).packet.getID())
+	teolog.Log(teolog.DEBUGvv, MODULE, "remove from receive queue, e",
+		e.Value.(*receiveQueueData).packet.ID())
 }
 
 // receiveQueueReset resets (clear) send queue
@@ -60,8 +61,8 @@ func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) (err er
 		}
 		tcd.incID(&tcd.expectedID)
 		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:",
-			rqd.packet.getID())
-		sendEvent(rqd.packet.getData())
+			rqd.packet.ID())
+		sendEvent(rqd.packet.Data())
 		tcd.receiveQueueRemove(e)
 	}
 	return
