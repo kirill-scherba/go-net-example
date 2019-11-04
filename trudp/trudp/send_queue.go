@@ -38,7 +38,12 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 			break
 		}
 		// Resend packet, save resend to statistic and show message
-		sqd.packet.updateTimestamp().writeTo(tcd)
+		// sqd.packet.updateTimestamp().writeTo(tcd)
+		p := sqd.packet
+		p.destoryF = false
+		p.data = append([]byte(nil), sqd.packet.data...)
+		p.updateTimestamp().writeTo(tcd)
+		//
 		tcd.stat.repeat(true)
 		teolog.Log(teolog.DEBUGvv, MODULE, "resend sendQueue packet ",
 			"id:", sqd.packet.ID(),

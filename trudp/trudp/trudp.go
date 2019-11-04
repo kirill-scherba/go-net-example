@@ -326,7 +326,8 @@ func (trudp *TRUDP) Run() {
 				// packet := &packetType{trudp: trudp, data: buffer[:nRead]}
 				// d := packet.Data()
 				// l := len(d)
-				// fmt.Printf("data_len: %d\n", l) 
+				// fmt.Printf("data_len: %d, data: %s, channel: %d, check: %v, id: %d, type: %s\n",
+				// 	l, string(d), packet.Channel(), packet.check(buffer[:nRead]), packet.ID(), packet.TypeString())
 			})
 		}
 	}
