@@ -31,7 +31,7 @@ const (
 	firstPacketID    = 0                // (number) first packet ID and first expectedID number
 	chRWUdpSize      = 1024             // Size of read and write channel used to got/send data from udp
 	chWriteSize      = 256              // Size of writer channel used to send data from users level and than send it to remote host
-	maxRQueue        = 4096             // Max size of receive queue
+	maxRQueue        = 65536            // Max size of receive queue
 	chEventSize      = 2048 + maxRQueue // Size or read channel used to send messages to user level
 
 	// DefaultQueueSize is size of send and receive queue
@@ -291,7 +291,7 @@ func (trudp *TRUDP) Run() {
 		switch {
 		// Empty packet
 		case nRead == 0:
-			teolog.Log(teolog.DEBUGv, MODULE, "empty paket received from:", addr)
+			teolog.DebugV(MODULE, "empty paket received from:", addr)
 
 		// Check trudp packet
 		case trudp.packet.check(buffer[:nRead]):
@@ -299,35 +299,43 @@ func (trudp *TRUDP) Run() {
 			trudp.proc.chanReader <- &readerType{addr, packet}
 
 		// Process connect message
-		case nRead == len(helloMsg) && string(buffer[:len(helloMsg)]) == helloMsg:
-			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "bytes 'connect' message from:",
-				addr, "data: ", buffer[:nRead], string(buffer[:nRead]))
+		// (this is non-trudp test command, it may be deprecated)
+		case nRead == len(helloMsg) &&
+			string(buffer[:len(helloMsg)]) == helloMsg:
+			teolog.Log(teolog.DEBUG, MODULE, "got", nRead,
+				"bytes 'connect' message from:", addr, "data: ", buffer[:nRead],
+				string(buffer[:nRead]))
 
 		// Process echo message Ping (send to Pong)
+		// (this is non-trudp test command, it may be deprecated)
 		case nRead > len(echoMsg) && string(buffer[:len(echoMsg)]) == echoMsg:
-			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "byte 'ping' command from:",
-				addr, buffer[:nRead])
-			trudp.udp.writeTo(append([]byte(echoAnswerMsg), buffer[len(echoMsg):nRead]...), addr)
+			teolog.Log(teolog.DEBUG, MODULE, "got", nRead,
+				"byte 'ping' command from:", addr, buffer[:nRead])
+			trudp.udp.writeTo(append([]byte(echoAnswerMsg),
+				buffer[len(echoMsg):nRead]...), addr)
 
 		// Process echo answer message Pong (answer to Ping)
-		case nRead > len(echoAnswerMsg) && string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
+		// (this is non-trudp test command, it may be deprecated)
+		case nRead > len(echoAnswerMsg) &&
+			string(buffer[:len(echoAnswerMsg)]) == echoAnswerMsg:
 			var ts time.Time
 			ts.UnmarshalBinary(buffer[len(echoAnswerMsg):nRead])
-			teolog.Log(teolog.DEBUG, MODULE, "got", nRead, "byte 'pong' command from:",
-				addr, "trip time:", time.Since(ts), buffer[:nRead])
+			teolog.Log(teolog.DEBUG, MODULE, "got", nRead,
+				"byte 'pong' command from:", addr, "trip time:",
+				time.Since(ts), buffer[:nRead])
 
-		// Not trudp packet received
+		// Not trudp packet received (it may be teonet not-trudp commands)
 		default:
-			teolog.Log(teolog.DEBUGv, MODULE, "got (---==Not TRUDP==---)", nRead,
-				"bytes from:", addr)
+			teolog.DebugVf(MODULE,
+				"got (---==Not TRUDP==---) %d bytes, from: %s\n", nRead, addr)
+			// Process teonet notTrudp messages if trudp channel exists, or
+			// ignore this message if channel does not exsists.
 			go trudp.kernel(func() {
-				tcd, _, _ := trudp.newChannelData(addr, 0, true, false)
+				tcd, _, ok := trudp.newChannelData(addr, 0, false, false)
+				if !ok {
+					return
+				}
 				tcd.trudp.sendEvent(tcd, EvGotDataNotrudp, buffer[:nRead])
-				// packet := &packetType{trudp: trudp, data: buffer[:nRead]}
-				// d := packet.Data()
-				// l := len(d)
-				// fmt.Printf("data_len: %d, data: %s, channel: %d, check: %v, id: %d, type: %s\n",
-				// 	l, string(d), packet.Channel(), packet.check(buffer[:nRead]), packet.ID(), packet.TypeString())
 			})
 		}
 	}
