@@ -19,7 +19,7 @@ import (
 // and responce teonet commands.
 type KeyValue struct {
 	Cmd           byte   // Command
-	ID            uint16 // Packet id
+	ID            uint32 // Packet id
 	Key           string // Key
 	Value         []byte // Value
 	RequestInJSON bool   // Request packet format
@@ -145,7 +145,7 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 		case nil:
 			kv.ID = 0
 		case float64:
-			kv.ID = uint16(id)
+			kv.ID = uint32(id)
 		default:
 			err = fmt.Errorf("can't unmarshal json ID of type %T", v.ID)
 			return
@@ -170,9 +170,9 @@ func (kv *KeyValue) UnmarshalText(text []byte) (err error) {
 		d := strings.Split(string(text), ",")
 		l := len(d)
 
-		getID := func(idx int) uint16 {
+		getID := func(idx int) uint32 {
 			id, _ := strconv.Atoi(d[idx])
-			return uint16(id)
+			return uint32(id)
 		}
 		kv.ID = 0
 

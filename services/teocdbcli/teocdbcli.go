@@ -9,6 +9,8 @@
 //
 package teocdbcli
 
+import "sync/atomic"
+
 // BUG(r): Test bug message (https://blog.golang.org/godoc-documenting-go-code)
 
 // Key value database commands.
@@ -28,7 +30,7 @@ const (
 type TeocdbCli struct {
 	con      TeoConnector
 	peerName string
-	nextID   uint16
+	nextID   uint32
 }
 
 // TeoConnector is teonet connector interface. It may be servers (*Teonet) or
@@ -103,9 +105,9 @@ func New(con TeoConnector, peer ...string) *TeocdbCli {
 //   keylist.UnmarshalBinary(data)
 //
 func (cdb *TeocdbCli) Send(cmd byte, key string, value ...[]byte) (data []byte, err error) {
-	cdb.nextID++
+	nextID := atomic.AddUint32(&cdb.nextID, 1) // cdb.nextID++
 	response := &KeyValue{}
-	request := &KeyValue{Cmd: cmd, ID: cdb.nextID, Key: key}
+	request := &KeyValue{Cmd: cmd, ID: nextID, Key: key}
 	if len(value) > 0 {
 		for _, v := range value {
 			request.Value = append(request.Value, v...)
