@@ -23,7 +23,7 @@ import (
 // User data structure
 type User struct {
 	ID          gocql.UUID // User ID
-	AccessToken gocql.UUID // Access tocket is tocken to use when login
+	AccessToken gocql.UUID // Access tocken is tocken to use when login
 	Prefix      string     // Application(game) prefix (name or code)
 	Name        string     // User name
 	AvatarID    gocql.UUID // Avatar ID
