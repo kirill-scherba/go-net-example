@@ -8,6 +8,7 @@ package teouserscli
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -17,73 +18,102 @@ import (
 // UserRequest is data structure received by ComCheckUser and ComCreateUser
 // functions.
 type UserRequest struct {
-	Prefix string
-	ID     gocql.UUID
+	ReqID  uint32     // Request ID need to identify responce
+	Prefix string     // User ID or AccessToken prefix (usually it is App ID)
+	ID     gocql.UUID // User ID or AccessToken depend on type of request
 }
 
 // MarshalText encodes UserRequest data into text buffer.
-func (u *UserRequest) MarshalText() (data []byte, err error) {
+func (req *UserRequest) MarshalText() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
-	binary.Write(buf, le, []byte(u.Prefix))
+	binary.Write(buf, le, []byte(req.Prefix))
 	binary.Write(buf, le, []byte{'-'})
-	binary.Write(buf, le, []byte(u.ID.String()))
+	binary.Write(buf, le, []byte(req.ID.String()))
 	data = buf.Bytes()
 	return
 }
 
 // UnmarshalText decode text buffer into UserRequest receiver data.
-func (u *UserRequest) UnmarshalText(data []byte) (err error) {
+func (req *UserRequest) UnmarshalText1(data []byte) (err error) {
 
 	pre := bytes.SplitN(data, []byte{'-'}, 2)
 	l := len(pre)
 
 	if l == 0 {
-		u.Prefix = "def001"
+		req.Prefix = "def001"
 	} else {
-		u.Prefix = string(pre[0])
+		req.Prefix = string(pre[0])
 	}
 
 	if l == 2 {
-		if u.ID, err = gocql.ParseUUID(string(pre[1])); err != nil {
+		var emptyUUID gocql.UUID
+		if req.ID, err = gocql.ParseUUID(string(pre[1])); err != nil {
 			fmt.Printf("ParseUUID Error: %s\n", err)
+		} else if req.ID == emptyUUID {
+			err = errors.New("empty UUID")
+			fmt.Printf("ParseUUID empty: %s\n", req.ID)
 		}
 		return
 	}
-	u.ID = gocql.TimeUUID()
+	req.ID = gocql.TimeUUID()
 
+	return
+}
+
+// MarshalBinary encodes UserRequest data into text buffer.
+func (req *UserRequest) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, req.ReqID)
+	binary.Write(buf, le, []byte(req.Prefix))
+	binary.Write(buf, le, []byte{'-'})
+	binary.Write(buf, le, []byte(req.ID.String()))
+	data = buf.Bytes()
+	return
+}
+
+// UnmarshalBinary decode binary buffer into UserRequest receiver data.
+func (req *UserRequest) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data)
+	le := binary.LittleEndian
+	binary.Read(buf, le, &req.ReqID)
+	err = req.UnmarshalText1(data[unsafe.Sizeof(req.ReqID):])
 	return
 }
 
 // UserResponce is data structure returned by ComCreateUser function.
 type UserResponce struct {
+	ReqID       uint32
 	ID          gocql.UUID
 	AccessToken gocql.UUID
 	Prefix      string
 }
 
 // MarshalBinary encodes UserResponce data into binary buffer.
-func (u *UserResponce) MarshalBinary() (data []byte, err error) {
+func (res *UserResponce) MarshalBinary() (data []byte, err error) {
 	buf := new(bytes.Buffer)
 	le := binary.LittleEndian
-	binary.Write(buf, le, u.ID)
-	binary.Write(buf, le, u.AccessToken)
-	binary.Write(buf, le, []byte(u.Prefix))
+	binary.Write(buf, le, res.ReqID)
+	binary.Write(buf, le, res.ID)
+	binary.Write(buf, le, res.AccessToken)
+	binary.Write(buf, le, []byte(res.Prefix))
 	data = buf.Bytes()
 	return
 }
 
 // UnmarshalBinary decode binary buffer into UserResponce receiver data.
-func (u *UserResponce) UnmarshalBinary(data []byte) (err error) {
+func (res *UserResponce) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
-	binary.Read(buf, le, &u.ID)
-	binary.Read(buf, le, &u.AccessToken)
-	l := int(unsafe.Sizeof(u.ID) + unsafe.Sizeof(u.AccessToken))
+	binary.Read(buf, le, &res.ReqID)
+	binary.Read(buf, le, &res.ID)
+	binary.Read(buf, le, &res.AccessToken)
+	l := int(unsafe.Sizeof(res.ReqID) + unsafe.Sizeof(res.ID) + unsafe.Sizeof(res.AccessToken))
 	if len(data) > l {
 		d := make([]byte, len(data)-l)
 		binary.Read(buf, le, &d)
-		u.Prefix = string(d)
+		res.Prefix = string(d)
 	}
 	return
 }

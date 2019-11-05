@@ -1,5 +1,7 @@
 #!/bin/bash
 
+pkill -e -f "^go run . -n g001-scr-.* -bot"
+
 NUM_BOTS=$1
 
 for ((i=1; i <= $NUM_BOTS; i++))
