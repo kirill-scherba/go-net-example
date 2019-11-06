@@ -8,6 +8,7 @@ import (
 // StartCommand teocli first command interface
 type StartCommand interface {
 	Command(teo *TeoLNull, pac *Packet)
+	Disconnected()
 	Running() bool
 	Stop()
 }
@@ -59,6 +60,7 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 			packet, err := teo.Read()
 			if err != nil {
 				fmt.Println(err)
+				startCommand.Disconnected()
 				break
 			}
 			// Process loadded commands

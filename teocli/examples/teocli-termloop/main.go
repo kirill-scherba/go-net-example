@@ -86,14 +86,20 @@ func main() {
 		name = param.Cookies
 	}
 
-	// Run teonet game (connect to teonet, start game and process received commands)
+	// Run teonet game (connect to teonet, start game and process commands)
 	run(name, peer, raddr, rport, tcp, time.Duration(timeout)*time.Second, bot)
 }
 
 // Run connect to teonet, start game and process received commands
-func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration, bot bool) (tg *Teogame) {
-	tg = &Teogame{peer: peer, player: make(map[byte]*Player), conf: conf, param: param, bot: bot}
+func run(name, peer, raddr string, rport int, tcp bool, timeout time.Duration,
+	bot bool) (tg *Teogame) {
+	tg = &Teogame{
+		peer:   peer,
+		player: make(map[byte]*Player),
+		conf:   conf, param: param, bot: bot,
+	}
 	fmt.Printf("name: '%s'\n", name)
-	teocli.Run(name, raddr, rport, tcp, timeout, startCommand(tg), inputCommands(tg)...)
+	teocli.Run(name, raddr, rport, tcp, timeout, newStartCommand(tg),
+		newInputCommands(tg)...)
 	return
 }

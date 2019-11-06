@@ -27,8 +27,8 @@ type roomDataCommand struct{ tg *Teogame }
 type roomStartCommand struct{ tg *Teogame }
 type clientDisconnecCommand struct{ tg *Teogame }
 
-// inputCommands combine input commands to slice (to use in teocli.Run() function)
-func inputCommands(tg *Teogame) (com []teocli.Command) {
+// newInputCommands combine input commands to slice (to use in teocli.Run() function)
+func newInputCommands(tg *Teogame) (com []teocli.Command) {
 	com = append(com,
 		authAnswerCommand{tg},
 		echoAnswerCommand{},

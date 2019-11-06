@@ -50,30 +50,38 @@ func main() {
 	flag.Parse()
 
 	for {
-		var network string
-		running := true
-		// Connect to L0 server
-		if tcp {
-			network = "TCP"
-		} else {
-			network = "TRUDP"
+		// Network to string
+		network := func() (network string) {
+			network = "trudp"
+			if tcp {
+				network = "tcp"
+			}
+			return
 		}
-		fmt.Printf("Try %s connecting to %s:%d ...\n", network, raddr, rport)
+
+		// Connect to L0 server
+		fmt.Printf("Try %s connecting to %s:%d ...\n", network(), raddr, rport)
 		teo, err := teocli.Connect(raddr, rport, tcp)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
+
 		// Send L0 login (requered after connect)
 		fmt.Printf("send login\n")
 		if _, err := teo.SendLogin(name); err != nil {
-			panic(err)
+			fmt.Println(err)
+			time.Sleep(5 * time.Second)
+			continue
 		}
+
 		// Send peers command
 		fmt.Printf("send peers request\n")
 		teo.SendTo(peer, teocli.CmdLPeers, nil)
+
 		// Sender (send echo in loop)
+		running := true
 		go func() {
 			for i := 0; running; i++ {
 				switch {
@@ -99,6 +107,7 @@ func main() {
 				time.Sleep(time.Duration(timeout) * time.Microsecond)
 			}
 		}()
+
 		// Reader (read data and display it)
 		for {
 			packet, err := teo.Read()
@@ -111,7 +120,7 @@ func main() {
 			switch packet.Command() {
 			// Echo answer
 			case teocli.CmdLEchoAnswer:
-				if t, err := packet.TripTime(); err != nil {
+				if t, err := packet.Triptime(); err != nil {
 					fmt.Println("trip time error:", err)
 				} else {
 					fmt.Println("trip time (ms):", t)
