@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -13,10 +14,26 @@ import (
 )
 
 func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
+
+	// Init termui
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
+		return
 	}
-	defer ui.Close()
+
+	// Redirect standart output to file
+	stdout := os.Stdout
+	stderr := os.Stderr
+	f, _ := os.OpenFile("/tmp/teocli-termloop",
+		os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0755)
+	os.Stdout = f
+	os.Stderr = f
+	defer func() {
+		// Restory standart output
+		os.Stdout = stdout
+		os.Stderr = stderr
+		ui.Close()
+	}()
 
 	// Text box
 	p := widgets.NewParagraph()
@@ -41,7 +58,7 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 	table1.Rows = [][]string{[]string{" Cmd ", "  Count ", " Description"}}
 	table1.RowSeparator = false
 	//table1.FillRow = true
-	table1.RowStyles[0] = ui.NewStyle(ui.ColorBlack, ui.ColorGreen) //, ui.ModifierBold)
+	table1.RowStyles[0] = ui.NewStyle(ui.ColorBlack, ui.ColorGreen)
 	cmds := api.Cmds()
 	cmdsNumber := len(cmds)
 	sprintCount := func(count uint64) string {
@@ -49,7 +66,8 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 	}
 	for i := 0; i < cmdsNumber; i++ {
 		table1.Rows = append(table1.Rows, []string{
-			" " + strconv.Itoa(int(cmds[i])), sprintCount(0), " " + api.Descr(cmds[i]),
+			" " + strconv.Itoa(int(cmds[i])), sprintCount(0), " " +
+				api.Descr(cmds[i]),
 		})
 	}
 	table1.Rows = append(table1.Rows, []string{"", sprintCount(0), " "})
@@ -68,7 +86,8 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 			tCount += count
 		}
 		table1.Rows[cmdsNumber+1][1] = sprintCount(tCount)
-		table1Total.Text = "Total commands count: " + strings.TrimSpace(table1.Rows[cmdsNumber+1][1])
+		table1Total.Text = "Total commands count: " +
+			strings.TrimSpace(table1.Rows[cmdsNumber+1][1])
 	}
 
 	// Bar chart with workers
