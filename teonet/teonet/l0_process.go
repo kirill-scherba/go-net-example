@@ -75,7 +75,7 @@ func (l0 *l0Conn) process() {
 				"valid packet received from client %s, length: %d\n",
 				pac.client.addr, len(pac.packet),
 			)
-			p := pac.client.cli.PacketNew(pac.packet)
+			p := pac.client.cli.NewPacket(pac.packet)
 
 			// Find address in clients map and add if it absent, or send packet to
 			// peer if client already exsists

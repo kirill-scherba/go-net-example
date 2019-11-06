@@ -1,4 +1,4 @@
-// Copyright 2019 teonet-go authors.  All rights reserved.
+// Copyright 2019 Teonet-go authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,33 +7,7 @@
 package teocli
 
 // #include <string.h>
-// #include "teonet_l0_client.h"
-/*
-uint8_t packetGetCommand(void *packetPtr) {
-	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
-  return packet->cmd;
-}
-int packetGetPeerNameLength(teoLNullCPacket *packet) {
-  return packet->peer_name_length;
-}
-int packetGetDataLength(void *packetPtr) {
-	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
-  return packet->data_length;
-}
-int packetGetLength(void *packetPtr) {
-  teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
-	return teoLNullHeaderSize() + packetGetPeerNameLength(packetPtr) +
-	  packetGetDataLength(packetPtr);
-}
-char* packetGetPeerName(void *packetPtr) {
-	teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
-  return packet->peer_name;
-}
-char* packetGetData(void *packetPtr) {
-  teoLNullCPacket *packet = (teoLNullCPacket *)packetPtr;
-  return packet->peer_name + packet->peer_name_length;
-}
-*/
+// #include "packet.h"
 import "C"
 import (
 	"errors"
@@ -66,13 +40,60 @@ const (
 
 // TeoLNull teonet l0 client connection data
 type TeoLNull struct {
-	readBuffer []byte
-	tcp        bool
+	readBuffer []byte             // Read buffer
+	tcp        bool               // TCP connection flag - if true than tcp
+	conn       net.Conn           // TCP connection
+	td         *trudp.TRUDP       // TRUDP connection
+	tcd        *trudp.ChannelData // TRUDP channel
+}
 
-	conn net.Conn // TCP connection
+// Init initialize teocli
+func Init(tcp bool) (teo *TeoLNull, err error) {
+	teo = &TeoLNull{tcp: tcp, readBuffer: make([]byte, 0)}
+	return
+}
 
-	td  *trudp.TRUDP       // TRUDP connection
-	tcd *trudp.ChannelData // TRUDP channel
+// Connect connect to L0 server
+func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
+	teo, err = Init(tcp)
+	if tcp {
+		teo.conn, err = net.Dial("tcp", addr+":"+strconv.Itoa(port))
+		if err != nil {
+			return
+		}
+	} else {
+		localport := 0
+		teo.td = trudp.Init(&localport)
+		teo.tcd = teo.td.ConnectChannel(addr, port, 0)
+		go teo.td.Run()
+		// Wait channel answer and marked as connected
+		const timeout = 2500 * time.Millisecond
+		done := make(chan bool)
+		go func() {
+			t := time.Now()
+			teo.tcd.Write(nil)
+			for !teo.tcd.Connected() {
+				if time.Since(t) > timeout {
+					err = errors.New("can't connect during timeout")
+					break
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			done <- true
+		}()
+		<-done
+	}
+	return
+}
+
+// Disconnect from L0 server
+func (teocli *TeoLNull) Disconnect() {
+	if teocli.tcp {
+		teocli.conn.Close()
+	} else {
+		teocli.td.ChanEventClosed()
+		teocli.td.Close()
+	}
 }
 
 // PacketCreate create teonet l0 client packet
@@ -192,23 +213,7 @@ func (teocli *TeoLNull) ResetReadBuf() {
 	teocli.readBuffer = nil
 }
 
-// // PacketGetCmd return packets command
-// func (teocli *TeoLNull) PacketGetCommand(packet []byte) (cmd int) {
-// 	packetPtr := unsafe.Pointer(&packet[0])
-// 	cmd = int(C.packetGetCommand(packetPtr))
-// 	return
-// }
-
-// PacketGetData return packets data
-func (teocli *TeoLNull) packetGetData(packet []byte) (data []byte) {
-	packetPtr := unsafe.Pointer(&packet[0])
-	dataC := C.packetGetData(packetPtr)
-	dataLength := C.packetGetDataLength(packetPtr)
-	data = (*[1 << 28]byte)(unsafe.Pointer(dataC))[:dataLength:dataLength]
-	return
-}
-
-// send send packet to L0 server
+// send packet to L0 server
 func (teocli *TeoLNull) send(packet []byte) (length int, err error) {
 	if teocli.tcp {
 		length, err = teocli.conn.Write(packet)
@@ -229,67 +234,19 @@ func (teocli *TeoLNull) send(packet []byte) (length int, err error) {
 
 // sendEchoAnswer send echo answer to echo command
 func (teocli *TeoLNull) sendEchoAnswer(packet []byte) (length int, err error) {
-	if packet != nil {
-		packetPtr := unsafe.Pointer(&packet[0])
-		if C.packetGetCommand(packetPtr) == C.CMD_L_ECHO {
-			peerC := C.packetGetPeerName(packetPtr)
-			data := teocli.packetGetData(packet)
-			teocli.SendTo(C.GoString(peerC), C.CMD_L_ECHO_ANSWER, data)
-		}
+	if packet == nil || len(packet) == 0 {
+		err = errors.New("empty echo packet")
+		return
 	}
-	return
-}
-
-// Init initialize teocli
-func Init(tcp bool) (teo *TeoLNull, err error) {
-	teo = &TeoLNull{tcp: tcp, readBuffer: make([]byte, 0)}
-	return
-}
-
-// Connect connect to L0 server
-func Connect(addr string, port int, tcp bool) (teo *TeoLNull, err error) {
-	teo, err = Init(tcp)
-	if tcp {
-		teo.conn, err = net.Dial("tcp", addr+":"+strconv.Itoa(port))
-		if err != nil {
-			return
-		}
-	} else {
-		localport := 0
-		teo.td = trudp.Init(&localport)
-		teo.tcd = teo.td.ConnectChannel(addr, port, 0)
-		go teo.td.Run()
-		// Wait channel answer and marked as connected
-		const timeout = 2500 * time.Millisecond
-		done := make(chan bool)
-		go func() {
-			t := time.Now()
-			teo.tcd.Write(nil)
-			for !teo.tcd.Connected() {
-				if time.Since(t) > timeout {
-					err = errors.New("can't connect during timeout")
-					break
-				}
-				time.Sleep(10 * time.Millisecond)
-			}
-			done <- true
-		}()
-		<-done
+	pac := teocli.NewPacket(packet)
+	if pac.Command() != C.CMD_L_ECHO {
+		err = fmt.Errorf("wrong echo packet command: %d", pac.Command())
+		return
 	}
-	return
+	return teocli.SendTo(pac.From(), C.CMD_L_ECHO_ANSWER, pac.Data())
 }
 
-// Disconnect from L0 server
-func (teocli *TeoLNull) Disconnect() {
-	if teocli.tcp {
-		teocli.conn.Close()
-	} else {
-		teocli.td.ChanEventClosed()
-		teocli.td.Close()
-	}
-}
-
-// SendTo sends data to L0 server
+// SendTo sends data packet to teonet peer
 func (teocli *TeoLNull) SendTo(peer string, command byte, data []byte) (int, error) {
 	packet, err := teocli.PacketCreate(command, peer, data)
 	if err != nil {
@@ -298,7 +255,7 @@ func (teocli *TeoLNull) SendTo(peer string, command byte, data []byte) (int, err
 	return teocli.send(packet)
 }
 
-// SendEcho send echo packet to L0 server
+// SendEcho send echo packet to teonet peer
 func (teocli *TeoLNull) SendEcho(peer string, msg string) (int, error) {
 	packet, err := teocli.packetCreateEcho(peer, msg)
 	if err != nil {
@@ -322,7 +279,7 @@ func (teocli *TeoLNull) Read() (pac *Packet, err error) {
 		packet, _ = teocli.PacketCheck(packet)
 		if packet != nil {
 			teocli.sendEchoAnswer(packet)
-			pac = teocli.PacketNew(packet)
+			pac = teocli.NewPacket(packet)
 		}
 		return
 	}
@@ -341,7 +298,6 @@ FOR:
 				break FOR
 			}
 			packet = packet[:length]
-			//fmt.Printf("got %d bytes packet\n", len(packet))
 			if pac = packetCheck(packet); pac != nil {
 				break FOR
 			}
@@ -349,14 +305,16 @@ FOR:
 			ev := <-teocli.td.ChanEvent()
 			packet := ev.Data
 			switch ev.Event {
+
 			case trudp.EvDisconnected:
 				err = errors.New("channel with key " + string(packet) + " disconnected")
 				break FOR
+
 			case trudp.EvResetLocal:
 				err = errors.New("need to reconnect")
 				break FOR
+
 			case trudp.EvGotData:
-				//fmt.Printf("got %d bytes packet\n", len(packet))
 				if pac = packetCheck(packet); pac != nil {
 					break FOR
 				}
@@ -366,74 +324,6 @@ FOR:
 		}
 	}
 	return
-}
-
-// proccessEchoAnswer parse echo answer packet and return triptime in ms
-func (teocli *TeoLNull) proccessEchoAnswer(packet []byte) (t int64, err error) {
-	packetPtr := unsafe.Pointer(&packet[0])
-	command := C.packetGetCommand(packetPtr)
-	if command != C.CMD_L_ECHO_ANSWER {
-		err = errors.New("wrong packets command number")
-		return
-	}
-	dataC := C.packetGetData(packetPtr)
-	t = int64(C.teoLNullProccessEchoAnswer(dataC))
-	return
-}
-
-// Packet is teocli packet data structure and container for methods
-type Packet struct {
-	packet []byte
-	teocli *TeoLNull
-}
-
-// PacketNew Creates new packet from packet slice
-func (teocli *TeoLNull) PacketNew(packet []byte) *Packet {
-	return &Packet{packet: packet, teocli: teocli}
-}
-
-// Command return packets peer name
-func (pac *Packet) Command() byte {
-	return byte(C.packetGetCommand(unsafe.Pointer(&pac.packet[0])))
-}
-
-// Name return packets peer name
-func (pac *Packet) Name() string {
-	return C.GoString(C.packetGetPeerName(unsafe.Pointer(&pac.packet[0])))
-}
-
-// From return packets peer name (sinonim for Name nethod)
-func (pac *Packet) From() string {
-	return pac.Name()
-}
-
-// Data return packets data
-func (pac *Packet) Data() []byte {
-	return pac.teocli.packetGetData(pac.packet)
-}
-
-// TripTime return triptime for echo answer packet
-func (pac *Packet) TripTime() (int64, error) {
-	return pac.teocli.proccessEchoAnswer(pac.packet)
-}
-
-// PeersLength return number of peers in peerAnswer packet
-func (pac *Packet) PeersLength() int {
-	dataPtr := unsafe.Pointer(&pac.Data()[0])
-	arpDataAr := (*C.ksnet_arp_data_ar)(dataPtr)
-	return int(arpDataAr.length)
-}
-
-// Peers return string representation of peerAnswer packet
-func (pac *Packet) Peers() string {
-	if len(pac.Data()) == 0 {
-		return ""
-	}
-	dataPtr := unsafe.Pointer(&pac.Data()[0])
-	arpDataAr := (*C.ksnet_arp_data_ar)(dataPtr)
-	buf := C.arp_data_print(arpDataAr)
-	defer C.free(unsafe.Pointer(buf))
-	return C.GoString(buf)
 }
 
 // PeerData create arp peer bynary data

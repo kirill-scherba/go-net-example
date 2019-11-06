@@ -58,7 +58,7 @@ func (p authAnswerCommand) Command(packet *teocli.Packet) bool {
 // Echo answer command methods
 func (p echoAnswerCommand) Cmd() byte { return teocli.CmdLEchoAnswer }
 func (p echoAnswerCommand) Command(packet *teocli.Packet) bool {
-	if t, err := packet.TripTime(); err != nil {
+	if t, err := packet.Triptime(); err != nil {
 		fmt.Println("trip time error:", err)
 	} else {
 		fmt.Println("trip time (ms):", t)

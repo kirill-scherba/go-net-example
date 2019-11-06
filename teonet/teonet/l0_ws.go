@@ -127,7 +127,7 @@ func (conn *wsHandlerConn) Close() (err error) {
 
 // Write send data to websocket client
 func (conn *wsHandlerConn) Write(packet []byte) (n int, err error) {
-	pac := conn.cli.PacketNew(packet)
+	pac := conn.cli.NewPacket(packet)
 
 	// Remove trailing zero from data and check that data is json string
 	data := conn.wsc.l0.teo.com.removeTrailingZero(pac.Data())

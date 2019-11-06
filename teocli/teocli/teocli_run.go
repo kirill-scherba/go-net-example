@@ -27,9 +27,9 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 
 	network := func(tcp bool) string {
 		if tcp {
-			return "TCP"
+			return "tcp"
 		}
-		return "TRUDP"
+		return "trudp"
 	}
 
 	// Reconnect loop, reconnect if disconnected afer timeout time (in sec)
@@ -46,7 +46,9 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 		// Send Teonet L0 login (requered after connect)
 		fmt.Printf("send login: '%s'\n", name)
 		if _, err := teo.SendLogin(name); err != nil {
-			panic(err)
+			fmt.Println(err)
+			time.Sleep(timeout)
+			continue
 		}
 
 		// Execute start command
@@ -59,7 +61,7 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 				fmt.Println(err)
 				break
 			}
-			// Process commands
+			// Process loadded commands
 			for _, com := range commands {
 				if cmd := com.Cmd(); cmd == packet.Command() {
 					if com.Command(packet) {
@@ -69,7 +71,7 @@ func Run(name, raddr string, rport int, tcp bool, timeout time.Duration,
 			}
 		}
 
-		// Stop running if game over
+		// Stop running if ganning flag set to false
 		if !startCommand.Running() {
 			break
 		}

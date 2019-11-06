@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 
 	tl "github.com/JoelOtter/termloop"
@@ -71,7 +72,8 @@ func (tg *Teogame) addPlayer(level *tl.BaseLevel, id byte) (player *Player) {
 
 // Tick frame tick
 func (hero *Hero) Tick(event tl.Event) {
-	if hero.tg.state.State() == Running && (event.Type == tl.EventKey || hero.bot) {
+	if hero.tg.state.State() == Running &&
+		(event.Type == tl.EventKey || hero.bot) {
 
 		// Get current position
 		hero.prevX, hero.prevY = hero.Position()
@@ -152,7 +154,8 @@ func (hero *Hero) Tick(event tl.Event) {
 		if x != hero.prevX || y != hero.prevY {
 			_, err := hero.tg.com.sendData(hero)
 			if err != nil {
-				panic(err)
+				//panic(err)
+				fmt.Printf("Error: %s\n", err)
 			}
 		}
 	}
@@ -175,7 +178,8 @@ func (player *Player) Collide(collision tl.Physical) {
 		player.SetPosition(player.prevX, player.prevY)
 		_, err := player.tg.com.sendData(player)
 		if err != nil {
-			panic(err)
+			//panic(err)
+			fmt.Printf("Error: %s\n", err)
 		}
 	}
 }
