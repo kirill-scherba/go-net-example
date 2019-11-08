@@ -86,7 +86,7 @@ func Params(ii ...interface{}) (param *Parameters) {
 	if len(ii) > 0 {
 		switch v := ii[0].(type) {
 		case *teoapi.Teoapi:
-			flag.BoolVar(&showAPI, "api", param.DisallowEncrypt, "show teonet application api")
+			flag.BoolVar(&showAPI, "api", param.DisallowEncrypt, "show api commands")
 			trapi = v
 		}
 	}
