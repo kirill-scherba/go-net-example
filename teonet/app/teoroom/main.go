@@ -42,7 +42,7 @@ func main() {
 		Name:    "teoroom",
 		Version: Version,
 		Descr:   "Teonet-go room controller service",
-	})
+	}, 6)
 
 	// Read Teonet parameters from configuration file and parse application
 	// flars and arguments
@@ -100,30 +100,6 @@ func main() {
 		},
 	})
 
-	// Commands processing
-	// commands := func(pac *teonet.Packet) {
-	// 	switch pac.Cmd() {
-
-	// 	// Command #129: [in,out] Room request
-	// 	case teoroomcli.ComRoomRequest:
-	// 		if err := tr.Process.ComRoomRequest(pac); err != nil {
-	// 			teolog.Debugf(MODULE, "%s\n", err.Error())
-	// 		}
-
-	// 	// Command #130: [in,out] Data transfer
-	// 	case teoroomcli.ComRoomData:
-	// 		if err := tr.Process.ComRoomData(pac); err != nil {
-	// 			teolog.Debugf(MODULE, "%s\n", err.Error())
-	// 		}
-
-	// 	// Command #131 [in] Disconnect (exit) from room
-	// 	case teoroomcli.ComDisconnect:
-	// 		if err := tr.Process.ComDisconnect(pac); err != nil {
-	// 			teolog.Debugf(MODULE, "Error Disconnect %s: %s\n", pac.From(), err.Error())
-	// 		}
-	// 	}
-	// }
-
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
 		for ev := range teo.Event() {
@@ -134,9 +110,6 @@ func main() {
 			// When teonet started
 			case teonet.EventStarted:
 				fmt.Printf("Event Started\n")
-			// case teonet.EventStoppedBefore:
-			// case teonet.EventStopped:
-			// 	fmt.Printf("Event Stopped\n")
 
 			// When teonet peer connected
 			case teonet.EventConnected:
@@ -147,14 +120,6 @@ func main() {
 			case teonet.EventDisconnected:
 				pac := ev.Data
 				fmt.Printf("Event Disconnected from: %s\n", pac.From())
-
-			// When received command from teonet peer or client
-			case teonet.EventReceived:
-				pac := ev.Data
-				// fmt.Printf("Event Received from: %s, cmd: %d, data: %v\n",
-				// 	pac.From(), pac.Cmd(), pac.Data())
-				//commands(pac)
-				api.Process(pac)
 			}
 		}
 	})
