@@ -10,7 +10,8 @@
 // Before you execute this application, you need install database schemas.
 // Launch `cqlsh` and execute next commands:
 /*
-  create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+  create keyspace teocdb with replication = { 'class' : 'SimpleStrategy',
+  'replication_factor' : 3 };
   create table teocdb.map(key text, data blob, PRIMARY KEY(key));
 */
 //
@@ -75,10 +76,11 @@ func main() {
 	room, _ := teoroomStats.Connect(teo)
 	defer usr.Close()
 
-	// Teoapi command description
+	// Teoapi command:
+	//
+	// Command # 129: Binary command execute all cammands Set, Get and
+	// GetList in binary format
 	api.Add(&teoapi.Command{
-		// # 129: Binary command execute all cammands Set, Get and GetList in
-		// binary format
 		Cmd:   teocdbcli.CmdBinary,
 		Descr: "Binary set, get or get list",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -88,8 +90,11 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 130: Set (insert or update) text or json {key,value} to database
+	})
+
+	// Command # 130: Set (insert or update) text or json {key,value} to
+	// database
+	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CmdSet,
 		Descr: "Set text or json {key,value} to key-value database",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -99,8 +104,11 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 131: Get key value and send answer with value in text or json format
+	})
+
+	// Commands # 131: Get key value and send answer with value in text or
+	// json format
+	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CmdGet,
 		Descr: "Get key and send answer with value in text or json format",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -110,11 +118,14 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 132: Get list of keys (by not complete key) and send answer with
-		// array of keys in text or json format
-		Cmd:   teocdbcli.CmdList,
-		Descr: "List get not completed key and send answer with array of keys in text or json format",
+	})
+
+	// Command # 132: Get list of keys (by not complete key) and send answer
+	// with array of keys in text or json format
+	api.Add(&teoapi.Command{
+		Cmd: teocdbcli.CmdList,
+		Descr: "List get not completed key and send answer with array of keys " +
+			"in text or json format",
 		Func: func(pac teoapi.Packet) (err error) {
 			err = tcdb.Process.CmdList(pac)
 			if err != nil {
@@ -122,8 +133,10 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 133: Check and register user
+	})
+
+	// Command # 133: Check and register user
+	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CheckUser,
 		Descr: "Check and register user",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -144,24 +157,30 @@ func main() {
 				res.ID, res.AccessToken, res.Prefix)
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 134: Room created
+	})
+
+	// Command # 134: Room created
+	api.Add(&teoapi.Command{
 		Cmd:   teoroomStatsCli.CmdRoomCreated,
 		Descr: "Room created",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomCreated(pac)
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 135: Room state changed
+	})
+
+	// Command # 135: Room state changed
+	api.Add(&teoapi.Command{
 		Cmd:   teoroomStatsCli.CmdRoomState,
 		Descr: "Room state changed",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomStateChanged(pac)
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 136: Client status changed
+	})
+
+	// Command # 136: Client status changed
+	api.Add(&teoapi.Command{
 		Cmd:   teoroomStatsCli.CmdClientState,
 		Descr: "Client state changed",
 		Func: func(pac teoapi.Packet) (err error) {

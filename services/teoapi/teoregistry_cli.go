@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Package teoapi is the Teonet registry service client package
+// Package teoapi is the Teonet registry service client package.
 package teoapi
 
 import (
@@ -51,7 +51,7 @@ type Teoapi struct {
 	com []*Command
 }
 
-// Packet implement teonet packet interface.
+// Packet implements teonet packet interface.
 type Packet interface {
 	Cmd() byte
 	From() string
@@ -70,8 +70,8 @@ func (api *Teoapi) Add(com *Command) *Teoapi {
 	return api
 }
 
-// Sprint print all added command to output string.
-func (api *Teoapi) Sprint() (str string) {
+// String stringlify added commands to output string.
+func (api *Teoapi) String() (str string) {
 	str = fmt.Sprintf("\b \nThe %s api commands:\n", api.app.Name)
 	for i, c := range api.com {
 		str += fmt.Sprintf("%2d. Command %d: %s\n", i+1, c.Cmd, c.Descr)
@@ -79,7 +79,7 @@ func (api *Teoapi) Sprint() (str string) {
 	return
 }
 
-// Cmds return slice of added commands
+// Cmds return slice of added commands.
 func (api *Teoapi) Cmds() (cmds []byte) {
 	if l := len(api.com); l > 0 {
 		cmds = make([]byte, l)
@@ -90,7 +90,7 @@ func (api *Teoapi) Cmds() (cmds []byte) {
 	return
 }
 
-// find command in command array by cmd number
+// find command in command array by cmd number.
 func (api *Teoapi) find(cmd byte) (c *Command, ok bool) {
 	for _, c = range api.com {
 		if cmd == c.Cmd {
@@ -101,7 +101,7 @@ func (api *Teoapi) find(cmd byte) (c *Command, ok bool) {
 	return
 }
 
-// Count return count command processing
+// Count return count command processing.
 func (api *Teoapi) Count(cmd byte) (count uint64) {
 	if com, ok := api.find(cmd); ok {
 		count = com.Count
