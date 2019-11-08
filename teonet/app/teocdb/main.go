@@ -42,8 +42,6 @@ var MODULE = teokeys.Color(teokeys.ANSIMagenta, "(teocdb)")
 
 func main() {
 
-	var log []string
-
 	// Teonet logo
 	teonet.Logo("Teonet-go CQL Database service", Version)
 
@@ -52,7 +50,7 @@ func main() {
 		Name:    "teocdb",
 		Version: Version,
 		Descr:   "Teonet-go CQL Database service",
-	})
+	}, 6)
 
 	// Read Teonet parameters from configuration file and parse application
 	// flars and arguments
@@ -189,41 +187,17 @@ func main() {
 		},
 	})
 
-	// Commands processing workers pool
-	const numWorkers = 6
-	workerRun := make([]float64, numWorkers)
-	commandChan := make(chan teoapi.Packet, numWorkers*4)
-	for i := 0; i < numWorkers; i++ {
-		go func(workerID int) {
-			workerRun[workerID] = 1
-			for {
-				pac, ok := <-commandChan
-				if !ok {
-					return
-				}
-				workerRun[workerID]++
-				logStr := fmt.Sprintf("worker #%d got cmd %d: '%s', from: %s",
-					workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
-				teolog.Debug(MODULE, logStr)
-				log = append([]string{logStr}, log...)
-				if len(log) > 40 {
-					log = log[:30]
-				}
-				api.Process(pac)
-			}
-		}(i)
-	}
-
-	// Add teonet hotkey menu item to call termui interface
-	teo.Menu().Add('m', "mui dashboard", func() {
-		teo.SetLoglevel(teolog.NONE)
-		fmt.Print("\b \b")
-		go termui(api, workerRun, &log)
-	})
-
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
-		//fmt.Println("Teonet even loop started")
+
+		// Add teonet hotkey menu item to call termui interface every rerun
+		teo.Menu().Add('m', "mui dashboard", func() {
+			teo.SetLoglevel(teolog.NONE)
+			fmt.Print("\b \b")
+			go termui(api)
+		})
+
+		// Teonet event loop
 		for ev := range teo.Event() {
 
 			// Event processing
@@ -232,9 +206,9 @@ func main() {
 			// When teonet started
 			case teonet.EventStarted:
 				fmt.Printf("Event Started\n")
-			// case teonet.EventStoppedBefore:
-			// case teonet.EventStopped:
-			// 	fmt.Printf("Event Stopped\n")
+
+			case teonet.EventStopped:
+				fmt.Printf("Event Stopped\n")
 
 			// When teonet peer connected
 			case teonet.EventConnected:
@@ -245,11 +219,6 @@ func main() {
 			case teonet.EventDisconnected:
 				pac := ev.Data
 				fmt.Printf("Event Disconnected from: %s\n", pac.From())
-
-			// When received command from teonet peer or client
-			case teonet.EventReceived:
-				pac := ev.Data
-				commandChan <- pac
 			}
 		}
 	})

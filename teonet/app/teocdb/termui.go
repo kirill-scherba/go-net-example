@@ -13,7 +13,7 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 )
 
-func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
+func termui(api *teoapi.Teoapi) {
 
 	// Init termui
 	if err := ui.Init(); err != nil {
@@ -100,21 +100,23 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 	bc.NumStyles[0] = ui.NewStyle(ui.ColorWhite | ui.ColorBlack)
 
 	// Log with commands log
+	apiCount, apiLog := api.W.Statistic()
 	l := widgets.NewList()
 	l.Title = "Log"
-	l.Rows = *logData
+	l.Rows = *apiLog
 	l.SetRect(0, 21, 103, 36)
 	l.TextStyle.Fg = ui.ColorYellow
 
+	// Draw function to update all controls
 	draw := func(tickerCount int) {
 		updateParagraph(tickerCount)
 		updateTable(tickerCount)
-		l.Rows = *logData
-		bc.Data = workerRun
+		l.Rows = *apiLog
+		bc.Data = apiCount
 		ui.Render(p, table1, table1Total, bc, l)
-		for i := 0; i < len(workerRun); i++ {
-			if workerRun[i] >= 15 {
-				workerRun[i] = 3
+		for i := 0; i < len(apiCount); i++ {
+			if apiCount[i] >= 15 {
+				apiCount[i] = 3
 			}
 		}
 	}

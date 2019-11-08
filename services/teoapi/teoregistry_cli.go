@@ -10,7 +10,11 @@ import (
 	"sync/atomic"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
 )
+
+// MODULE is this package module name
+var MODULE = teokeys.Color(teokeys.ANSIYellow, "(teoapi)")
 
 // Application is the Table 'applications': Teonet applications (services)
 // description.
@@ -47,8 +51,10 @@ type Command struct {
 
 // Teoapi is api receiver.
 type Teoapi struct {
-	app *Application
-	com []*Command
+	app  *Application
+	com  []*Command
+	W    *Workers
+	NumW int
 }
 
 // Packet implements teonet packet interface.
@@ -59,9 +65,25 @@ type Packet interface {
 	RemoveTrailingZero(data []byte) []byte
 }
 
-// New create new Teoregistrycli.
-func New(app *Application) (api *Teoapi) {
-	return &Teoapi{app: app}
+// New create new Teoregistrycli. App is application name. NumWorkers is number
+// of workers to process incoming teonet commands, if this parameter = 0 than
+// workes pool does not created and commands not processed by Teoapi.
+func New(app *Application, numWorkers ...interface{}) (api *Teoapi) {
+	api = &Teoapi{app: app}
+	if len(numWorkers) > 0 {
+		switch n := numWorkers[0].(type) {
+		case int:
+			if n > 0 {
+				api.W = api.newWorkers(n)
+			}
+		}
+	}
+	return
+}
+
+// Destroy Teoregistrycli
+func (api *Teoapi) Destroy() {
+
 }
 
 // Add command description.

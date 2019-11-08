@@ -77,7 +77,7 @@ func Logo(title, ver string) {
 // to the hotkey menu. The api definition shoud be done before the
 // 'teonet.Params(api)' calls.
 func Connect(param *Parameters, appType []string, appVersion string,
-	ii ...interface{}) (teo *Teonet) {
+	apiII ...interface{}) (teo *Teonet) {
 
 	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
@@ -125,12 +125,28 @@ func Connect(param *Parameters, appType []string, appVersion string,
 	teo.setAppVersion(appVersion)
 
 	// Teonet api registry
-	if len(ii) > 0 {
-		if v, ok := ii[0].(*teoapi.Teoapi); ok {
+	if len(apiII) > 0 {
+		if v, ok := apiII[0].(*teoapi.Teoapi); ok {
 			teo.api = v
+			// Hotkey menu add
 			teo.Menu().Add('a', "show teonet application api", func() {
-				fmt.Printf("\b%s\n", v.Sprint())
+				fmt.Printf("\b%s\n", teo.api)
 			})
+			//Connect api workers to teonet event channel
+			apiEventLoop := func() {
+				for ev := range teo.ev.subscribe() {
+					if !ok {
+						break
+					}
+					if ev.Event == EventReceived {
+						teo.api.W.CommandChan() <- ev.Data
+					}
+				}
+				fmt.Printf("teonet event channel for api closed\n")
+			}
+			if teo.api.NumW > 0 {
+				go apiEventLoop()
+			}
 		}
 	}
 
@@ -193,13 +209,14 @@ func (teo *Teonet) Run(proccess func(*Teonet)) {
 
 		// Reconnect
 		if teo.reconnect {
+			api := teo.api
 			param := teo.param
 			appType := teo.Type()
 			appVersion := teo.AppVersion()
 			fmt.Println("reconnect...")
 			teo = nil
 			time.Sleep(1 * time.Second)
-			teo = Connect(param, appType, appVersion)
+			teo = Connect(param, appType, appVersion, api)
 			teo.reconnect = false
 			teo.running = true
 		}
@@ -219,6 +236,7 @@ func (teo *Teonet) Close() {
 	teo.arp.deleteAll()
 	teo.rhost.destroy()
 	teo.td.Close()
+	teo.api.Destroy()
 
 	close(teo.chanKernel)
 	teo.ticker.Stop()

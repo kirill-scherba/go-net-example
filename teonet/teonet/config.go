@@ -45,8 +45,10 @@ type Parameters struct {
 }
 
 // Params read Teonet parameters from configuration file and parse application
-// flars and arguments
-func Params(ii ...interface{}) (param *Parameters) {
+// flars and arguments. If api parameter present than flag -api 'show teonet
+// application api' with false by default added to the application parameters.
+// Commands should be added before teonet connet to show with -api flag.
+func Params(apiiII ...interface{}) (param *Parameters) {
 	// Teonet parameters and config
 	param = CreateParameters()
 	param.ReadConfig()
@@ -83,10 +85,10 @@ func Params(ii ...interface{}) (param *Parameters) {
 	// Teonet api flags
 	var showAPI bool
 	var trapi *teoapi.Teoapi
-	if len(ii) > 0 {
-		switch v := ii[0].(type) {
+	if len(apiiII) > 0 {
+		switch v := apiiII[0].(type) {
 		case *teoapi.Teoapi:
-			flag.BoolVar(&showAPI, "api", param.DisallowEncrypt, "show teonet application api")
+			flag.BoolVar(&showAPI, "api", false, "show teonet application api")
 			trapi = v
 		}
 	}
@@ -96,7 +98,7 @@ func Params(ii ...interface{}) (param *Parameters) {
 
 	// Show teonet api if api flag is set
 	if showAPI {
-		fmt.Println(trapi.Sprint())
+		fmt.Println(trapi)
 		os.Exit(0)
 	}
 
