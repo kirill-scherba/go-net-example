@@ -3,6 +3,7 @@ package stats
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gocql/gocql"
 )
@@ -54,5 +55,25 @@ func TestDbRooms(t *testing.T) {
 			t.Error(err)
 			return
 		}
+	})
+
+	t.Run("getByCreated", func(t *testing.T) {
+
+		// const fromStr = "2019-10-01T00:00:00Z"
+		// const toStr = "2019-10-02T00:00:00Z"
+		// var from, to time.Time
+		// var err error
+		// from, err = time.Parse(time.RFC3339, fromStr)
+		// to, err = time.Parse(time.RFC3339, toStr)
+
+		now := time.Now()
+		from := now.Add(-10 * time.Minute)
+		to := now
+		res, err := db.getByCreated(from, to, 1)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		fmt.Println(res)
 	})
 }

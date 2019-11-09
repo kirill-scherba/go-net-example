@@ -10,27 +10,19 @@
 package stats
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
+	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/table"
 )
 
-// Room data structure
-type Room struct {
-	ID      gocql.UUID // Room ID
-	RoomNum uint32     // Room number
-	Created time.Time  // Time when room created
-	Started time.Time  // Time when room started
-	Closed  time.Time  // Time when room closed to add players
-	Stopped time.Time  // Time when room stopped
-	State   int        // Current rooms state
-}
-
-// Column numbers
+/// Column numbers
 const (
 	rColID       = iota // 0
 	rColRoomNum         // 1
@@ -99,7 +91,7 @@ func (d *rooms) setByColumnsNumber(r interface{}, columnsNum ...int) (err error)
 
 // setCreating set creating state (create new rooms record)
 func (d *rooms) setCreating(roomID gocql.UUID, roomNum uint32) (err error) {
-	room := &Room{
+	room := &stats.Room{
 		ID:      roomID,
 		RoomNum: roomNum,
 		Created: time.Now(),
@@ -110,7 +102,7 @@ func (d *rooms) setCreating(roomID gocql.UUID, roomNum uint32) (err error) {
 
 // setRunning set running state (started)
 func (d *rooms) setRunning(roomID gocql.UUID) (err error) {
-	room := &Room{
+	room := &stats.Room{
 		ID:      roomID,
 		Started: time.Now(),
 		State:   teoroom.RoomRunning,
@@ -120,7 +112,7 @@ func (d *rooms) setRunning(roomID gocql.UUID) (err error) {
 
 // setClosed set closed state
 func (d *rooms) setClosed(roomID gocql.UUID) (err error) {
-	room := &Room{
+	room := &stats.Room{
 		ID:     roomID,
 		Closed: time.Now(),
 		State:  teoroom.RoomClosed,
@@ -130,10 +122,29 @@ func (d *rooms) setClosed(roomID gocql.UUID) (err error) {
 
 // setStopped set stopped state
 func (d *rooms) setStopped(roomID gocql.UUID) (err error) {
-	room := &Room{
+	room := &stats.Room{
 		ID:      roomID,
 		Stopped: time.Now(),
 		State:   teoroom.RoomStopped,
 	}
 	return d.setByColumnsNumber(room, rColStopped, rColState)
+}
+
+// getByCreated load all the results into a slice.
+func (d *rooms) getByCreated(from, to time.Time, limit uint32) (rooms []stats.Room,
+	err error) {
+	colCreated := d.roomsMetadata.Columns[rColCreated]
+	stmt, names := qb.Select(d.roomsMetadata.Name).Where(
+		qb.Cmp(qb.GtOrEqNamed(colCreated, "from")),
+		qb.Cmp(qb.LtNamed(colCreated, "to")),
+	).AllowFiltering().Limit(uint(limit)).ToCql()
+	fmt.Println(stmt)
+	q := gocqlx.Query(d.session.Query(stmt), names).BindMap(qb.M{
+		"from": from,
+		"to":   to,
+	})
+	if err = q.SelectRelease(&rooms); err != nil {
+		//
+	}
+	return
 }

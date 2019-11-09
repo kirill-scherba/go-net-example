@@ -9,6 +9,7 @@ package stats
 import (
 	"bytes"
 	"encoding/binary"
+	"time"
 	"unsafe"
 
 	"github.com/gocql/gocql"
@@ -186,4 +187,85 @@ func SendClientState(teo TeoConnector, state byte, roomID gocql.UUID, id gocql.U
 	req := &ClientStateRequest{State: state, RoomID: roomID, ID: id, GameStat: stat}
 	data, _ := req.MarshalBinary()
 	teo.SendTo(TeoCdb, CmdClientState, data)
+}
+
+// RoomByCreatedRequest request room by created field
+type RoomByCreatedRequest struct {
+	ReqID uint32    // Request id
+	From  time.Time // Time when room created
+	To    time.Time // Time when room created
+	Limit uint32    // Number of records to read
+}
+
+// MarshalBinary encodes RoomCreatedRequest data into binary buffer.
+func (req *RoomByCreatedRequest) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, req.ReqID)
+	from, _ := req.From.MarshalBinary()
+	binary.Write(buf, le, from)
+	to, _ := req.To.MarshalBinary()
+	binary.Write(buf, le, to)
+	binary.Write(buf, le, req.Limit)
+	data = buf.Bytes()
+	return
+}
+
+// UnmarshalBinary decode binary buffer into RoomCreatedRequest receiver data.
+func (req *RoomByCreatedRequest) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data)
+	le := binary.LittleEndian
+	err = binary.Read(buf, le, &req.ReqID)
+	err = binary.Read(buf, le, &req.From)
+	err = binary.Read(buf, le, &req.To)
+	err = binary.Read(buf, le, &req.Limit)
+	return
+}
+
+// Room data structure
+type Room struct {
+	ID      gocql.UUID // Room ID
+	RoomNum uint32     // Room number
+	Created time.Time  // Time when room created
+	Started time.Time  // Time when room started
+	Closed  time.Time  // Time when room closed to add players
+	Stopped time.Time  // Time when room stopped
+	State   uint8      // Current rooms state
+}
+
+// RoomByCreatedResponce responce to room request
+type RoomByCreatedResponce struct {
+	ReqID uint32 // Request id
+	Rooms []Room
+}
+
+// MarshalBinary encodes RoomByCreatedResponce data into binary buffer.
+func (res *RoomByCreatedResponce) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, res.ReqID)
+	for _, v := range res.Rooms {
+		binary.Write(buf, le, v.ID)
+		binary.Write(buf, le, v.RoomNum)
+		created, _ := v.Created.MarshalBinary()
+		started, _ := v.Started.MarshalBinary()
+		closed, _ := v.Closed.MarshalBinary()
+		stopped, _ := v.Stopped.MarshalBinary()
+		binary.Write(buf, le, created)
+		binary.Write(buf, le, started)
+		binary.Write(buf, le, closed)
+		binary.Write(buf, le, stopped)
+		binary.Write(buf, le, v.State)
+	}
+	data = buf.Bytes()
+	return
+}
+
+// UnmarshalBinary decode binary buffer into RoomByCreatedResponce receiver data.
+func (res *RoomByCreatedResponce) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data)
+	le := binary.LittleEndian
+	err = binary.Read(buf, le, &res.ReqID)
+	err = binary.Read(buf, le, &res.Rooms)
+	return
 }

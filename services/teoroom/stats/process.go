@@ -7,6 +7,8 @@
 package stats
 
 import (
+	"fmt"
+
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
 )
@@ -80,5 +82,25 @@ func (p *Process) ComClientStatus(pac TeoPacket) (err error) {
 	case stats.ClientDisconnected:
 		err = p.setDisconnected(req.RoomID, req.ID)
 	}
+	return
+}
+
+// ComGetRoomsByCreated get rooms request by Created, read data from database
+// and return answer to request
+func (p *Process) ComGetRoomsByCreated(pac TeoPacket) (rooms []stats.Room, err error) {
+	req := &stats.RoomByCreatedRequest{}
+	req.UnmarshalBinary(pac.Data())
+	rooms, err = p.getByCreated(req.From, req.To, req.Limit)
+	if err != nil {
+		return
+	}
+	res := &stats.RoomByCreatedResponce{ReqID: req.ReqID, Rooms: rooms}
+	fmt.Println("res.Rooms:", res.Rooms)
+	d, err := res.MarshalBinary()
+	fmt.Println("res.MarshalBinary:", d)
+	// Sent answer
+	//_, err = p.SendAnswer(pac, pac.Cmd(), d)
+	res.UnmarshalBinary(d)
+	fmt.Println("res.UnmarshalBinary:", res)
 	return
 }
