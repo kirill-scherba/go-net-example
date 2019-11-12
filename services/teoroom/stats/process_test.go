@@ -24,6 +24,12 @@ func (t *Teoemu) SendAnswer(pac interface{}, cmd byte, data []byte) (int, error)
 	answerData = data
 	return 0, nil
 }
+func (t *Teoemu) WaitFrom(from string, cmd byte, ii ...interface{}) (ch <-chan *struct {
+	Data []byte
+	Err  error
+}) {
+	return
+}
 
 func TestProcess_ComRoomCreated(t *testing.T) {
 

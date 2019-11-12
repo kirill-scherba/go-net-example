@@ -42,7 +42,7 @@ type TeoConnector interface {
 	SendAnswer(pac interface{}, cmd byte, data []byte) (int, error)
 
 	// WaitFrom wait receiving data from peer. The third function parameter is
-	// timeout. It may be omitted or contain timeout time of time.Duration type.
+	// timeout. It may be omitted or contain timeout time of time. Duration type.
 	// If timeout parameter is omitted than default timeout value sets to 2 second.
 	WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
 		Data []byte
