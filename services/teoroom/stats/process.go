@@ -95,12 +95,12 @@ func (p *Process) ComGetRoomsByCreated(pac TeoPacket) (rooms []stats.Room, err e
 		return
 	}
 	res := &stats.RoomByCreatedResponce{ReqID: req.ReqID, Rooms: rooms}
-	fmt.Println("res.Rooms:", res.Rooms)
+	fmt.Println("res.RoomByCreatedResponce:", res)
 	d, err := res.MarshalBinary()
-	fmt.Println("res.MarshalBinary:", d)
+	fmt.Println("res.MarshalBinary():", d)
 	// Sent answer
-	//_, err = p.SendAnswer(pac, pac.Cmd(), d)
+	_, err = p.SendAnswer(pac, pac.Cmd(), d)
 	res.UnmarshalBinary(d)
-	fmt.Println("res.UnmarshalBinary:", res)
+	fmt.Println("res.UnmarshalBinary():", res)
 	return
 }

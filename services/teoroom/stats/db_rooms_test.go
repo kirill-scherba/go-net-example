@@ -74,6 +74,6 @@ func TestDbRooms(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		fmt.Println(res)
+		fmt.Println("getByCreated:", res)
 	})
 }
