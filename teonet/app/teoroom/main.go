@@ -102,6 +102,15 @@ func main() {
 
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
+
+		// Add teonet hotkey menu item to call termui interface
+		teo.Menu().Add('m', "mui dashboard", func() {
+			teo.SetLoglevel(teolog.NONE)
+			fmt.Print("\b \b")
+			go termui(teo, api)
+		})
+
+		// Teonet event loop
 		for ev := range teo.Event() {
 
 			// Event processing
