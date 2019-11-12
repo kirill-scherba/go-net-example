@@ -9,6 +9,7 @@ package stats
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"time"
 	"unsafe"
 
@@ -17,9 +18,10 @@ import (
 
 // Teoroom cdb commands
 const (
-	CmdRoomCreated = iota + 134 // Room created
-	CmdRoomState                // 135 Room state changed
-	CmdClientState              // 136 Client state changed
+	CmdSetRoomCreated = iota + 134 // 134 Set room created state
+	CmdSetRoomState                // 135 Set room state changed
+	CmdSetClientState              // 136 Set client state changed
+	CmdRoomsByCreated              // 137 Get rooms by created time
 )
 
 // TeoCdb is Teonet teo-cdb peer name
@@ -35,10 +37,10 @@ type TeoConnector interface {
 	// timeout. It may be omitted or contain timeout time of time.Duration type.
 	// If timeout parameter is omitted than default timeout value sets to 2
 	// second.
-	// WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
-	// 	Data []byte
-	// 	Err  error
-	// }
+	WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
+		Data []byte
+		Err  error
+	}
 }
 
 // RoomCreateRequest used in ComRoomCreated command as request
@@ -123,14 +125,14 @@ func (req *RoomStateRequest) UnmarshalBinary(data []byte) (err error) {
 func SendRoomCreate(teo TeoConnector, roomID gocql.UUID, roomNum uint32) {
 	req := &RoomCreateRequest{RoomID: roomID, RoomNum: roomNum}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdRoomCreated, data)
+	teo.SendTo(TeoCdb, CmdSetRoomCreated, data)
 }
 
 // SendRoomState sends RoomStatus to cdb
 func SendRoomState(teo TeoConnector, roomID gocql.UUID, status byte) {
 	req := &RoomStateRequest{RoomID: roomID, Status: status}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdRoomState, data)
+	teo.SendTo(TeoCdb, CmdSetRoomState, data)
 }
 
 // State of client state request
@@ -186,7 +188,7 @@ func SendClientState(teo TeoConnector, state byte, roomID gocql.UUID, id gocql.U
 	}
 	req := &ClientStateRequest{State: state, RoomID: roomID, ID: id, GameStat: stat}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdClientState, data)
+	teo.SendTo(TeoCdb, CmdSetClientState, data)
 }
 
 // RoomByCreatedRequest request room by created field
@@ -219,6 +221,24 @@ func (req *RoomByCreatedRequest) UnmarshalBinary(data []byte) (err error) {
 	err = binary.Read(buf, le, &req.From)
 	err = binary.Read(buf, le, &req.To)
 	err = binary.Read(buf, le, &req.Limit)
+	return
+}
+
+// SendRoomByCreated sends RoomByCreated Request to cdb
+func SendRoomByCreated(teo TeoConnector, from, to time.Time, limit uint32) (
+	res RoomByCreatedResponce, err error) {
+	req := &RoomByCreatedRequest{From: from, To: to, Limit: limit, ReqID: 1}
+	data, _ := req.MarshalBinary()
+	teo.SendTo(TeoCdb, CmdRoomsByCreated, data)
+	if r := <-teo.WaitFrom(TeoCdb, CmdRoomsByCreated, func(data []byte) (rv bool) {
+		if err = res.UnmarshalBinary(data); err == nil {
+			fmt.Println("check command")
+			rv = res.ReqID == req.ReqID
+		}
+		return
+	}); r.Err != nil {
+		err = r.Err
+	}
 	return
 }
 
