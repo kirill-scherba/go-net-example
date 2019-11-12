@@ -114,7 +114,7 @@ func (proc *process) init(trudp *TRUDP) *process {
 					readPac.packet.process(readPac.addr)
 					ebzdik1 = 0
 				} else {
-					teolog.Error(MODULE, "ebzdik-1 chanEvent: "+
+					teolog.Error(MODULE, "ebzdik-1 chanEvent len: "+
 						strconv.Itoa(len(trudp.chanEvent))+" <===- ", ebzdik1)
 					ebzdik1++
 				}
