@@ -231,8 +231,9 @@ func SendRoomByCreated(teo TeoConnector, from, to time.Time, limit uint32) (
 	data, _ := req.MarshalBinary()
 	teo.SendTo(TeoCdb, CmdRoomsByCreated, data)
 	if r := <-teo.WaitFrom(TeoCdb, CmdRoomsByCreated, func(data []byte) (rv bool) {
+		fmt.Println("check function body data:", data)
 		if err = res.UnmarshalBinary(data); err == nil {
-			fmt.Println("check command")
+			fmt.Println("check function unmarshalled res:", res)
 			rv = res.ReqID == req.ReqID
 		}
 		return
@@ -286,6 +287,41 @@ func (res *RoomByCreatedResponce) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
 	err = binary.Read(buf, le, &res.ReqID)
-	err = binary.Read(buf, le, &res.Rooms)
+	fmt.Printf("err res.ReqID: %s, %d\n", err, res.ReqID)
+
+	var i int
+	if l := len(data) - int(unsafe.Sizeof(res.ReqID)); l > 0 {
+
+		s := l / 81
+		fmt.Printf("len: %d, size: %d, size of 1 room: %d\n", l, s, unsafe.Sizeof(res.Rooms[0]))
+		res.Rooms = make([]Room, s)
+
+		// err = binary.Read(buf, le, &res.Rooms[i])
+		err = binary.Read(buf, le, &res.Rooms[i].ID)
+		err = binary.Read(buf, le, &res.Rooms[i].RoomNum)
+		// err = binary.Read(buf, le, &res.Rooms[i].Created)
+		d := make([]byte, int(unsafe.Sizeof(res.Rooms[i].Created)))
+		//
+		err = binary.Read(buf, le, &d)
+		res.Rooms[i].Created.UnmarshalBinary(d)
+		//
+		err = binary.Read(buf, le, &d)
+		res.Rooms[i].Started.UnmarshalBinary(d)
+		//
+		err = binary.Read(buf, le, &d)
+		res.Rooms[i].Closed.UnmarshalBinary(d)
+		//
+		err = binary.Read(buf, le, &d)
+		res.Rooms[i].Stopped.UnmarshalBinary(d)
+		//
+		err = binary.Read(buf, le, &res.Rooms[i].State)
+
+		i++
+
+	} else {
+		res.Rooms = nil
+	}
+	// err = binary.Read(buf, le, &res.Rooms)
+	fmt.Printf("err res.Rooms: %s, %v\n", err, res.Rooms)
 	return
 }

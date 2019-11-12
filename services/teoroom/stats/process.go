@@ -101,6 +101,6 @@ func (p *Process) ComGetRoomsByCreated(pac TeoPacket) (rooms []stats.Room, err e
 	// Sent answer
 	_, err = p.SendAnswer(pac, pac.Cmd(), d)
 	res.UnmarshalBinary(d)
-	fmt.Println("res.UnmarshalBinary():", res)
+	fmt.Println("res.UnmarshalBinary():", res, len(d))
 	return
 }
