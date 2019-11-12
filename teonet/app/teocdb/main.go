@@ -159,7 +159,7 @@ func main() {
 
 	// Command # 134: Room created
 	api.Add(&teoapi.Command{
-		Cmd:   teoroomStatsCli.CmdRoomCreated,
+		Cmd:   teoroomStatsCli.CmdSetRoomCreated,
 		Descr: "Room created",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomCreated(pac)
@@ -169,7 +169,7 @@ func main() {
 
 	// Command # 135: Room state changed
 	api.Add(&teoapi.Command{
-		Cmd:   teoroomStatsCli.CmdRoomState,
+		Cmd:   teoroomStatsCli.CmdSetRoomState,
 		Descr: "Room state changed",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomStateChanged(pac)
@@ -179,7 +179,7 @@ func main() {
 
 	// Command # 136: Client status changed
 	api.Add(&teoapi.Command{
-		Cmd:   teoroomStatsCli.CmdClientState,
+		Cmd:   teoroomStatsCli.CmdSetClientState,
 		Descr: "Client state changed",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComClientStatus(pac)
@@ -187,10 +187,20 @@ func main() {
 		},
 	})
 
+	// Command # 137: Get rooms by created time {from_time, to_time, limit}
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomStatsCli.CmdRoomsByCreated,
+		Descr: "Get rooms by created time",
+		Func: func(pac teoapi.Packet) (err error) {
+			room.ComGetRoomsByCreated(pac)
+			return
+		},
+	})
+
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
 
-		// Add teonet hotkey menu item to call termui interface every rerun
+		// Add teonet hotkey menu item to call termui interface
 		teo.Menu().Add('m', "mui dashboard", func() {
 			teo.SetLoglevel(teolog.NONE)
 			fmt.Print("\b \b")
