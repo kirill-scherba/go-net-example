@@ -144,9 +144,10 @@ func (api *Teoapi) Descr(cmd byte) (descr string) {
 }
 
 // Process packet commands.
-func (api *Teoapi) Process(pac Packet) (err error) {
+func (api *Teoapi) Process(pac Packet, done func()) (err error) {
 	for _, com := range api.com {
 		if com.Cmd == pac.Cmd() {
+			done()
 			if com.Message != nil {
 				err = com.Message(pac)
 			}

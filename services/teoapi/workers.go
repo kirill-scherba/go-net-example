@@ -53,15 +53,16 @@ func (api *Teoapi) newWorkers(numWorkers int) (w *Workers) {
 				if !ok {
 					return
 				}
-				w.count[workerID]++
-				logStr := fmt.Sprintf("worker #%d got cmd %d: '%s', from: %s",
-					workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
-				teolog.Debug(MODULE, logStr)
-				w.log = append([]string{logStr}, w.log...)
-				if len(w.log) > termuiLogLen {
-					w.log = w.log[:termuiLogLen-5]
-				}
-				api.Process(pac)
+				api.Process(pac, func() {
+					w.count[workerID]++
+					logStr := fmt.Sprintf("worker #%d got cmd %d: '%s', from: %s",
+						workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
+					teolog.Debug(MODULE, logStr)
+					w.log = append([]string{logStr}, w.log...)
+					if len(w.log) > termuiLogLen {
+						w.log = w.log[:termuiLogLen-5]
+					}
+				})
 			}
 		}(i)
 	}
