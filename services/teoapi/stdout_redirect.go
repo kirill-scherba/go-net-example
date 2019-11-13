@@ -11,7 +11,7 @@ import (
 	"syscall"
 )
 
-// Stdout
+// Stdout module receiver
 type Stdout struct {
 	stdout *os.File
 	stderr *os.File
@@ -23,16 +23,14 @@ func NewStdout() (s *Stdout) {
 	return
 }
 
-// redirect standart output to file
-func (stdout *Stdout) redirect() {
-	// f, _ := os.OpenFile("/tmp/teocli-termloop",
-	// 	os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0755)
+// Redirect standart output to file
+func (s *Stdout) Redirect() {
 	os.Stdout = os.NewFile(uintptr(syscall.Stdout), "/dev/nill")
 	os.Stderr = os.NewFile(uintptr(syscall.Stderr), "/dev/nill")
 }
 
-// restory standart output
-func (stdout *Stdout) restory() {
-	os.Stdout = stdout
-	os.Stderr = stderr
+// Restore standart output
+func (s *Stdout) Restore() {
+	os.Stdout = s.stdout
+	os.Stderr = s.stderr
 }
