@@ -8,7 +8,6 @@ package teonet
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -82,15 +81,15 @@ func (wcom *waitCommand) check(rec *receiveData) (processed int) {
 	if !ok {
 		return
 	}
-	fmt.Printf("check cmd %d: %v\n", rec.rd.Cmd(), rec.rd.Data())
+	// fmt.Printf("check cmd %d: %v\n", rec.rd.Cmd(), rec.rd.Data())
 	for _, w := range wcar {
 		if w.f != nil {
-			fmt.Printf("check func() ")
+			// fmt.Printf("check func() ")
 			if !w.f(rec.rd.Data()) {
-				fmt.Printf("false\n")
+				//fmt.Printf("false\n")
 				continue
 			}
-			fmt.Printf("true\n")
+			// fmt.Printf("true\n")
 		}
 		w.ch <- &struct {
 			Data []byte
