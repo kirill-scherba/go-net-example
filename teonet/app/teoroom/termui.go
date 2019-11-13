@@ -15,7 +15,7 @@ func termui(teo *teonet.Teonet, api *teoapi.Teoapi) {
 	ch := make(chan bool)
 	go reader(teo, ch)
 	box := tview.NewBox().SetBorder(true).SetTitle("Teonet room controller")
-	tview.NewApplication().SetRoot(box, true).Run()
+	tview.NewApplication().SetRoot(box, true)./*SetRoot(table(), false).*/Run()
 	ch <- true
 	api.Stdout.Restore()
 }
@@ -41,4 +41,38 @@ func reader(teo *teonet.Teonet, ch <-chan bool) {
 			return
 		}
 	}
+}
+
+func table() *tview.Table {
+	table := tview.NewTable().
+		SetFixed(1, 1).
+		//SetSeparator(tview.Borders.Vertical).
+		SetSelectable(true, false)
+	// for row, line := range strings.Split(tableData, "\n") {
+	// 	for column, cell := range strings.Split(line, "|") {
+	// 		color := tcell.ColorWhite
+	// 		if row == 0 {
+	// 			color = tcell.ColorYellow
+	// 		} else if column == 0 {
+	// 			color = tcell.ColorDarkCyan
+	// 		}
+	// 		align := tview.AlignLeft
+	// 		if row == 0 {
+	// 			align = tview.AlignCenter
+	// 		} else if column == 0 || column >= 4 {
+	// 			align = tview.AlignRight
+	// 		}
+	// 		tableCell := tview.NewTableCell(cell).
+	// 			SetTextColor(color).
+	// 			SetAlign(align).
+	// 			SetSelectable(row != 0 && column != 0)
+	// 		if column >= 1 && column <= 3 {
+	// 			tableCell.SetExpansion(1)
+	// 		}
+	// 		table.SetCell(row, column, tableCell)
+	// 	}
+	// }
+	table.SetBorder(true).SetTitle("Table")
+
+	return table
 }
