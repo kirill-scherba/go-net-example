@@ -60,6 +60,7 @@ func main() {
 	// }
 
 	// func Table(nextSlide func()) (title string, content tview.Primitive) {
+
 	table := tview.NewTable().
 		SetFixed(1, 1).
 		//SetSeparator(tview.Borders.Vertical).
