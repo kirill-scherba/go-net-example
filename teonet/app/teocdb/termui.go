@@ -66,9 +66,9 @@ func termui(api *teoapi.Teoapi) {
 	table1.Rows = append(table1.Rows, []string{"", sprintCount(0), " "})
 	table1.TextStyle = ui.NewStyle(ui.ColorWhite)
 	table1.BorderStyle.Fg = ui.ColorCyan
-	table1.SetRect(0, 8, 103, 19)
+	table1.SetRect(0, 8, 103, 20)
 	table1Total := widgets.NewParagraph()
-	table1Total.SetRect(0, 18, 103, 21)
+	table1Total.SetRect(0, 19, 103, 22)
 	table1Total.BorderStyle.Fg = ui.ColorCyan
 	// Update table to draw
 	updateTable := func(count int) {
@@ -97,7 +97,7 @@ func termui(api *teoapi.Teoapi) {
 	l := widgets.NewList()
 	l.Title = "Log"
 	l.Rows = *apiLog
-	l.SetRect(0, 21, 103, 36)
+	l.SetRect(0, 22, 103, 36)
 	l.TextStyle.Fg = ui.ColorYellow
 
 	// Draw function to update all controls
