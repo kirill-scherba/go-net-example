@@ -8,7 +8,6 @@ package teoapi
 
 import (
 	"os"
-	"syscall"
 )
 
 // Stdout module receiver
@@ -25,8 +24,9 @@ func NewStdout() (s *Stdout) {
 
 // Redirect standart output to file
 func (s *Stdout) Redirect() {
-	os.Stdout = os.NewFile(uintptr(syscall.Stdout), "/dev/nill")
-	os.Stderr = os.NewFile(uintptr(syscall.Stderr), "/dev/nill")
+	null, _ := os.Open(os.DevNull)
+	os.Stdout = null
+	os.Stderr = null
 }
 
 // Restore standart output
