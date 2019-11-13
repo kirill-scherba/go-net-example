@@ -11,13 +11,13 @@ import (
 
 // termui main window
 func termui(teo *teonet.Teonet, api *teoapi.Teoapi) {
-	api.S.Redirect()
+	api.Stdout.Redirect()
 	ch := make(chan bool)
 	go reader(teo, ch)
 	box := tview.NewBox().SetBorder(true).SetTitle("Teonet room controller")
 	tview.NewApplication().SetRoot(box, true).Run()
 	ch <- true
-	api.S.Restore()
+	api.Stdout.Restore()
 }
 
 // reader periodically reads room statistic data

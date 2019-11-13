@@ -51,11 +51,11 @@ type Command struct {
 
 // Teoapi is api receiver.
 type Teoapi struct {
-	app  *Application
-	com  []*Command
-	W    *Workers
-	S    *Stdout
-	NumW int
+	app    *Application
+	com    []*Command
+	W      *Workers
+	NumW   int
+	Stdout *Stdout
 }
 
 // Packet implements teonet packet interface.
@@ -70,7 +70,7 @@ type Packet interface {
 // of workers to process incoming teonet commands, if this parameter = 0 than
 // workes pool does not created and commands not processed by Teoapi.
 func New(app *Application, numWorkers ...interface{}) (api *Teoapi) {
-	api = &Teoapi{app: app, S: NewStdout()}
+	api = &Teoapi{app: app, Stdout: NewStdout()}
 	if len(numWorkers) > 0 {
 		switch n := numWorkers[0].(type) {
 		case int:

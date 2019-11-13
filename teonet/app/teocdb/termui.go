@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -21,17 +20,11 @@ func termui(api *teoapi.Teoapi) {
 		return
 	}
 
-	// Redirect standart output to file
-	stdout := os.Stdout
-	stderr := os.Stderr
-	f, _ := os.OpenFile("/tmp/teocli-termloop",
-		os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0755)
-	os.Stdout = f
-	os.Stderr = f
+	// Redirect standart output to null
+	api.Stdout.Redirect()
 	defer func() {
 		// Restory standart output
-		os.Stdout = stdout
-		os.Stderr = stderr
+		api.Stdout.Restore()
 		ui.Close()
 	}()
 
