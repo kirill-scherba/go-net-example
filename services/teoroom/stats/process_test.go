@@ -87,8 +87,10 @@ func TestProcess_ComRoomCreated(t *testing.T) {
 			return
 		}
 		fmt.Println(data)
-		req.UnmarshalBinary(data)
-		fmt.Println("req.UnmarshalBinary:", req.ReqID, req.From, req.To, req.Limit)
+		var reqq = &stats.RoomByCreatedRequest{}
+		reqq.UnmarshalBinary(data)
+		fmt.Println("RoomByCreatedRequest.UnmarshalBinary:", reqq.ReqID,
+			reqq.From, reqq.To, reqq.Limit)
 		pac := teo.PacketCreateNew("teo-from", 129, data)
 		_, err = r.ComGetRoomsByCreated(pac)
 	})
