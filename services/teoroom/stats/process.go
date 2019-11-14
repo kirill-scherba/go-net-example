@@ -7,10 +7,9 @@
 package stats
 
 import (
-	"fmt"
-
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
+	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
 // Process receiver to process teousers commands
@@ -87,7 +86,8 @@ func (p *Process) ComClientStatus(pac TeoPacket) (err error) {
 
 // ComGetRoomsByCreated get rooms request by Created, read data from database
 // and return answer to request
-func (p *Process) ComGetRoomsByCreated(pac TeoPacket) (rooms []stats.Room, err error) {
+func (p *Process) ComGetRoomsByCreated(pac TeoPacket) (rooms []stats.Room,
+	err error) {
 	req := &stats.RoomByCreatedRequest{}
 	req.UnmarshalBinary(pac.Data())
 	rooms, err = p.getByCreated(req.From, req.To, req.Limit)
@@ -95,12 +95,22 @@ func (p *Process) ComGetRoomsByCreated(pac TeoPacket) (rooms []stats.Room, err e
 		return
 	}
 	res := &stats.RoomByCreatedResponce{ReqID: req.ReqID, Rooms: rooms}
-	fmt.Println("res.RoomByCreatedResponce:", res)
 	d, err := res.MarshalBinary()
-	fmt.Println("res.MarshalBinary():", d)
+
+	teolog.Debugf(MODULE, "Got %d bytes RoomByCreated request, read data and "+
+		"send %d bytes snswer\n", len(pac.Data()), len(d))
+
 	// Sent answer
 	_, err = p.SendAnswer(pac, pac.Cmd(), d)
-	res.UnmarshalBinary(d)
-	fmt.Println("res.UnmarshalBinary():", res, len(d))
+	if err != nil {
+		teolog.Errorf(MODULE, "Err SendAnswer: %s\n", err)
+		return
+	}
+	err = res.UnmarshalBinary(d)
+	if err != nil {
+		teolog.Errorf(MODULE, "Err SendAnswer responce UnmarshalBinary: %s\n",
+			err)
+		return
+	}
 	return
 }
