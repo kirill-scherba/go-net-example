@@ -180,12 +180,14 @@ func (req *ClientStateRequest) UnmarshalBinary(data []byte) (err error) {
 }
 
 // SendClientState sends ClientState to cdb
-func SendClientState(teo TeoConnector, state byte, roomID gocql.UUID, id gocql.UUID, statAr ...[]byte) {
+func SendClientState(teo TeoConnector, state byte, roomID gocql.UUID,
+	id gocql.UUID, statAr ...[]byte) {
 	var stat []byte
 	if len(statAr) > 0 {
 		stat = statAr[0]
 	}
-	req := &ClientStateRequest{State: state, RoomID: roomID, ID: id, GameStat: stat}
+	req := &ClientStateRequest{State: state, RoomID: roomID, ID: id,
+		GameStat: stat}
 	data, _ := req.MarshalBinary()
 	teo.SendTo(TeoCdb, CmdSetClientState, data)
 }
@@ -216,9 +218,30 @@ func (req *RoomByCreatedRequest) MarshalBinary() (data []byte, err error) {
 func (req *RoomByCreatedRequest) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
+
+	// Create time buffer
+	var t time.Time
+	tdata, _ := t.MarshalBinary()
+	tlen := len(tdata)
+	tbuf := make([]byte, tlen)
+
 	err = binary.Read(buf, le, &req.ReqID)
-	err = binary.Read(buf, le, &req.From)
-	err = binary.Read(buf, le, &req.To)
+	if err != nil {
+		return
+	}
+
+	err = binary.Read(buf, le, &tbuf)
+	if err != nil {
+		return
+	}
+	req.From.UnmarshalBinary(tbuf)
+
+	err = binary.Read(buf, le, &tbuf)
+	if err != nil {
+		return
+	}
+	req.To.UnmarshalBinary(tbuf)
+
 	err = binary.Read(buf, le, &req.Limit)
 	return
 }
@@ -323,7 +346,7 @@ func (res *RoomByCreatedResponce) UnmarshalBinary(data []byte) (err error) {
 // SendRoomByCreated sends RoomByCreated Request to cdb
 func SendRoomByCreated(teo TeoConnector, from, to time.Time, limit uint32) (
 	res RoomByCreatedResponce, err error) {
-	req := &RoomByCreatedRequest{From: from, To: to, Limit: limit, ReqID: 1}
+	req := &RoomByCreatedRequest{ReqID: limit, From: from, To: to, Limit: limit}
 	data, _ := req.MarshalBinary()
 	teo.SendTo(TeoCdb, CmdRoomsByCreated, data)
 	if r := <-teo.WaitFrom(TeoCdb, CmdRoomsByCreated, func(data []byte) (rv bool) {
