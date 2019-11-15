@@ -41,6 +41,9 @@ import (
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
 )
 
+// HostsDefault is default hosts IPs
+var HostsDefault = []string{"172.19.0.2", "172.19.0.3", "172.19.0.4"}
+
 // Teocdb is teocdb packet receiver
 type Teocdb struct {
 	session *gocql.Session
@@ -54,7 +57,7 @@ func Connect(con cdb.TeoConnector, hosts ...string) (tcdb *Teocdb, err error) {
 	tcdb.Process = &Process{tcdb}
 	cluster := gocql.NewCluster(func() (h []string) {
 		if h = hosts; len(h) == 0 {
-			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
+			h = HostsDefault
 		}
 		return
 	}()...)

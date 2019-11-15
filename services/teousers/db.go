@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/services/teocdb"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
@@ -76,7 +77,7 @@ func (d *db) connect(hosts ...string) (err error) {
 			h = h[1:]
 		}
 		if len(h) == 0 {
-			h = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4"}
+			h = teocdb.HostsDefault
 		}
 		return
 	}()...)

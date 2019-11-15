@@ -1,0 +1,48 @@
+# Setup ScyllaDB claster (in docker compose) 
+#
+# Create volume folder (when first time running on this host):
+#
+#   sudo mkdir -p /var/lib/scylla/data /var/lib/scylla/commitlog /var/lib/scylla/hints /var/lib/scylla/view_hints
+#
+# Launch the 3-node cluster as follows:
+#  
+#   docker-compose up -d
+#
+# Check:
+#
+#   docker exec -it scylla nodetool status 
+#
+# Run cql shell:
+#
+#   docker exec -it scylla cqlsh
+#
+# Execute cql files in cql shell to create namespaces, tables and indexses:
+#
+#   services/teocdb/cql/teocdb.cql
+#   services/teoregistry/cql/teoregistry.cql
+#   services/teoroom/stats/cql/teoroom.cql
+#   services/teousers/cql/teousers.cql
+#
+
+version: '3'
+
+services:
+
+  scylla:
+    image: scylladb/scylla
+    container_name: scylla
+    restart: always
+    volumes: 
+      - /var/lib/scylla:/var/lib/scylla
+
+  scylla-node2:
+    image: scylladb/scylla
+    container_name: scylla-node2
+    restart: always
+    command: --seeds=scylla
+
+  scylla-node3:
+    image: scylladb/scylla
+    container_name: scylla-node3
+    restart: always
+    command: --seeds=scylla
