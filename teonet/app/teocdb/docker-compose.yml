@@ -23,6 +23,12 @@
 #   services/teoroom/stats/cql/teoroom.cql
 #   services/teousers/cql/teousers.cql
 #
+# Use docker instead of docker-compose:
+#
+#   docker run --name scylla --volume /var/lib/scylla:/var/lib/scylla -d scylladb/scylla --developer-mode=0
+#   docker run --name scylla-node2 -d scylladb/scylla --seeds="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' scylla)"
+#   docker run --name scylla-node3 -d scylladb/scylla --seeds="$(docker inspect --format='{{ .NetworkSettings.IPAddress }}' scylla)"
+#
 
 version: '3'
 
