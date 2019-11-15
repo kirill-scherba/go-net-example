@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Teoroom (teo-room) mroom type module.
+// Teoroom (teo-room) room map type module.
 
 package teoroom
 
