@@ -47,8 +47,8 @@ func main() {
 
 			case teonet.EventReceived:
 				pac := ev.Data
-				fmt.Printf("Event Received from: %s, cmd: %d, data: %s\n",
-					pac.From(), pac.Cmd(), pac.Data())
+				fmt.Printf("Event Received from: %s, cmd: %d, data_len: %d\n",
+					pac.From(), pac.Cmd(), len(pac.Data()))
 				switch pac.Cmd() {
 				case 129:
 					teo.SendTo(pac.From(), pac.Cmd()+1, pac.Data())

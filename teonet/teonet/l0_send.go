@@ -137,7 +137,6 @@ func (l0 *l0Conn) sendToRegistrar(d []byte) (data []byte, err error) {
 		// can't create new user
 		return
 	}
-	fmt.Printf("\nresult: %v\n", res)
 
 	// Set client name in system
 	client := res.Prefix + "-" + res.ID.String()
