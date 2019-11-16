@@ -54,9 +54,9 @@ func Config(name string) (conf *CdbParameters) {
 	return c.Value().(*CdbParameters)
 }
 
-// keyAndHosts combine keyspace and hosts
-func keyAndHosts(keyspace string, hosts []string) []string {
-	return append([]string{keyspace}, hosts...)
+// KeyAndHosts combine keyspace and hosts
+func (c *CdbParameters) KeyAndHosts(keyspace string) []string {
+	return append([]string{keyspace}, c.Hosts...)
 }
 
 // Default return default value in json format.
