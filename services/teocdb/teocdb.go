@@ -42,7 +42,7 @@ import (
 )
 
 // HostsDefault is default hosts IPs
-var HostsDefault = []string{"172.19.0.2", "172.19.0.3", "172.19.0.4"}
+var HostsDefault = []string{"172.18.0.2", "172.18.0.3", "172.18.0.4"}
 
 // Teocdb is teocdb packet receiver
 type Teocdb struct {
