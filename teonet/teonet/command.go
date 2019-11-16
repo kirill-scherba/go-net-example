@@ -93,7 +93,6 @@ func (com *command) process(rec *receiveData) (processed bool) {
 
 	case C.CMD_ECHO:
 		com.echo(rec)
-		processed = false
 
 	case C.CMD_ECHO_ANSWER:
 		com.echoAnswer(rec)
