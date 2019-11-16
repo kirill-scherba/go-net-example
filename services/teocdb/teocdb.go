@@ -53,19 +53,21 @@ type Teocdb struct {
 
 // Connect to the cql cluster and return teocdb receiver
 func Connect(con cdb.TeoConnector, hosts ...string) (tcdb *Teocdb, err error) {
+	keyspace := "teocdb"
 	tcdb = &Teocdb{con: con}
 	tcdb.Process = &Process{tcdb}
 	cluster := gocql.NewCluster(func() (h []string) {
-		if h = hosts; len(h) == 0 {
-			h = HostsDefault
+		if h = hosts; len(h) > 0 {
+			keyspace = h[0]
+			h = h[1:]
 		}
 		return
 	}()...)
-	cluster.Keyspace = "teocdb"
+	cluster.Keyspace = keyspace
 	cluster.Consistency = gocql.Quorum
 	tcdb.session, _ = cluster.CreateSession()
 
-	// Create keyspace and table
+	// Create table
 	const mapSchema = `
 		// create KEYSPACE IF NOT EXISTS teocdb WITH replication = {
 		// 	'class' : 'SimpleStrategy',

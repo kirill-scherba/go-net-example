@@ -63,20 +63,18 @@ func main() {
 	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version, api)
 
 	// Read cdb parameters
-	conf := Config("config")
+	c := Config("config")
 
 	// Teonet cdb database
-	tcdb, _ := teocdb.Connect(teo, conf.Hosts...)
+	tcdb, _ := teocdb.Connect(teo, keyAndHosts(c.Keyspace.Cdb, c.Hosts)...)
 	defer tcdb.Close()
 
 	// Teonet users database
-	usr, _ := teousers.Connect(teo,
-		append([]string{conf.Keyspace.Users}, conf.Hosts...)...)
+	usr, _ := teousers.Connect(teo, keyAndHosts(c.Keyspace.Users, c.Hosts)...)
 	defer usr.Close()
 
 	// Teonet room controller statistic database
-	room, _ := teoroomStats.Connect(teo,
-		append([]string{conf.Keyspace.Room}, conf.Hosts...)...)
+	room, _ := teoroomStats.Connect(teo, keyAndHosts(c.Keyspace.Room, c.Hosts)...)
 	defer room.Close()
 
 	// Teoapi command:
