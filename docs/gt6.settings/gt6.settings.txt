@@ -1,0 +1,109 @@
+> brctl show
+
+bridge name	bridge id		STP enabled	interfaces
+br0		8000.901b0ef79406	no		enp0s31f6
+							vnet3
+virbr0		8000.525400b4edf9	yes		virbr0-nic
+							vnet0
+virbr1		8000.525400a3e704	yes		virbr1-nic
+							vnet1
+virbr2		8000.525400209919	yes		virbr2-nic
+
+> ifconfig
+
+br0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 195.201.60.34  netmask 255.255.255.255  broadcast 0.0.0.0
+        inet6 2a01:4f8:13b:62b::2  prefixlen 64  scopeid 0x0<global>
+        inet6 fe80::921b:eff:fef7:9406  prefixlen 64  scopeid 0x20<link>
+        ether 90:1b:0e:f7:94:06  txqueuelen 1000  (Ethernet)
+        RX packets 89029  bytes 445196972 (445.1 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 64781  bytes 23460658 (23.4 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp0s31f6: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 90:1b:0e:f7:94:06  txqueuelen 1000  (Ethernet)
+        RX packets 391759  bytes 470463635 (470.4 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 89068  bytes 35871779 (35.8 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+        device interrupt 16  memory 0xef000000-ef020000  
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 115671440  bytes 10881848676 (10.8 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 115671440  bytes 10881848676 (10.8 GB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+virbr0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.106.5  netmask 255.255.255.0  broadcast 192.168.106.255
+        ether 52:54:00:b4:ed:f9  txqueuelen 1000  (Ethernet)
+        RX packets 1885  bytes 154644 (154.6 KB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 35  bytes 4446 (4.4 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+virbr1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 52:54:00:a3:e7:04  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+virbr2: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        ether 52:54:00:20:99:19  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+vnet0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::fc54:ff:fe3d:181f  prefixlen 64  scopeid 0x20<link>
+        ether fe:54:00:3d:18:1f  txqueuelen 1000  (Ethernet)
+        RX packets 2069  bytes 205506 (205.5 KB)
+        RX errors 0  dropped 184  overruns 0  frame 0
+        TX packets 5561  bytes 292106 (292.1 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+vnet1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::fc54:ff:fe33:3c15  prefixlen 64  scopeid 0x20<link>
+        ether fe:54:00:33:3c:15  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 5527  bytes 287712 (287.7 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+vnet2: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::fc54:ff:fef4:f50e  prefixlen 64  scopeid 0x20<link>
+        ether fe:54:00:f4:f5:0e  txqueuelen 1000  (Ethernet)
+        RX packets 3359  bytes 592152 (592.1 KB)
+        RX errors 0  dropped 184  overruns 0  frame 0
+        TX packets 418  bytes 42016 (42.0 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+vnet3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::fc54:ff:fedd:3a05  prefixlen 64  scopeid 0x20<link>
+        ether fe:54:00:dd:3a:05  txqueuelen 1000  (Ethernet)
+        RX packets 18204  bytes 11639415 (11.6 MB)
+        RX errors 0  dropped 184  overruns 0  frame 0
+        TX packets 35988  bytes 4769462 (4.7 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+> ll /var/lib/libvirt/images/
+total 14401012
+drwx--x--x 2 root root        4096 May 31 01:02 ./
+drwxr-xr-x 7 root root        4096 Nov 17 22:49 ../
+-rw------- 1 root root 16108814336 Nov 17 22:47 generic.qcow2
+-rw------- 1 root root 21478375424 Nov 18 00:50 routeros-1.qcow2
+-rw------- 1 root root 21478375424 May 20 12:04 routeros.qcow2
+
+> virsh list
+ Id   Name       State
+--------------------------
+ 1    routeros   running
+
+ 
