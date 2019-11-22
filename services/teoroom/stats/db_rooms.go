@@ -130,7 +130,8 @@ func (d *rooms) setStopped(roomID gocql.UUID) (err error) {
 	return d.setByColumnsNumber(room, rColStopped, rColState)
 }
 
-// getByCreated load all the results into a slice.
+// getByCreated get 'limit' rooms created between 'from' and 'to' and return
+// results in slice.
 func (d *rooms) getByCreated(from, to time.Time, limit uint32) (rooms []stats.Room,
 	err error) {
 	colCreated := d.roomsMetadata.Columns[rColCreated]
@@ -148,3 +149,7 @@ func (d *rooms) getByCreated(from, to time.Time, limit uint32) (rooms []stats.Ro
 	}
 	return
 }
+
+// TODO: get number of users in room
+
+// TODO: get total number of users in room controller now
