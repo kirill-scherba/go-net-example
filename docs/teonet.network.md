@@ -45,7 +45,7 @@ Get all services on all nodes:
 
     docker node ps $(docker node ls -q)
 
-### Create owerlay network
+### Create overlay network
 
     docker network create --driver overlay --subnet 10.0.10.0/24 teo-overlay
 
