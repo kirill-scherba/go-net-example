@@ -1,0 +1,23 @@
+# Connect to mikrotik
+# https://docs.ansible.com/ansible/latest/modules/routeros_command_module.html
+# https://spw.ru/educate/articles/ispolzovanie-ansible/
+#
+- name: Getting data from routers
+  hosts: mikrotik
+  #serial: 1
+  connection: network_cli 
+  gather_facts: no
+  user: admin
+
+  tasks:
+
+    - name: system command
+      # raw: /system clock print
+      # register: system_print
+
+      routeros_command:
+        commands: /system routerboard print
+      register: system_print
+
+    - name: debug print
+      debug: var=system_print.stdout_lines
