@@ -27,7 +27,7 @@ Use ```vim /etc/fstab``` to mount at startup:
 
     docker swarm init --advertise-addr 192.168.106.5
 
-### Create worker tocken (and use it to join swarm claster)
+### Create worker token (and use it to join swarm claster)
 
     docker swarm join-token worker
 
