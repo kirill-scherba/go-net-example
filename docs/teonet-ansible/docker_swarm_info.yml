@@ -1,0 +1,55 @@
+# Playbook: docker_swarm_info – Retrieves facts about Docker Swarm cluster
+# https://docs.ansible.com/ansible/latest/modules/docker_swarm_info_module.html?highlight=docker%20service#docker-swarm-info-retrieves-facts-about-docker-swarm-cluster
+#
+- hosts: all
+  become: true
+  vars:
+    # create_containers: 4
+    # default_container_name: docker
+    # default_container_image: ubuntu
+    # default_container_command: sleep 1d
+
+  tasks:
+
+    - name: Get info on Docker Swarm
+      docker_swarm_info:
+      ignore_errors: yes
+      register: result
+
+    - name: Inform about basic flags
+      debug:
+        msg: |
+          Was able to talk to docker daemon: {{ result.can_talk_to_docker }}
+          Docker in Swarm mode: {{ result.docker_swarm_active }}
+          This is a Manager node: {{ result.docker_swarm_manager }}
+
+    # - block:
+
+    #   - name: Get info on Docker Swarm and list of registered nodes
+    #     docker_swarm_info:
+    #       nodes: yes
+    #     register: result
+
+    #   - name: Get info on Docker Swarm and extended list of registered nodes
+    #     docker_swarm_info:
+    #       nodes: yes
+    #       verbose_output: yes
+    #     register: result
+
+    #   - name: Get info on Docker Swarm and filtered list of registered nodes
+    #     docker_swarm_info:
+    #       nodes: yes
+    #       nodes_filter:
+    #         name: mynode
+    #     register: result
+
+    #   - debug:
+    #       var: result.swarm_facts
+
+    #   - name: Get the swarm unlock key
+    #     docker_swarm_info:
+    #       unlock_key: yes
+    #     register: result
+
+    #   - debug:
+    #       var: result.swarm_unlock_key
