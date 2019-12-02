@@ -42,11 +42,15 @@
 
 ## db-[99:101]-node.example.com
 
-gt6       ansible_host=192.168.106.5  # gt6.kekalan.net
-#arch-1    ansible_host=192.168.107.2  # arch-1.gt7.kekalan.net
-dev-ks-2  ansible_host=10.10.17.4     # dev-ks-2.gt7.kekalan.net
-dev-ks-3  ansible_host=10.10.17.3     # dev-ks-3.gt7.kekalan.net
-gt8       ansible_host=10.10.15.2     # gt8.kekalan.net
+# teonet    ansible_host=192.168.106.5  # gt6.kekalan.net
+# dev-ks-2  ansible_host=10.10.17.4     # dev-ks-2.gt7.kekalan.net
+# dev-ks-3  ansible_host=10.10.17.3     # dev-ks-3.gt7.kekalan.net
+# gt8       ansible_host=10.10.15.2     # gt8.kekalan.net
+
+teonet    ansible_host=gt6.kekalan.net
+dev-ks-2  ansible_host=dev-ks-2.gt7.kekalan.net
+dev-ks-3  ansible_host=dev-ks-3.gt7.kekalan.net
+gt8       ansible_host=gt8.kekalan.net
 
 [mikrotik]
 ros  ansible_host=10.10.17.5  ansible_network_os=routeros        # ros.gt7.kekalan.net

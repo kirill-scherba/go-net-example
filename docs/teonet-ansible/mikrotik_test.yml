@@ -12,8 +12,6 @@
   tasks:
 
     - name: system command
-      # raw: /system clock print
-      # register: system_print
 
       routeros_command:
         commands: /system routerboard print
