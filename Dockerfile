@@ -47,7 +47,8 @@ RUN go get && go install
 CMD ["teonet"]
 
 # #############################################################
-# compose production image
+# Compose production image
+#
 FROM ubuntu:19.04 AS production
 WORKDIR /app
 
