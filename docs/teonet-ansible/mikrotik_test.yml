@@ -1,4 +1,5 @@
-# Connect to mikrotik
+# Playbook: Connect to mikrotik
+#
 # https://docs.ansible.com/ansible/latest/modules/routeros_command_module.html
 # https://spw.ru/educate/articles/ispolzovanie-ansible/
 #

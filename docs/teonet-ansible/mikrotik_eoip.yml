@@ -1,0 +1,44 @@
+# Playbook: create mikrotik eoip tunnel
+#
+# Some mikrotik docs: https://mikrotik.com/testdocs/ros/2.8/interface/eoip.php
+#
+- name: Create mikrotik eoip tunnel
+  hosts: mikrotik
+  #serial: 1
+  connection: network_cli 
+  gather_facts: no
+  user: admin
+  vars:
+    interface_name: eoip-remote
+    interface_addr: 10.255.255.49/30
+    remote_address: 10.0.0.2
+    mtu: 1500
+    id: 102
+
+  tasks:
+
+    - name: remove existing eoip tunnel
+      routeros_command:
+        commands: interface eoip remove {{interface_name}}
+      failed_when: False
+
+    - name: create eoip tunnel
+      routeros_command:
+        commands: >
+          interface eoip add 
+            remote-address={{remote_address}} 
+            name="{{interface_name}}" 
+            tunnel-id={{id}} 
+            mtu={{mtu}}
+      # register: system_print
+
+    - name: set ip address to inteface
+      routeros_command:
+        commands: >
+          ip address add 
+            address={{interface_addr}} 
+            interface={{interface_name}}
+      failed_when: False
+
+    # - name: debug print
+    #   debug: var=system_print.stdout_lines
