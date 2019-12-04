@@ -13,7 +13,7 @@ import (
 
 // DefautPort is default port value for remote and local host
 const (
-	// DefaultInterface is default tap device interface name
+	// DefaultInterface is default TAP device interface name
 	DefaultInterface = "tap0"
 
 	// DefaultMtu is default interface device mtu
@@ -51,8 +51,9 @@ type Params struct {
 // Tunnel define teonet tunnel data structure
 type Tunnel struct {
 	p     *Params          // tunnel parameters
-	sock  *net.UDPConn     // udp socket
-	iface *water.Interface // tap interface
+	iface *water.Interface // TAP interface
+	sock  *net.UDPConn     // UDP socket
+	raddr *net.UDPAddr     // remote UDP address
 }
 
 // New create new tunnel
@@ -63,22 +64,20 @@ func New(p *Params) (t *Tunnel) {
 
 // Run start and process teonet tunnel
 func (t *Tunnel) Run() {
+	t.newSocket()
 	t.newInterface()
-	t.listner()
-	// for {
-	// 	time.Sleep(1 * time.Second)
-	// }
-
+	go t.ifaceListner()
+	t.udpListner()
 }
 
-// newInterface create new tap interface, set ip address and up it
+// newInterface create new TAP interface, set ip address and up it
 func (t *Tunnel) newInterface() {
 	// Create a new tunnel device (requires root privileges).
 	conf := water.Config{DeviceType: water.TAP}
 	var err error
 	t.iface, err = water.New(conf)
 	if err != nil {
-		log.Fatalf("error creating tap device: %v", err)
+		log.Fatalf("error creating TAP device: %v", err)
 	}
 
 	// Setup IP properties.
@@ -88,7 +87,8 @@ func (t *Tunnel) newInterface() {
 			"mtu", strconv.Itoa(t.p.Mtu)).Run(); err != nil {
 			log.Fatalf("ip link error: %v", err)
 		}
-		if err := exec.Command("/sbin/ip", "addr", "add", t.p.Laddr+"/"+strconv.Itoa(t.p.Lmask),
+		if err := exec.Command("/sbin/ip", "addr", "add",
+			t.p.Laddr+"/"+strconv.Itoa(t.p.Lmask),
 			"dev", t.iface.Name()).Run(); err != nil {
 			log.Fatalf("ip addr error: %v", err)
 		}
@@ -98,20 +98,19 @@ func (t *Tunnel) newInterface() {
 		}
 	case "darwin":
 		if err := exec.Command("/sbin/ifconfig", t.iface.Name(),
-			strconv.Itoa(t.p.Mtu), "1300", t.p.Laddr, t.p.Raddr, "up").Run(); err != nil {
+			strconv.Itoa(t.p.Mtu), strconv.Itoa(t.p.Mtu), t.p.Laddr, t.p.Raddr,
+			"up").Run(); err != nil {
 			log.Fatalf("ifconfig error: %v", err)
 		}
 	default:
-		log.Fatalf("no tap support for: %v", runtime.GOOS)
+		log.Fatalf("no TAP support for: %v", runtime.GOOS)
 	}
 	log.Printf("interface %s sucessfully created\n", t.iface.Name())
 }
 
-// listner create new UDP socket and start udp listner and Handle inbound traffic
-func (t *Tunnel) listner() {
-
+// newSocket create new UDP socket to listen, read and write UDP packets
+func (t *Tunnel) newSocket() {
 	// Create a new UDP socket
-	//_, port, _ := net.SplitHostPort(t.netAddr)
 	laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort("", strconv.Itoa(t.p.Lport)))
 	if err != nil {
 		log.Fatalf("error resolving address: %v", err)
@@ -121,7 +120,45 @@ func (t *Tunnel) listner() {
 		log.Fatalf("error listening on socket: %v", err)
 	}
 	log.Printf("UDP listner started at port %d\n", t.p.Lport)
+	t.resolveRaddr()
+}
+
+// ifaceListner start iface listen and Handle outbound traffic
+func (t *Tunnel) ifaceListner() {
 	b := make([]byte, 1<<16)
+	defer t.iface.Close()
+	for {
+		n, err := t.iface.Read(b)
+		if err != nil {
+			// if isDone(ctx) {
+			// 	return
+			// }
+			log.Fatalf("TAP read error: %v", err)
+		}
+
+		log.Printf("outbound traffic:\n")
+		log.Printf("read %d bytes packet from interface %s\n", n, t.iface.Name())
+
+		if t.raddr == nil {
+			log.Printf("remote UDP connection does not established yet\n")
+		}
+		if _, err := t.sock.WriteToUDP(b[:n], t.raddr); err != nil {
+			// if isDone(ctx) {
+			// 	return
+			// }
+			log.Printf("net write error: %v", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		log.Printf("send %d bytes packet to UDP %s\n", n, t.raddr)
+	}
+}
+
+// udpListner create new UDP socket, start listen UDP port and Handle inbound traffic
+func (t *Tunnel) udpListner() {
+	b := make([]byte, 1<<16)
+	defer t.sock.Close()
 	for {
 		n, raddr, err := t.sock.ReadFromUDP(b)
 		if err != nil {
@@ -132,15 +169,34 @@ func (t *Tunnel) listner() {
 			time.Sleep(time.Second)
 			continue
 		}
-		log.Printf("got %d bytes packet from %s\n", n, raddr)
 
-		p := b[:n]
-		if _, err := t.iface.Write(p); err != nil {
+		log.Printf("inbound traffic:\n")
+		log.Printf("got %d bytes packet from UDP %s\n", n, raddr)
+
+		if t.raddr == nil {
+			t.raddr = raddr
+		}
+
+		if _, err := t.iface.Write(b[:n]); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
 			log.Fatalf("tun write error: %v", err)
 		}
+		log.Printf("write %d bytes packet to interface %s\n", n, t.iface.Name())
 	}
-	defer t.sock.Close()
+}
+
+// resolveRaddr create remote address if there is client connection and Raddr and
+// Rport connection parameters are present
+func (t *Tunnel) resolveRaddr() {
+	if t.p.Raddr == "" || t.p.Rport <= 0 {
+		return
+	}
+	raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(t.p.Raddr,
+		strconv.Itoa(t.p.Rport)))
+	if err != nil {
+		log.Fatalf("error resolving address: %v", err)
+	}
+	t.raddr = raddr
 }

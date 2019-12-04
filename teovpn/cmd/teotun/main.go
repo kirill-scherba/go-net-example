@@ -44,16 +44,16 @@ func main() {
 		flag.Usage()
 		os.Exit(0)
 	}
-	if p.Raddr == "" {
-		fmt.Printf("the 'remote host address' not defined, use -a to define it\n")
-		flag.Usage()
-		os.Exit(0)
-	}
-	if p.Rport == 0 {
-		fmt.Printf("wrong 'remote host port' value, use -r to set it\n")
-		flag.Usage()
-		os.Exit(0)
-	}
+	// if p.Raddr == "" {
+	// 	fmt.Printf("the 'remote host address' not defined, use -a to define it\n")
+	// 	flag.Usage()
+	// 	os.Exit(0)
+	// }
+	// if p.Rport == 0 {
+	// 	fmt.Printf("wrong 'remote host port' value, use -r to set it\n")
+	// 	flag.Usage()
+	// 	os.Exit(0)
+	// }
 
 	t := tunnel.New(p)
 	t.Run()
