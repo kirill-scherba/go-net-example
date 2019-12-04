@@ -7,6 +7,8 @@ RUN apt update && apt install -y iproute2 net-tools iputils-ping
 
 # Build it:
 #
+#   sudo ./udptunnel example/server.conf
+#
 #   go get github.com/dsnet/udptunnel 
 #   cp -r ~/go/src/github.com/dsnet/udptunnel/* ./
 #   go get
