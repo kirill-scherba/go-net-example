@@ -107,10 +107,10 @@ func (t *Tunnel) newInterface() {
 	log.Printf("interface %s sucessfully created\n", t.iface.Name())
 }
 
-// listner create new UDP socket and start udp listner
+// listner create new UDP socket and start udp listner and Handle inbound traffic
 func (t *Tunnel) listner() {
 
-	// Create a new UDP socket.
+	// Create a new UDP socket
 	//_, port, _ := net.SplitHostPort(t.netAddr)
 	laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort("", strconv.Itoa(t.p.Lport)))
 	if err != nil {
@@ -131,6 +131,15 @@ func (t *Tunnel) listner() {
 			log.Printf("net read error: %v", err)
 			time.Sleep(time.Second)
 			continue
+		}
+		log.Printf("got %d bytes packet from %s\n", n, raddr)
+
+		p := b[:n]
+		if _, err := t.iface.Write(p); err != nil {
+			// if isDone(ctx) {
+			// 	return
+			// }
+			log.Fatalf("tun write error: %v", err)
 		}
 	}
 	defer t.sock.Close()
