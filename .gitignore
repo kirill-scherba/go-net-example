@@ -2,3 +2,4 @@ debug.test
 teonet-go.code-workspace
 docs/teonet-ansible/*.retry
 docs/teonet-ansible/files/eoip/eoip
+tests/water/water
