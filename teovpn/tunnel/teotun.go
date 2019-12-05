@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/songgao/packets/ethernet"
 	"github.com/songgao/water"
 )
 
@@ -126,10 +127,13 @@ func (t *Tunnel) newSocket() {
 
 // ifaceListner start iface listen and Handle outbound traffic
 func (t *Tunnel) ifaceListner() {
-	b := make([]byte, 1<<16)
+	// b := make([]byte, 1<<16)
 	defer t.iface.Close()
+
+	var frame ethernet.Frame 
 	for {
-		n, err := t.iface.Read(b)
+		frame.Resize(t.p.Mtu)
+		n, err := t.iface.Read(frame)
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
@@ -140,10 +144,16 @@ func (t *Tunnel) ifaceListner() {
 		log.Printf("outbound traffic:\n")
 		log.Printf("read %d bytes packet from interface %s\n", n, t.iface.Name())
 
+		frame = frame[:n]
+		log.Printf("Dst: %s\n", frame.Destination())
+		log.Printf("Src: %s\n", frame.Source())
+		log.Printf("Ethertype: % x\n", frame.Ethertype())
+		log.Printf("Payload: % x\n", frame.Payload())
+
 		if t.raddr == nil {
 			log.Printf("remote UDP connection does not established yet\n")
 		}
-		if _, err := t.sock.WriteToUDP(b[:n], t.raddr); err != nil {
+		if _, err := t.sock.WriteToUDP(frame, t.raddr); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
@@ -152,16 +162,18 @@ func (t *Tunnel) ifaceListner() {
 			continue
 		}
 
-		log.Printf("send %d bytes packet to UDP %s\n", n, t.raddr)
+		log.Printf("send %d bytes packet to UDP %s\n\n", n, t.raddr)
 	}
 }
 
 // udpListner create new UDP socket, start listen UDP port and Handle inbound traffic
 func (t *Tunnel) udpListner() {
-	b := make([]byte, 1<<16)
+	// b := make([]byte, 1<<16)
 	defer t.sock.Close()
+
+	var frame ethernet.Frame
 	for {
-		n, raddr, err := t.sock.ReadFromUDP(b)
+		n, raddr, err := t.sock.ReadFromUDP(frame)
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
@@ -174,17 +186,23 @@ func (t *Tunnel) udpListner() {
 		log.Printf("inbound traffic:\n")
 		log.Printf("got %d bytes packet from UDP %s\n", n, raddr)
 
+		frame = frame[:n]
+		log.Printf("Dst: %s\n", frame.Destination())
+		log.Printf("Src: %s\n", frame.Source())
+		log.Printf("Ethertype: % x\n", frame.Ethertype())
+		log.Printf("Payload: % x\n", frame.Payload())
+
 		if t.raddr == nil {
 			t.raddr = raddr
 		}
 
-		if _, err := t.iface.Write(b[:n]); err != nil {
+		if _, err := t.iface.Write(frame); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
 			log.Fatalf("interface write error: %v", err)
 		}
-		log.Printf("write %d bytes packet to interface %s\n", n, t.iface.Name())
+		log.Printf("write %d bytes packet to interface %s\n\n", n, t.iface.Name())
 	}
 }
 
