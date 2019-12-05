@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/songgao/packets/ethernet"
+	// "github.com/songgao/packets/ethernet"
 	"github.com/songgao/water"
 )
 
@@ -127,13 +127,13 @@ func (t *Tunnel) newSocket() {
 
 // ifaceListner start iface listen and Handle outbound traffic
 func (t *Tunnel) ifaceListner() {
-	// b := make([]byte, 1<<16)
 	defer t.iface.Close()
 
-	var frame ethernet.Frame 
+	b := make([]byte, 1<<16)
+	//var frame ethernet.Frame 
 	for {
-		frame.Resize(t.p.Mtu)
-		n, err := t.iface.Read([]byte(frame))
+		// frame.Resize(t.p.Mtu)
+		n, err := t.iface.Read(b) // []byte(frame))
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
@@ -148,18 +148,18 @@ func (t *Tunnel) ifaceListner() {
 			continue
 		}
 
-		frame = frame[:n]
-		if n > 0 {
-			log.Printf("Dst: %s\n", frame.Destination())
-			log.Printf("Src: %s\n", frame.Source())
-			log.Printf("Ethertype: % x\n", frame.Ethertype())
-			log.Printf("Payload: % x\n", frame.Payload())
-		}
+		// frame = frame[:n]
+		// if n > 0 {
+		// 	log.Printf("Dst: %s\n", frame.Destination())
+		// 	log.Printf("Src: %s\n", frame.Source())
+		// 	log.Printf("Ethertype: % x\n", frame.Ethertype())
+		// 	log.Printf("Payload: % x\n", frame.Payload())
+		// }
 
 		if t.raddr == nil {
 			log.Printf("remote UDP connection does not established yet\n")
 		}
-		if _, err := t.sock.WriteToUDP(frame, t.raddr); err != nil {
+		if _, err := t.sock.WriteToUDP(b[:n] /*frame*/, t.raddr); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
@@ -174,12 +174,13 @@ func (t *Tunnel) ifaceListner() {
 
 // udpListner create new UDP socket, start listen UDP port and Handle inbound traffic
 func (t *Tunnel) udpListner() {
-	// b := make([]byte, 1<<16)
 	defer t.sock.Close()
 
-	var frame ethernet.Frame
+	b := make([]byte, 1<<16)
+	// var frame ethernet.Frame
 	for {
-		n, raddr, err := t.sock.ReadFromUDP([]byte(frame))
+		// frame.Resize(t.p.Mtu)
+		n, raddr, err := t.sock.ReadFromUDP(b) // []byte(frame))
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
@@ -196,19 +197,19 @@ func (t *Tunnel) udpListner() {
 			continue
 		}
 
-		frame = frame[:n]
-		if n > 0 {
-			log.Printf("Dst: %s\n", frame.Destination())
-			log.Printf("Src: %s\n", frame.Source())
-			log.Printf("Ethertype: % x\n", frame.Ethertype())
-			log.Printf("Payload: % x\n", frame.Payload())
-		}
+		// frame = frame[:n]
+		// if n > 0 {
+		// 	log.Printf("Dst: %s\n", frame.Destination())
+		// 	log.Printf("Src: %s\n", frame.Source())
+		// 	log.Printf("Ethertype: % x\n", frame.Ethertype())
+		// 	log.Printf("Payload: % x\n", frame.Payload())
+		// }
 
 		if t.raddr == nil {
 			t.raddr = raddr
 		}
 
-		if _, err := t.iface.Write(frame); err != nil {
+		if _, err := t.iface.Write(b[:n] /*frame*/); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
