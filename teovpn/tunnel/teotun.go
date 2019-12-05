@@ -120,6 +120,7 @@ func (t *Tunnel) newSocket() {
 		log.Fatalf("error listening on socket: %v", err)
 	}
 	log.Printf("UDP listner started at port %d\n", t.p.Lport)
+
 	t.resolveRaddr()
 }
 
@@ -181,7 +182,7 @@ func (t *Tunnel) udpListner() {
 			// if isDone(ctx) {
 			// 	return
 			// }
-			log.Fatalf("tun write error: %v", err)
+			log.Fatalf("interface write error: %v", err)
 		}
 		log.Printf("write %d bytes packet to interface %s\n", n, t.iface.Name())
 	}
@@ -193,10 +194,13 @@ func (t *Tunnel) resolveRaddr() {
 	if t.p.Raddr == "" || t.p.Rport <= 0 {
 		return
 	}
+
 	raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(t.p.Raddr,
 		strconv.Itoa(t.p.Rport)))
 	if err != nil {
 		log.Fatalf("error resolving address: %v", err)
 	}
+
+	log.Printf("remote host address %s\n", raddr)
 	t.raddr = raddr
 }
