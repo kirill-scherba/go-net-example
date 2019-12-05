@@ -133,7 +133,7 @@ func (t *Tunnel) ifaceListner() {
 	var frame ethernet.Frame 
 	for {
 		frame.Resize(t.p.Mtu)
-		n, err := t.iface.Read(frame)
+		n, err := t.iface.Read([]byte(frame))
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
@@ -179,7 +179,7 @@ func (t *Tunnel) udpListner() {
 
 	var frame ethernet.Frame
 	for {
-		n, raddr, err := t.sock.ReadFromUDP(frame)
+		n, raddr, err := t.sock.ReadFromUDP([]byte(frame))
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
