@@ -145,10 +145,12 @@ func (t *Tunnel) ifaceListner() {
 		log.Printf("read %d bytes packet from interface %s\n", n, t.iface.Name())
 
 		frame = frame[:n]
-		log.Printf("Dst: %s\n", frame.Destination())
-		log.Printf("Src: %s\n", frame.Source())
-		log.Printf("Ethertype: % x\n", frame.Ethertype())
-		log.Printf("Payload: % x\n", frame.Payload())
+		if n > 0 {
+			log.Printf("Dst: %s\n", frame.Destination())
+			log.Printf("Src: %s\n", frame.Source())
+			log.Printf("Ethertype: % x\n", frame.Ethertype())
+			log.Printf("Payload: % x\n", frame.Payload())
+		}
 
 		if t.raddr == nil {
 			log.Printf("remote UDP connection does not established yet\n")
@@ -187,10 +189,12 @@ func (t *Tunnel) udpListner() {
 		log.Printf("got %d bytes packet from UDP %s\n", n, raddr)
 
 		frame = frame[:n]
-		log.Printf("Dst: %s\n", frame.Destination())
-		log.Printf("Src: %s\n", frame.Source())
-		log.Printf("Ethertype: % x\n", frame.Ethertype())
-		log.Printf("Payload: % x\n", frame.Payload())
+		if n > 0 {
+			log.Printf("Dst: %s\n", frame.Destination())
+			log.Printf("Src: %s\n", frame.Source())
+			log.Printf("Ethertype: % x\n", frame.Ethertype())
+			log.Printf("Payload: % x\n", frame.Payload())
+		}
 
 		if t.raddr == nil {
 			t.raddr = raddr
