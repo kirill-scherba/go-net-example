@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	// "github.com/songgao/packets/ethernet"
+	"github.com/songgao/packets/ethernet"
 	"github.com/songgao/water"
 )
 
@@ -129,11 +129,11 @@ func (t *Tunnel) newSocket() {
 func (t *Tunnel) ifaceListner() {
 	defer t.iface.Close()
 
-	b := make([]byte, 1<<16)
-	//var frame ethernet.Frame 
+	// b := make([]byte, 1<<16)
+	var frame ethernet.Frame
 	for {
-		// frame.Resize(t.p.Mtu)
-		n, err := t.iface.Read(b) // []byte(frame))
+		frame.Resize(t.p.Mtu)
+		n, err := t.iface.Read([]byte(frame))
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
@@ -148,18 +148,18 @@ func (t *Tunnel) ifaceListner() {
 			continue
 		}
 
-		// frame = frame[:n]
+		frame = frame[:n]
 		// if n > 0 {
-		// 	log.Printf("Dst: %s\n", frame.Destination())
-		// 	log.Printf("Src: %s\n", frame.Source())
-		// 	log.Printf("Ethertype: % x\n", frame.Ethertype())
-		// 	log.Printf("Payload: % x\n", frame.Payload())
+		log.Printf("Dst: %s\n", frame.Destination())
+		log.Printf("Src: %s\n", frame.Source())
+		log.Printf("Ethertype: % x\n", frame.Ethertype())
+		log.Printf("Payload: % x\n", frame.Payload())
 		// }
 
 		if t.raddr == nil {
 			log.Printf("remote UDP connection does not established yet\n")
 		}
-		if _, err := t.sock.WriteToUDP(b[:n] /*frame*/, t.raddr); err != nil {
+		if _, err := t.sock.WriteToUDP( /*b[:n]*/ frame, t.raddr); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
@@ -176,11 +176,11 @@ func (t *Tunnel) ifaceListner() {
 func (t *Tunnel) udpListner() {
 	defer t.sock.Close()
 
-	b := make([]byte, 1<<16)
-	// var frame ethernet.Frame
+	// b := make([]byte, 1<<16)
+	var frame ethernet.Frame
 	for {
-		// frame.Resize(t.p.Mtu)
-		n, raddr, err := t.sock.ReadFromUDP(b) // []byte(frame))
+		frame.Resize(t.p.Mtu)
+		n, raddr, err := t.sock.ReadFromUDP([]byte(frame))
 		if err != nil {
 			// if isDone(ctx) {
 			// 	return
@@ -197,19 +197,19 @@ func (t *Tunnel) udpListner() {
 			continue
 		}
 
-		// frame = frame[:n]
+		frame = frame[:n]
 		// if n > 0 {
-		// 	log.Printf("Dst: %s\n", frame.Destination())
-		// 	log.Printf("Src: %s\n", frame.Source())
-		// 	log.Printf("Ethertype: % x\n", frame.Ethertype())
-		// 	log.Printf("Payload: % x\n", frame.Payload())
+		log.Printf("Dst: %s\n", frame.Destination())
+		log.Printf("Src: %s\n", frame.Source())
+		log.Printf("Ethertype: % x\n", frame.Ethertype())
+		log.Printf("Payload: % x\n", frame.Payload())
 		// }
 
 		if t.raddr == nil {
 			t.raddr = raddr
 		}
 
-		if _, err := t.iface.Write(b[:n] /*frame*/); err != nil {
+		if _, err := t.iface.Write( /*b[:n]*/ frame); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }

@@ -24,7 +24,7 @@ RUN apt update && apt install -y iproute2 net-tools iputils-ping
 # Run in docker: 
 #
 #   docker run --name teotun --cap-add=NET_ADMIN --device /dev/net/tun:/dev/net/tun -it --rm teotun bash
-#   ./teotun -l 10.0.0.2 -a 192.17.0.1
+#   ./teotun -l 10.0.0.2 -a 172.17.0.1
 #
 # Run in another terminal:
 #   
