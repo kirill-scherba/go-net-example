@@ -143,6 +143,10 @@ func (t *Tunnel) ifaceListner() {
 
 		log.Printf("outbound traffic:\n")
 		log.Printf("read %d bytes packet from interface %s\n", n, t.iface.Name())
+		if n == 0 {
+			log.Printf("skip it\n\n")
+			continue
+		}
 
 		frame = frame[:n]
 		if n > 0 {
@@ -187,6 +191,10 @@ func (t *Tunnel) udpListner() {
 
 		log.Printf("inbound traffic:\n")
 		log.Printf("got %d bytes packet from UDP %s\n", n, raddr)
+		if n == 0 {
+			log.Printf("skip it\n\n")
+			continue
+		}
 
 		frame = frame[:n]
 		if n > 0 {
