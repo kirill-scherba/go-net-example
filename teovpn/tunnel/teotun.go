@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os/exec"
@@ -141,25 +142,25 @@ func (t *Tunnel) ifaceListner() {
 			log.Fatalf("TAP read error: %v", err)
 		}
 
-		log.Printf("outbound traffic:\n")
-		log.Printf("read %d bytes packet from interface %s\n", n, t.iface.Name())
+		log.Printf("outbound traffic (from iface):\n")
+		fmt.Printf("read %d bytes packet from interface %s\n", n, t.iface.Name())
 		if n == 0 {
 			log.Printf("skip it\n\n")
 			continue
 		}
 
-		frame = frame[:n]
-		// if n > 0 {
-		log.Printf("Dst: %s\n", frame.Destination())
-		log.Printf("Src: %s\n", frame.Source())
-		log.Printf("Ethertype: % x\n", frame.Ethertype())
-		log.Printf("Payload: % x\n", frame.Payload())
-		// }
+		// Show frame log
+		f := frame[:n]
+		fmt.Printf("Dst: %s\n", f.Destination())
+		fmt.Printf("Src: %s\n", f.Source())
+		fmt.Printf("Ethertype: % x (%s)\n", f.Ethertype(),
+			Ethertype{f.Ethertype()}.String())
+		log.Printf("Payload: % x\n", f.Payload())
 
 		if t.raddr == nil {
 			log.Printf("remote UDP connection does not established yet\n")
 		}
-		if _, err := t.sock.WriteToUDP( /*b[:n]*/ frame, t.raddr); err != nil {
+		if _, err := t.sock.WriteToUDP(frame[:n], t.raddr); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
@@ -190,26 +191,26 @@ func (t *Tunnel) udpListner() {
 			continue
 		}
 
-		log.Printf("inbound traffic:\n")
+		log.Printf("inbound traffic (to iface):\n")
 		log.Printf("got %d bytes packet from UDP %s\n", n, raddr)
 		if n == 0 {
 			log.Printf("skip it\n\n")
 			continue
 		}
 
-		frame = frame[:n]
-		// if n > 0 {
-		log.Printf("Dst: %s\n", frame.Destination())
-		log.Printf("Src: %s\n", frame.Source())
-		log.Printf("Ethertype: % x\n", frame.Ethertype())
-		log.Printf("Payload: % x\n", frame.Payload())
-		// }
+		// Show frame log
+		f := frame[:n]
+		fmt.Printf("Dst: %s\n", f.Destination())
+		fmt.Printf("Src: %s\n", f.Source())
+		fmt.Printf("Ethertype: % x (%s)\n", f.Ethertype(),
+			Ethertype{f.Ethertype()}.String())
+		fmt.Printf("Payload: % x\n", f.Payload())
 
 		if t.raddr == nil {
 			t.raddr = raddr
 		}
 
-		if _, err := t.iface.Write( /*b[:n]*/ frame); err != nil {
+		if _, err := t.iface.Write(frame[:n]); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
@@ -219,8 +220,8 @@ func (t *Tunnel) udpListner() {
 	}
 }
 
-// resolveRaddr create remote address if there is client connection and Raddr and
-// Rport connection parameters are present
+// resolveRaddr create remote address if there is client connection and Raddr
+// and Rport connection parameters are present
 func (t *Tunnel) resolveRaddr() {
 	if t.p.Raddr == "" || t.p.Rport <= 0 {
 		return
