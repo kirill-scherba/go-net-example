@@ -26,6 +26,9 @@ const (
 
 	// DefaultMask is default ip adress mask
 	DefaultMask = 24
+
+	// Sleep time after udp socket error
+	SleepErrTime = 100
 )
 
 // SetDefault set sefault parameters
@@ -130,7 +133,7 @@ func (t *Tunnel) newSocket() {
 func (t *Tunnel) ifaceListner() {
 	defer t.iface.Close()
 
-	// b := make([]byte, 1<<16)
+	var num uint64
 	var frame ethernet.Frame
 	for {
 		frame.Resize(t.p.Mtu)
@@ -142,7 +145,8 @@ func (t *Tunnel) ifaceListner() {
 			log.Fatalf("TAP read error: %v", err)
 		}
 
-		log.Printf("outbound traffic (from iface):\n")
+		num++
+		log.Printf("outbound frame (from iface) #%d:\n", num)
 		fmt.Printf("read %d bytes packet from interface %s\n", n, t.iface.Name())
 		if n == 0 {
 			log.Printf("skip it\n\n")
@@ -155,7 +159,7 @@ func (t *Tunnel) ifaceListner() {
 		fmt.Printf("Src: %s\n", f.Source())
 		fmt.Printf("Ethertype: % x (%s)\n", f.Ethertype(),
 			Ethertype{f.Ethertype()}.String())
-		log.Printf("Payload: % x\n", f.Payload())
+		fmt.Printf("Payload: % x\n", f.Payload())
 
 		if t.raddr == nil {
 			log.Printf("remote UDP connection does not established yet\n")
@@ -165,7 +169,7 @@ func (t *Tunnel) ifaceListner() {
 			// 	return
 			// }
 			log.Printf("net write error: %v", err)
-			time.Sleep(time.Second)
+			time.Sleep(SleepErrTime * time.Millisecond)
 			continue
 		}
 
@@ -177,7 +181,7 @@ func (t *Tunnel) ifaceListner() {
 func (t *Tunnel) udpListner() {
 	defer t.sock.Close()
 
-	// b := make([]byte, 1<<16)
+	var num uint64
 	var frame ethernet.Frame
 	for {
 		frame.Resize(t.p.Mtu)
@@ -187,11 +191,12 @@ func (t *Tunnel) udpListner() {
 			// 	return
 			// }
 			log.Printf("net read error: %v", err)
-			time.Sleep(time.Second)
+			time.Sleep(SleepErrTime * time.Millisecond)
 			continue
 		}
 
-		log.Printf("inbound traffic (to iface):\n")
+		num++
+		log.Printf("inbound frame (to iface) #%d:\n", num)
 		log.Printf("got %d bytes packet from UDP %s\n", n, raddr)
 		if n == 0 {
 			log.Printf("skip it\n\n")
