@@ -27,6 +27,7 @@ func main() {
 	flag.StringVar(&p.Intrface, "i", p.Intrface, "interface name")
 	flag.IntVar(&p.Mtu, "mtu", p.Mtu, "interface mtu")
 	flag.StringVar(&p.Laddr, "l", p.Laddr, "local host ip address to set to interface")
+	flag.IntVar(&p.Lport, "p", p.Lport, "local host port to connect to")
 	flag.IntVar(&p.Lmask, "mask", p.Lmask, "local host ip address mask")
 	flag.StringVar(&p.Raddr, "a", p.Raddr, "remote host address to connect to remote host")
 	flag.IntVar(&p.Rport, "r", p.Rport, "remote host port (to connect to remote host)")
