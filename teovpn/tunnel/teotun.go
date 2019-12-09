@@ -55,10 +55,11 @@ type Params struct {
 
 // Tunnel define teonet tunnel data structure
 type Tunnel struct {
-	p     *Params          // tunnel parameters
+	p     *Params          // Tunnel parameters
 	iface *water.Interface // TAP interface
 	sock  *net.UDPConn     // UDP socket
-	raddr *net.UDPAddr     // remote UDP address
+	raddr *net.UDPAddr     // Remote UDP address
+	arp   *Arp             // Tunnel arp table
 }
 
 // New create new tunnel
@@ -69,6 +70,7 @@ func New(p *Params) (t *Tunnel) {
 
 // Run start and process teonet tunnel
 func (t *Tunnel) Run() {
+	t.newArp()
 	t.newSocket()
 	t.newInterface()
 	go t.ifaceListner()
