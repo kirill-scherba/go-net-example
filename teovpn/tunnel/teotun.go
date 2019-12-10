@@ -163,10 +163,15 @@ func (t *Tunnel) ifaceListner() {
 			Ethertype{f.Ethertype()}.String())
 		fmt.Printf("Payload: % x\n", f.Payload())
 
-		if t.raddr == nil {
-			log.Printf("remote UDP connection does not established yet\n")
+		raddr, ok := t.arp.get(f.Destination())
+		if !ok {
+			if t.raddr != nil {
+				raddr = t.raddr
+			} else {
+				log.Printf("remote UDP connection does not established yet\n")
+			}
 		}
-		if _, err := t.sock.WriteToUDP(frame[:n], t.raddr); err != nil {
+		if _, err := t.sock.WriteToUDP(frame[:n], raddr); err != nil {
 			// if isDone(ctx) {
 			// 	return
 			// }
@@ -179,7 +184,8 @@ func (t *Tunnel) ifaceListner() {
 	}
 }
 
-// udpListner create new UDP socket, start listen UDP port and Handle inbound traffic
+// udpListner create new UDP socket, start listen UDP port and Handle inbound
+// traffic
 func (t *Tunnel) udpListner() {
 	defer t.sock.Close()
 
@@ -213,9 +219,10 @@ func (t *Tunnel) udpListner() {
 			Ethertype{f.Ethertype()}.String())
 		fmt.Printf("Payload: % x\n", f.Payload())
 
-		if t.raddr == nil {
-			t.raddr = raddr
-		}
+		t.arp.set(f.Source(), raddr)
+		// if t.raddr == nil {
+		// 	t.raddr = raddr
+		// }
 
 		if _, err := t.iface.Write(frame[:n]); err != nil {
 			// if isDone(ctx) {

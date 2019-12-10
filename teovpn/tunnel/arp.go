@@ -16,13 +16,13 @@ func (t *Tunnel) newArp() {
 	t.arp = &Arp{m: m}
 }
 
-func (a *Arp) set(haddr *net.HardwareAddr, raddr *net.UDPAddr) {
+func (a *Arp) set(haddr net.HardwareAddr, raddr *net.UDPAddr) {
 	a.mux.Lock()
 	a.m[haddr.String()] = raddr
 	a.mux.Unlock()
 }
 
-func (a *Arp) get(haddr *net.HardwareAddr) (raddr *net.UDPAddr, ok bool) {
+func (a *Arp) get(haddr net.HardwareAddr) (raddr *net.UDPAddr, ok bool) {
 	a.mux.RLock()
 	raddr, ok = a.m[haddr.String()]
 	a.mux.RUnlock()
