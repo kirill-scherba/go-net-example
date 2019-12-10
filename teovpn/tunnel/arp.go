@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"fmt"
 	"net"
 	"sync"
 )
@@ -27,4 +28,22 @@ func (a *Arp) get(haddr net.HardwareAddr) (raddr *net.UDPAddr, ok bool) {
 	raddr, ok = a.m[haddr.String()]
 	a.mux.RUnlock()
 	return
+}
+
+func (a *Arp) String() (s string) {
+	a.mux.RLock()
+	s += fmt.Sprintf("ARP Table:\n")
+	s += fmt.Sprintf("----------\n")
+	for i, v := range a.m {
+		s += fmt.Sprintf("%s => %s\n", i, v)
+	}
+	s += fmt.Sprintf("----------\n")
+	a.mux.RUnlock()
+	return
+}
+
+func (a *Arp) foreach(f func(haddr string, raddr *net.UDPAddr)) {
+	for i, v := range a.m {
+		f(i, v)
+	}
 }

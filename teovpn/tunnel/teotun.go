@@ -164,11 +164,24 @@ func (t *Tunnel) ifaceListner() {
 		fmt.Printf("Payload: % x\n", f.Payload())
 
 		raddr, ok := t.arp.get(f.Destination())
+
+		if !ok && f.Destination().String() == "ff:ff:ff:ff:ff:ff" {
+			t.arp.foreach(func(haddr string, raddr *net.UDPAddr) {
+				t.sock.WriteToUDP(frame[:n], raddr)
+				fmt.Printf("send to %s\n", raddr)
+				ok = true
+			})
+			if ok {
+				continue
+			}
+		}
+
 		if !ok {
 			if t.raddr != nil {
 				raddr = t.raddr
 			} else {
 				log.Printf("remote UDP connection does not established yet\n")
+				continue
 			}
 		}
 		if _, err := t.sock.WriteToUDP(frame[:n], raddr); err != nil {
@@ -220,9 +233,25 @@ func (t *Tunnel) udpListner() {
 		fmt.Printf("Payload: % x\n", f.Payload())
 
 		t.arp.set(f.Source(), raddr)
+		fmt.Printf("%s", t.arp)
 		// if t.raddr == nil {
 		// 	t.raddr = raddr
 		// }
+
+		raddr, ok := t.arp.get(f.Destination())
+		if !ok && f.Destination().String() == "ff:ff:ff:ff:ff:ff" {
+			t.arp.foreach(func(haddr string, raddr *net.UDPAddr) {
+				if haddr == f.Source().String() {
+					return
+				}
+				t.sock.WriteToUDP(frame[:n], raddr)
+				fmt.Printf("send to %s\n", raddr)
+				ok = true
+			})
+			if ok {
+				continue
+			}
+		}
 
 		if _, err := t.iface.Write(frame[:n]); err != nil {
 			// if isDone(ctx) {
