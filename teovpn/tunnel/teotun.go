@@ -238,20 +238,21 @@ func (t *Tunnel) udpListner() {
 		// 	t.raddr = raddr
 		// }
 
-		raddr, ok := t.arp.get(f.Destination())
-		if !ok && f.Destination().String() == "ff:ff:ff:ff:ff:ff" {
-			t.arp.foreach(func(haddr string, raddr *net.UDPAddr) {
-				if haddr == f.Source().String() {
-					return
-				}
-				t.sock.WriteToUDP(frame[:n], raddr)
-				fmt.Printf("send to %s\n", raddr)
-				ok = true
-			})
-			if ok {
-				continue
-			}
-		}
+		//raddr, ok := t.arp.get(f.Destination())
+
+		// if !ok && f.Destination().String() == "ff:ff:ff:ff:ff:ff" {
+		// 	t.arp.foreach(func(haddr string, raddr *net.UDPAddr) {
+		// 		if haddr == f.Source().String() {
+		// 			return
+		// 		}
+		// 		t.sock.WriteToUDP(frame[:n], raddr)
+		// 		fmt.Printf("send to %s\n", raddr)
+		// 		ok = true
+		// 	})
+		// 	if ok {
+		// 		continue
+		// 	}
+		// }
 
 		if _, err := t.iface.Write(frame[:n]); err != nil {
 			// if isDone(ctx) {
