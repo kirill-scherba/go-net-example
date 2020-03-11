@@ -227,10 +227,10 @@ func (tcs *channelStat) statBody(tcd *ChannelData, idx, page int) (retstr string
 		droppedP(&tcs.packets), // packets dropped in %
 
 		fmt.Sprintf("%d/%d",
-			tcd.sendQueue.Len(), // sendQueueSize,
-			tcd.maxQueueSize),   // size of send queue
-		len(tcd.writeQueue),    // writeQueueSize,
-		tcd.receiveQueue.Len(), // receiveQueueSize
+			tcd.sendQueue.q.Len(), // sendQueueSize,
+			tcd.maxQueueSize),     // size of send queue
+		len(tcd.writeQueue),   // writeQueueSize,
+		len(tcd.receiveQueue), // receiveQueueSize
 	)
 	return
 }

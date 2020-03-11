@@ -1,7 +1,6 @@
 package trudp
 
 import (
-	"container/list"
 	"errors"
 	"fmt"
 	"net"
@@ -26,10 +25,10 @@ type ChannelData struct {
 	expectedID uint32 // Expected incoming ID
 
 	// Channels packet queues
-	sendQueue    *list.List   // send queue
-	receiveQueue *list.List   // received queue
-	writeQueue   []*writeType // write queue
-	maxQueueSize int          // maximum queue size
+	sendQueue    *sendQueueType   // send queue
+	receiveQueue receiveQueueType // received queue
+	writeQueue   []*writeType     // write queue
+	maxQueueSize int              // maximum queue size
 
 	// Channel flags
 	stoppedF     bool // TRUDP channel stopped flag
@@ -188,8 +187,8 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate,
 		sendTestMsgF: false,
 		maxQueueSize: trudp.defaultQueueSize,
 	}
-	tcd.sendQueue = list.New()
-	tcd.receiveQueue = list.New()
+	tcd.sendQueue = sendQueueInit() // list.New()
+	tcd.receiveQueue = receiveQueueInit()
 	tcd.writeQueue = make([]*writeType, 0)
 
 	// Add to channels map
@@ -258,7 +257,7 @@ func (tcd *ChannelData) Connected() bool {
 
 // canWrine return true if writeTo is allowed
 func (tcd *ChannelData) canWrite() bool {
-	return tcd.sendQueue.Len() < tcd.maxQueueSize /*&& tcd.receiveQueue.Len() < tcd.maxQueueSize*/
+	return tcd.sendQueue.q.Len() < tcd.maxQueueSize /*&& tcd.receiveQueue.Len() < tcd.maxQueueSize*/
 }
 
 // keepAlive Send ping if time since tcd.lastTripTimeReceived >= sleepTime

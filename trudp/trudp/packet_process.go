@@ -57,10 +57,12 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	// ACK-to-data packet received
 	case ACK:
 
+		id := pac.ID()
+
 		// Show Log
 		teolog.DebugVf(MODULE, "got ACK packet id: %d, channel: %s, "+
 			"triptime: %.3f ms\n",
-			pac.ID(), key, tcd.stat.triptime,
+			id, key, tcd.stat.triptime,
 		)
 
 		// Set trip time to ChannelData
@@ -68,7 +70,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		tcd.stat.ackReceived()
 
 		// Remove packet from send queue
-		tcd.sendQueueRemove(pac)
+		tcd.sendQueueRemove(id)
 		tcd.trudp.proc.writeQueueWriteTo(tcd)
 
 	// RESET packet received
@@ -189,8 +191,8 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	// Packet with id more than expectedID placed to receive queue and wait
 	// previouse packets
 	case packetDistance > 0: // id > tcd.expectedID:
-		_, _, err := tcd.receiveQueueFind(id)
-		if err != nil {
+		_, ok := tcd.receiveQueueFind(id)
+		if !ok {
 			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSIYellow,
 				fmt.Sprintf("put packet id: %d, channel: %s to received queue, "+
 					"wait previouse packets", id, tcd.GetKey())))

@@ -1,6 +1,6 @@
 # Teonet-go
 
-# About
+## About
 
 Teonet-go is golang implementation of Teonet C library. It is communication library to process network / cloud transport between microservices. Teonet-go uses UDP to communicate between its network peers. There UDP packets are encrypted with unique keys. Teonet-go uses own UDP based protocol called TR-UDP for real time communications that allows sending messages with low latency and provides protocol reliability features.
 
