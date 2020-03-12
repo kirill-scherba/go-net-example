@@ -66,7 +66,7 @@ func (teo *Teonet) createMenu() {
 			} else {
 				teo.param.ShowClientsStatF = false
 				teo.param.ShowTrudpStatF = false
-				teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+				teo.td.SetShowStatistic(teo.param.ShowTrudpStatF)
 				teo.arp.print()
 				mode = "on"
 			}
@@ -76,7 +76,7 @@ func (teo *Teonet) createMenu() {
 		teo.menu.Add('u', "show trudp statistics", func() {
 			var mode string
 			teo.param.ShowTrudpStatF = !teo.param.ShowTrudpStatF
-			teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+			teo.td.SetShowStatistic(teo.param.ShowTrudpStatF)
 			if !teo.param.ShowTrudpStatF {
 				mode = "off" + "\033[r" + "\0338"
 			} else {
@@ -96,7 +96,7 @@ func (teo *Teonet) createMenu() {
 				} else {
 					teo.param.ShowPeersStatF = false
 					teo.param.ShowTrudpStatF = false
-					teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+					teo.td.SetShowStatistic(teo.param.ShowTrudpStatF)
 					teo.l0.stat.process()
 					mode = "on"
 				}

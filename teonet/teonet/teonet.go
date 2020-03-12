@@ -97,7 +97,7 @@ func Connect(param *Parameters, appType []string, appVersion string,
 	// Trudp init
 	teo.td = trudp.Init(&param.Port)
 	teo.td.AllowEvents(1) // \TODO: set events connected by '||'' to allow it
-	teo.td.ShowStatistic(param.ShowTrudpStatF)
+	teo.td.SetShowStatistic(param.ShowTrudpStatF)
 
 	// Arp module init
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
