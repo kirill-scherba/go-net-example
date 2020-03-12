@@ -139,6 +139,21 @@ func (tcd *ChannelData) Write(data []byte) (n int, err error) {
 	return
 }
 
+// WriteNowait send data to remote host in no wait mode and got result in callback
+func (tcd *ChannelData) WriteNowait(data []byte, cb func()) (n int, err error) {
+	if tcd.stoppedF {
+		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
+		return
+	}
+	go func() {
+		chanAnswer := make(chan bool)
+		tcd.trudp.proc.chanWrite <- &writeType{tcd, data, chanAnswer}
+		<-chanAnswer
+		cb()
+	}()
+	return
+}
+
 // WriteUnsafe send data to remote host by UDP
 func (tcd *ChannelData) WriteUnsafe(data []byte) (int, error) {
 	return tcd.trudp.udp.writeTo(data, tcd.addr)

@@ -21,7 +21,7 @@ import (
 )
 
 // MODULE is name in log
-const MODULE = "main"
+const MODULE = "(main)"
 
 func main() {
 	fmt.Println("TRUDP test application ver " + trudp.Version)
@@ -71,10 +71,62 @@ func main() {
 			logToSyslogF, "trudp")
 
 		// Set 'show statictic' flag
-		tru.ShowStatistic(showStat)
+		tru.SetShowStatistic(showStat)
 
 		// Set default queue size
 		tru.SetDefaultQueueSize(maxQueueSize)
+
+		// Event Receiver
+		go func() {
+			defer tru.ChanEventClosed()
+			teolog.Log(teolog.CONNECT, MODULE, "event receiver started")
+
+			for ev := range tru.ChanEvent() {
+				switch ev.Event {
+
+				case trudp.EvGotData:
+					teolog.Log(teolog.DEBUGv, MODULE, "GOT_DATA: ",
+						ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+					if sendAnswer {
+						ev.Tcd.WriteNowait([]byte(string(ev.Data)+" - answer"), func() {})
+						// ev.Tcd.Write([]byte(string(ev.Data) + " - answer"))
+					}
+
+				// case trudp.SEND_DATA:
+				// 	teolog.Log(teolog.DEBUG, MODULE, "SEND_DATA:", ev.Data, string(ev.Data))
+
+				case trudp.EvInitialize:
+					teolog.Log(teolog.CONNECT, MODULE, "INITIALIZE, start listen at:",
+						string(ev.Data))
+
+				case trudp.EvDestroy:
+					teolog.Log(teolog.CONNECT, MODULE, "DESTROY",
+						string(ev.Data))
+
+				case trudp.EvConnected:
+					teolog.Log(teolog.CONNECT, MODULE, "CONNECTED to:",
+						string(ev.Data))
+
+				case trudp.EvDisconnected:
+					teolog.Log(teolog.CONNECT, MODULE, "DISCONNECTED from:",
+						string(ev.Data))
+
+				case trudp.EvResetLocal:
+					teolog.Log(teolog.DEBUG, MODULE, "RESET_LOCAL executed at channel:",
+						ev.Tcd.GetKey())
+
+				case trudp.EvSendReset:
+					teolog.Log(teolog.DEBUG, MODULE, "SEND_RESET to channel:",
+						ev.Tcd.GetKey())
+
+				default:
+					teolog.Errorf(MODULE,
+						"event: %d, data_len: %d, data: %v %s\n",
+						ev.Event, len(ev.Data), ev.Data, string(ev.Data),
+					)
+				}
+			}
+		}()
 
 		// Connect to remote server flag and send data when connected
 		if rport != 0 {
@@ -100,67 +152,18 @@ func main() {
 						num++
 					}
 
-					teolog.Log(teolog.CONNECT, MODULE, "(main) channel "+
+					teolog.Log(teolog.CONNECT, MODULE, "channel "+
 						tcd.GetKey()+" sender stopped")
 					if !tru.Running() {
 						break
 					}
 					time.Sleep(5 * time.Second)
-					teolog.Log(teolog.CONNECT, MODULE, "(main) reconnect")
+					teolog.Log(teolog.CONNECT, MODULE, "reconnect")
 				}
 
-				teolog.Log(teolog.CONNECT, MODULE, "(main) sender worker stopped")
+				teolog.Log(teolog.CONNECT, MODULE, "sender worker stopped")
 			}()
 		}
-
-		// Receiver
-		go func() {
-			defer tru.ChanEventClosed()
-			for ev := range tru.ChanEvent() {
-				switch ev.Event {
-
-				case trudp.EvGotData:
-					teolog.Log(teolog.DEBUGv, MODULE, "(main) GOT_DATA: ",
-						ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
-					if sendAnswer {
-						ev.Tcd.Write([]byte(string(ev.Data) + " - answer"))
-					}
-
-				// case trudp.SEND_DATA:
-				// 	teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_DATA:", ev.Data, string(ev.Data))
-
-				case trudp.EvInitialize:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) INITIALIZE, listen at:",
-						string(ev.Data))
-
-				case trudp.EvDestroy:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) DESTROY",
-						string(ev.Data))
-
-				case trudp.EvConnected:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) CONNECTED",
-						string(ev.Data))
-
-				case trudp.EvDisconnected:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED",
-						string(ev.Data))
-
-				case trudp.EvResetLocal:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) RESET_LOCAL executed at channel:",
-						ev.Tcd.GetKey())
-
-				case trudp.EvSendReset:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:",
-						ev.Tcd.GetKey())
-
-				default:
-					teolog.Errorf(MODULE,
-						"(main) event: %d, data_len: %d, data: %v %s\n",
-						ev.Event, len(ev.Data), ev.Data, string(ev.Data),
-					)
-				}
-			}
-		}()
 
 		// Ctrl+C process
 		c := make(chan os.Signal, 1)

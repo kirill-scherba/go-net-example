@@ -229,7 +229,7 @@ func Init(port *int) (trudp *TRUDP) {
 
 	localAddr := trudp.udp.localAddr()
 	teolog.Log(teolog.CONNECT, MODULE, "start listenning at", localAddr)
-	trudp.sendEvent(nil, EvInitialize, []byte(localAddr))
+	go trudp.sendEvent(nil, EvInitialize, []byte(localAddr))
 
 	return
 }
@@ -382,8 +382,8 @@ func (trudp *TRUDP) ChanEventClosed() {
 	trudp.proc.wg.Done()
 }
 
-// ShowStatistic set showStatF to show trudp statistic window
-func (trudp *TRUDP) ShowStatistic(showStatF bool) {
+// SetShowStatistic set showStatF to show trudp statistic window
+func (trudp *TRUDP) SetShowStatistic(showStatF bool) {
 	trudp.showStatF = showStatF
 }
 
