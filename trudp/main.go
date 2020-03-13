@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -18,6 +19,8 @@ import (
 
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/trudp/trudp"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // MODULE is name in log
@@ -172,22 +175,43 @@ func main() {
 			for sig := range c {
 				switch sig {
 				case syscall.SIGINT:
-					// reconnectF = true
-					// tru.Close()
-					// return
 
-					var str string
-					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect: ")
-					fmt.Scanf("%s\n", &str)
-					switch str {
-					case "r", "R":
+					// Set terminal to raw mode (fd 0 is stdin)
+					state, err := terminal.MakeRaw(0)
+					if err != nil {
+						log.Fatalln("setting stdin to raw:", err)
+					}
+
+					// Restore terminal
+					rest := func() {
+						if err := terminal.Restore(0, state); err != nil {
+							log.Println("warning, failed to restore terminal:", err)
+						}
+					}
+
+					// Get one rune
+					getch := func() (r rune) {
+						in := bufio.NewReader(os.Stdin)
+						r, _, err = in.ReadRune()
+						if err != nil {
+							log.Println("stdin:", err)
+						}
+						// fmt.Printf("read rune %q\r\n", r)
+						return
+					}
+
+					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect, or any other key to continue\r\n")
+					switch getch() {
+					case 'r', 'R':
 						reconnectF = true
 						tru.Close()
 						return
-					case "q", "Q":
+					case 'q', 'Q', '\x03':
 						reconnectF = false
 						tru.Close()
 					}
+					rest()
+
 				case syscall.SIGCLD:
 					fallthrough
 				default:
