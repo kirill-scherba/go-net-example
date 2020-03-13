@@ -119,7 +119,7 @@ func (teo *Teonet) createMenu() {
 				in := bufio.NewReader(os.Stdin)
 				teo.param.LogFilter = readString(in, "\b"+"enter log filter: ")
 				teolog.SetFilter(teo.param.LogFilter)
-				setLoglevel(teolog.Loglevel(logLevel))
+				setLoglevel(teolog.LoglevelInt(logLevel))
 				teo.menu.Stop(false)
 			}()
 		})
@@ -185,7 +185,7 @@ func (teo *Teonet) createMenu() {
 			teo.menu.Stop(true)
 			ch := teo.menu.Getch()
 			fmt.Println()
-			setLoglevel(teolog.Loglevel(logLevel))
+			setLoglevel(teolog.LoglevelInt(logLevel))
 			if ch == 'y' || ch == 'Y' {
 				teo.menu.Stop(false)
 				teo.menu.Quit()

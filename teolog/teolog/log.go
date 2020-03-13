@@ -201,14 +201,19 @@ func SetLoglevel(level interface{}) {
 	case int:
 		param.level = l
 	case string:
-		param.level = Loglevel(l)
+		param.level = LoglevelInt(l)
 	default:
 		param.level = DEBUG
 	}
 }
 
-// Loglevel return log level in int format
-func Loglevel(lstr string) (level int) {
+// Loglevel get log level in int format
+func Loglevel() int {
+	return param.level
+}
+
+// LoglevelInt return log level in int format
+func LoglevelInt(lstr string) (level int) {
 	switch lstr {
 	case strNONE:
 		level = NONE

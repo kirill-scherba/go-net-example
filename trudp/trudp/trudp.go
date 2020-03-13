@@ -387,6 +387,11 @@ func (trudp *TRUDP) SetShowStatistic(showStatF bool) {
 	trudp.showStatF = showStatF
 }
 
+// ShowStatistic get showStatF
+func (trudp *TRUDP) ShowStatistic() bool {
+	return trudp.showStatF
+}
+
 // SetDefaultQueueSize set maximum send and receive queues size
 func (trudp *TRUDP) SetDefaultQueueSize(defaultQueueSize int) {
 	trudp.defaultQueueSize = defaultQueueSize

@@ -176,6 +176,11 @@ func main() {
 				switch sig {
 				case syscall.SIGINT:
 
+					showStat := tru.ShowStatistic()
+					tru.SetShowStatistic(false)
+					logLevel := teolog.Loglevel()
+					teolog.SetLoglevel(0)
+
 					// Set terminal to raw mode (fd 0 is stdin)
 					state, err := terminal.MakeRaw(0)
 					if err != nil {
@@ -200,7 +205,7 @@ func main() {
 						return
 					}
 
-					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect, or any other key to continue\r\n")
+					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect, or press any other key to continue\r\n")
 					switch getch() {
 					case 'r', 'R':
 						reconnectF = true
@@ -211,6 +216,9 @@ func main() {
 						tru.Close()
 					}
 					rest()
+
+					tru.SetShowStatistic(showStat)
+					teolog.SetLoglevel(logLevel)
 
 				case syscall.SIGCLD:
 					fallthrough
