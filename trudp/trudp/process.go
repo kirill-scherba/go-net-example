@@ -191,8 +191,8 @@ func (proc *process) writeTo(writePac *writeType) {
 // writeToDirect write packet to trudp channel and send true to Answer channel
 func (proc *process) writeToDirect(writePac *writeType) {
 	tcd := writePac.tcd
-	writePac.chanAnswer <- true
 	proc.trudp.packet.newData(tcd.ID(), tcd.ch, writePac.data).writeTo(tcd)
+	writePac.chanAnswer <- true
 }
 
 // writeToQueue add write packet to write queue

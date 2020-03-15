@@ -191,12 +191,12 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	// Packet with id more than expectedID placed to receive queue and wait
 	// previouse packets
 	case packetDistance > 0: // id > tcd.expectedID:
-		_, ok := tcd.receiveQueueFind(id)
+		_, ok := tcd.receiveQueue.Find(id)
 		if !ok {
 			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSIYellow,
 				fmt.Sprintf("put packet id: %d, channel: %s to received queue, "+
 					"wait previouse packets", id, tcd.GetKey())))
-			tcd.receiveQueueAdd(pac)
+			tcd.receiveQueue.Add(pac)
 			// <<<< Added to fix overload receve queueu
 			tcd.receiveQueueProcess(func(data []byte) {
 				tcd.trudp.sendEvent(tcd, EvGotData, data)

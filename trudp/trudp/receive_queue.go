@@ -7,8 +7,8 @@ import (
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
-// receiveQueueType is the receive queue type definition
-type receiveQueueType map[uint32]*receiveQueueData
+// receiveQueue is the receive queue type definition
+type receiveQueue map[uint32]*receiveQueueData
 
 // receiveQueueData receive queue data structure
 type receiveQueueData struct {
@@ -16,27 +16,8 @@ type receiveQueueData struct {
 }
 
 // receiveQueueInit create new receive
-func receiveQueueInit() receiveQueueType {
+func receiveQueueInit() receiveQueue {
 	return make(map[uint32]*receiveQueueData)
-}
-
-// receiveQueueAdd add packet to receive queue
-func (tcd *ChannelData) receiveQueueAdd(packet *packetType) {
-	id := packet.ID()
-	tcd.receiveQueue[id] = &receiveQueueData{packet: packet}
-	teolog.Log(teolog.DEBUGvv, MODULE, "add to receive queue, id:", id)
-}
-
-// receiveQueueFind find packet with selected id in receiveQueue
-func (tcd *ChannelData) receiveQueueFind(id uint32) (rqd *receiveQueueData, ok bool) {
-	rqd, ok = tcd.receiveQueue[id]
-	return
-}
-
-// receiveQueueRemove remove element from receive queue by id
-func (tcd *ChannelData) receiveQueueRemove(id uint32) {
-	delete(tcd.receiveQueue, id)
-	teolog.Logf(teolog.DEBUGvv, MODULE, "remove id %d from receive queue", id)
 }
 
 // receiveQueueReset resets (clear) send queue
@@ -48,7 +29,7 @@ func (tcd *ChannelData) receiveQueueReset() {
 func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) (err error) {
 	for {
 		id := tcd.expectedID
-		rqd, ok := tcd.receiveQueueFind(id)
+		rqd, ok := tcd.receiveQueue.Find(id)
 		if !ok {
 			break
 		}
@@ -63,7 +44,26 @@ func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) (err er
 		tcd.incID(&tcd.expectedID)
 		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:", id)
 		sendEvent(rqd.packet.Data())
-		tcd.receiveQueueRemove(id)
+		tcd.receiveQueue.Remove(id)
 	}
 	return
+}
+
+// receiveQueueAdd add packet to receive queue
+func (r receiveQueue) Add(packet *packetType) {
+	id := packet.ID()
+	r[id] = &receiveQueueData{packet: packet}
+	teolog.Log(teolog.DEBUGvv, MODULE, "add to receive queue, id:", id)
+}
+
+// receiveQueueFind find packet with selected id in receiveQueue
+func (r receiveQueue) Find(id uint32) (rqd *receiveQueueData, ok bool) {
+	rqd, ok = r[id]
+	return
+}
+
+// receiveQueueRemove remove element from receive queue by id
+func (r receiveQueue) Remove(id uint32) {
+	delete(r, id)
+	teolog.Logf(teolog.DEBUGvv, MODULE, "remove id %d from receive queue", id)
 }
