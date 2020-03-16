@@ -4,6 +4,7 @@ package trudp
 // #include "packet.h"
 import "C"
 import (
+	"time"
 	"unsafe"
 
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
@@ -118,7 +119,7 @@ func (pac *packetType) writeTo(tcd *ChannelData) {
 	teolog.DebugVf(MODULE, "send %s packet id: %d, to channel: %s\n",
 		pac.TypeString(), pac.ID(), tcd.GetKey())
 	if pac.sendQueueF {
-		tcd.sendQueueAdd(pac)
+		tcd.sendQueue.Add(pac, tcd.sendQueueRttTime()*time.Millisecond)
 		tcd.stat.send(len(pac.data))
 		//tcd.trudp.sendEvent(tcd, SEND_DATA, pac.getData())
 	}

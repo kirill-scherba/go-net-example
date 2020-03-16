@@ -25,10 +25,10 @@ type ChannelData struct {
 	expectedID uint32 // Expected incoming ID
 
 	// Channels packet queues
-	sendQueue    *sendQueueType // send queue
-	receiveQueue                // received queue
-	writeQueue   []*writeType   // write queue
-	maxQueueSize int            // maximum queue size
+	*sendQueue                // send queue
+	receiveQueue              // received queue
+	writeQueue   []*writeType // write queue
+	maxQueueSize int          // maximum queue size
 
 	// Channel flags
 	stoppedF     bool // TRUDP channel stopped flag

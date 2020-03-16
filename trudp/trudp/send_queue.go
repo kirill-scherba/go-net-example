@@ -8,8 +8,8 @@ import (
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
 
-// sendQueueType is the send queue type definition
-type sendQueueType struct {
+// sendQueue is the send queue type definition
+type sendQueue struct {
 	q   *list.List       // send queue list
 	idx sendQueueIdxType // send queue id index
 }
@@ -24,13 +24,22 @@ type sendQueueData struct {
 }
 
 // receiveQueueInit create new send queue
-func sendQueueInit() *sendQueueType {
-	return &sendQueueType{list.New(), sendQueueIdxInit()}
+func sendQueueInit() *sendQueue {
+	return &sendQueue{list.New(), sendQueueIdxInit()}
 }
 
 // sendQueueIdxInit create new send queue id index
 func sendQueueIdxInit() sendQueueIdxType {
 	return make(map[uint32]*list.Element)
+}
+
+// sendQueueReset resets (clear) send queue
+func (tcd *ChannelData) sendQueueReset() {
+	for e := tcd.sendQueue.q.Front(); e != nil; e = e.Next() {
+		e.Value.(*sendQueueData).packet.destroy()
+	}
+	tcd.sendQueue.q.Init()
+	tcd.sendQueue.idx = sendQueueIdxInit()
 }
 
 // sendQueueRttTime return send queue rtt time
@@ -42,48 +51,6 @@ func (tcd *ChannelData) sendQueueRttTime() (triptimeMiddle time.Duration) {
 	}
 	triptimeMiddle += defaultRTT
 	return
-}
-
-// sendQueueAdd add or update send queue packet
-func (tcd *ChannelData) sendQueueAdd(packet *packetType) {
-	id := packet.ID()
-	now := time.Now()
-	arrivalTime := now.Add(tcd.sendQueueRttTime() * time.Millisecond)
-
-	_, sqd, ok := tcd.sendQueueFind(id)
-	if !ok {
-		tcd.sendQueue.idx[id] = tcd.sendQueue.q.PushBack(&sendQueueData{
-			packet:      packet,
-			sendTime:    now,
-			arrivalTime: arrivalTime,
-		})
-		teolog.Log(teolog.DEBUGvv, MODULE, "add to send queue, id:", id)
-	} else {
-		sqd.resendAttempt++
-		sqd.arrivalTime = arrivalTime
-		teolog.Log(teolog.DEBUGvv, MODULE, "update in send queue, id:", id)
-	}
-}
-
-// sendQueueFind find packet in sendQueue
-func (tcd *ChannelData) sendQueueFind(id uint32) (e *list.Element,
-	sqd *sendQueueData, ok bool) {
-	e, ok = tcd.sendQueue.idx[id]
-	if ok {
-		sqd = e.Value.(*sendQueueData)
-	}
-	return
-}
-
-// sendQueueRemove remove packet from send queue
-func (tcd *ChannelData) sendQueueRemove(id uint32) {
-	e, sqd, ok := tcd.sendQueueFind(id)
-	if ok {
-		sqd.packet.destroy()
-		tcd.sendQueue.q.Remove(e)
-		delete(tcd.sendQueue.idx, id)
-		teolog.Log(teolog.DEBUGvv, MODULE, "remove from send queue, id:", id)
-	}
 }
 
 // sendQueueCalculateLength calculate send queue length
@@ -112,15 +79,6 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 			}
 		}
 	}
-}
-
-// sendQueueReset resets (clear) send queue
-func (tcd *ChannelData) sendQueueReset() {
-	for e := tcd.sendQueue.q.Front(); e != nil; e = e.Next() {
-		e.Value.(*sendQueueData).packet.destroy()
-	}
-	tcd.sendQueue.q.Init()
-	tcd.sendQueue.idx = sendQueueIdxInit()
 }
 
 // sendQueueResendProcess resend packet from send queue if it does not got
@@ -161,4 +119,47 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 		rtt = tcd.sendQueue.q.Front().Value.(*sendQueueData).arrivalTime.Sub(now)
 	}
 	return
+}
+
+// sendQueueAdd add or update send queue packet
+func (s *sendQueue) Add(packet *packetType, rtt time.Duration) {
+	id := packet.ID()
+
+	now := time.Now()
+	arrivalTime := now.Add(rtt)
+
+	_, sqd, ok := s.Find(id)
+	if !ok {
+		s.idx[id] = s.q.PushBack(&sendQueueData{
+			packet:      packet,
+			sendTime:    now,
+			arrivalTime: arrivalTime,
+		})
+		teolog.Log(teolog.DEBUGvv, MODULE, "add to send queue, id:", id)
+	} else {
+		sqd.resendAttempt++
+		sqd.arrivalTime = arrivalTime
+		teolog.Log(teolog.DEBUGvv, MODULE, "update in send queue, id:", id)
+	}
+}
+
+// sendQueueFind find packet in sendQueue
+func (s *sendQueue) Find(id uint32) (e *list.Element,
+	sqd *sendQueueData, ok bool) {
+	e, ok = s.idx[id]
+	if ok {
+		sqd = e.Value.(*sendQueueData)
+	}
+	return
+}
+
+// sendQueueRemove remove packet from send queue
+func (s *sendQueue) Remove(id uint32) {
+	e, sqd, ok := s.Find(id)
+	if ok {
+		sqd.packet.destroy()
+		s.q.Remove(e)
+		delete(s.idx, id)
+		teolog.Log(teolog.DEBUGvv, MODULE, "remove from send queue, id:", id)
+	}
 }

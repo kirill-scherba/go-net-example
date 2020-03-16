@@ -70,7 +70,7 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		tcd.stat.ackReceived()
 
 		// Remove packet from send queue
-		tcd.sendQueueRemove(id)
+		tcd.sendQueue.Remove(id)
 		tcd.trudp.proc.writeQueueWriteTo(tcd)
 
 	// RESET packet received
