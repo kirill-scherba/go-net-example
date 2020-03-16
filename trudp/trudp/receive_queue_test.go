@@ -17,14 +17,14 @@ func TestReceiveQueue(t *testing.T) {
 	t.Run("adding elements", func(t *testing.T) {
 		for i := 0; i < numElements; i++ {
 			packet := pac.newData(uint32(i), 0, []byte("hello"+strconv.Itoa(i))).copy()
-			tcd.receiveQueueAdd(packet)
+			tcd.receiveQueue.Add(packet)
 		}
 	})
 
 	// find existing elements and check packet
 	t.Run("find all existing", func(t *testing.T) {
 		for id := 0; id < numElements; id++ {
-			rqd, ok := tcd.receiveQueueFind(uint32(id))
+			rqd, ok := tcd.receiveQueue.Find(uint32(id))
 			switch {
 
 			case !ok:
@@ -43,14 +43,20 @@ func TestReceiveQueue(t *testing.T) {
 	// find and remove element then find it again
 	t.Run("find and remove", func(t *testing.T) {
 		id := uint32(5)
-		_, ok := tcd.receiveQueueFind(id)
+		_, ok := tcd.receiveQueue.Find(id)
 		if !ok {
 			t.Errorf("does not existing tests element with id: %d", id)
 		}
-		tcd.receiveQueueRemove(id)
+		tcd.receiveQueue.Remove(id)
 
-		_, ok = tcd.receiveQueueFind(id)
-		if !ok {
+		_, ok = tcd.receiveQueue.Find(id)
+		if ok {
+			t.Errorf("found does not existing element with id: %d", id)
+		}
+
+		id = uint32(numElements)
+		_, ok = tcd.receiveQueue.Find(id)
+		if ok {
 			t.Errorf("found does not existing element with id: %d", id)
 		}
 	})
@@ -59,7 +65,7 @@ func TestReceiveQueue(t *testing.T) {
 	t.Run("reset queue", func(t *testing.T) {
 		tcd.receiveQueueReset()
 		for id := 0; id < numElements; id++ {
-			_, ok := tcd.receiveQueueFind(uint32(id))
+			_, ok := tcd.receiveQueue.Find(uint32(id))
 			if ok {
 				t.Errorf("after reset was found does not existing element with id: %d", id)
 			}
