@@ -49,7 +49,7 @@ func (tcd *ChannelData) sendQueueRttTime() (triptimeMiddle time.Duration) {
 	} else {
 		triptimeMiddle = time.Duration(tcd.stat.triptimeMiddle)
 	}
-	triptimeMiddle += defaultRTT
+	triptimeMiddle = (triptimeMiddle + defaultRTT) * time.Millisecond
 	return
 }
 
