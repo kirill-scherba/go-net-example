@@ -35,7 +35,7 @@ const (
 	chEventSize      = 2048 + maxRQueue // Size or read channel used to send messages to user level
 
 	// DefaultQueueSize is size of send and receive queue
-	DefaultQueueSize = 96
+	DefaultQueueSize = 256 // 96
 
 	helloMsg      = "hello"
 	echoMsg       = "ping\x00"

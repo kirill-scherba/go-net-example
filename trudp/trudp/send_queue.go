@@ -10,11 +10,11 @@ import (
 
 // sendQueue is the send queue type definition
 type sendQueue struct {
-	q   *list.List       // send queue list
-	idx sendQueueIdxType // send queue id index
+	q   *list.List   // send queue list
+	idx sendQueueIdx // send queue id index
 }
 
-type sendQueueIdxType map[uint32]*list.Element
+type sendQueueIdx map[uint32]*list.Element
 
 type sendQueueData struct {
 	packet        *packetType // packet
@@ -29,7 +29,7 @@ func sendQueueInit() *sendQueue {
 }
 
 // sendQueueIdxInit create new send queue id index
-func sendQueueIdxInit() sendQueueIdxType {
+func sendQueueIdxInit() sendQueueIdx {
 	return make(map[uint32]*list.Element)
 }
 
@@ -60,17 +60,18 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 		//currentLen := tcd.sendQueue.Len()
 		lessMaxSize := tcd.maxQueueSize < 2048 //1024
 		queueIsFull := tcd.sendQueue.q.Len() >= tcd.maxQueueSize
-		moreDefaultSize := tcd.maxQueueSize > 4 //tcd.trudp.defaultQueueSize
+		largerDefaultSize := tcd.maxQueueSize > 4 //tcd.trudp.defaultQueueSize
 		//  if queue capacity less max capacity size
 		if lessMaxSize {
 			// if repeat speed is nil (0 repeat packets during second) and
 			// queue is full
 			if tcd.stat.packets.repeatRT.SpeedPacSec == 0 && queueIsFull {
-				tcd.maxQueueSize += 32
+				tcd.maxQueueSize += 128 // 32
+				return
 			}
 		}
-		// if queue capacity more default(minimal) capacity size
-		if moreDefaultSize {
+		// if queue capacity larger default(minimal) capacity size
+		if largerDefaultSize {
 			// if repeat speed more than 20 packets per second or
 			// if repeat speed more than 10 packets per second and queue is full
 			if tcd.stat.packets.repeatRT.SpeedPacSec > 20 ||
@@ -86,7 +87,6 @@ func (tcd *ChannelData) sendQueueCalculateLength() {
 // maxResendAttempt constant
 // \TODO check this resend and calculate new resend time algorithm
 func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
-	rtt = (defaultRTT + time.Duration(tcd.stat.triptimeMiddle)) * time.Millisecond
 	now := time.Now()
 	for e := tcd.sendQueue.q.Front(); e != nil; e = e.Next() {
 		sqd := e.Value.(*sendQueueData)
@@ -117,6 +117,9 @@ func (tcd *ChannelData) sendQueueResendProcess() (rtt time.Duration) {
 	// Next time to run sendQueueResendProcess
 	if tcd.sendQueue.q.Len() > 0 {
 		rtt = tcd.sendQueue.q.Front().Value.(*sendQueueData).arrivalTime.Sub(now)
+	} else {
+		// rtt = (defaultRTT + time.Duration(tcd.stat.triptimeMiddle)) * time.Millisecond
+		rtt = tcd.sendQueueRttTime()
 	}
 	return
 }

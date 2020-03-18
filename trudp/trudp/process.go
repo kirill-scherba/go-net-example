@@ -200,9 +200,17 @@ func (proc *process) writeToQueue(tcd *ChannelData, writePac *writeType) {
 	tcd.writeQueue = append(tcd.writeQueue, writePac)
 }
 
-// writeQueueWriteTo get packet from writeQueue and send it to trudp channel
-func (proc *process) writeQueueWriteTo(tcd *ChannelData) {
-	for len(tcd.writeQueue) > 0 && tcd.canWrite() {
+// writeFromQueue get packet from writeQueue and send it to trudp channel
+func (proc *process) writeFromQueue(tcd *ChannelData) {
+	first := true
+	isfirst := func() bool {
+		if first {
+			first = false
+			return true
+		}
+		return false
+	}
+	for len(tcd.writeQueue) > 0 && (isfirst() || tcd.canWrite()) {
 		writePac := tcd.writeQueue[0]
 		tcd.writeQueue = tcd.writeQueue[1:]
 		proc.writeToDirect(writePac)

@@ -202,7 +202,7 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate,
 		sendTestMsgF: false,
 		maxQueueSize: trudp.defaultQueueSize,
 	}
-	tcd.sendQueue = sendQueueInit() // list.New()
+	tcd.sendQueue = sendQueueInit()
 	tcd.receiveQueue = receiveQueueInit()
 	tcd.writeQueue = make([]*writeType, 0)
 
