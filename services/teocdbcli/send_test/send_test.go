@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kirill-scherba/teonet-go/services/teocdb/teocdbcli"
+	"github.com/kirill-scherba/teonet-go/services/teocdbcli"
 	"github.com/kirill-scherba/teonet-go/teonet/teonet"
 )
 
