@@ -9,6 +9,7 @@ package stats
 import (
 	"bytes"
 	"encoding/binary"
+	"time"
 	"unsafe"
 
 	"github.com/gocql/gocql"
@@ -16,9 +17,10 @@ import (
 
 // Teoroom cdb commands
 const (
-	CmdRoomCreated = iota + 134 // Room created
-	CmdRoomState                // 135 Room state changed
-	CmdClientState              // 136 Client state changed
+	CmdSetRoomCreated = iota + 134 // 134 Set room created state
+	CmdSetRoomState                // 135 Set room state changed
+	CmdSetClientState              // 136 Set client state changed
+	CmdRoomsByCreated              // 137 Get rooms by created time
 )
 
 // TeoCdb is Teonet teo-cdb peer name
@@ -34,10 +36,10 @@ type TeoConnector interface {
 	// timeout. It may be omitted or contain timeout time of time.Duration type.
 	// If timeout parameter is omitted than default timeout value sets to 2
 	// second.
-	// WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
-	// 	Data []byte
-	// 	Err  error
-	// }
+	WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
+		Data []byte
+		Err  error
+	}
 }
 
 // RoomCreateRequest used in ComRoomCreated command as request
@@ -122,14 +124,14 @@ func (req *RoomStateRequest) UnmarshalBinary(data []byte) (err error) {
 func SendRoomCreate(teo TeoConnector, roomID gocql.UUID, roomNum uint32) {
 	req := &RoomCreateRequest{RoomID: roomID, RoomNum: roomNum}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdRoomCreated, data)
+	teo.SendTo(TeoCdb, CmdSetRoomCreated, data)
 }
 
 // SendRoomState sends RoomStatus to cdb
 func SendRoomState(teo TeoConnector, roomID gocql.UUID, status byte) {
 	req := &RoomStateRequest{RoomID: roomID, Status: status}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdRoomState, data)
+	teo.SendTo(TeoCdb, CmdSetRoomState, data)
 }
 
 // State of client state request
@@ -178,12 +180,184 @@ func (req *ClientStateRequest) UnmarshalBinary(data []byte) (err error) {
 }
 
 // SendClientState sends ClientState to cdb
-func SendClientState(teo TeoConnector, state byte, roomID gocql.UUID, id gocql.UUID, statAr ...[]byte) {
+func SendClientState(teo TeoConnector, state byte, roomID gocql.UUID,
+	id gocql.UUID, statAr ...[]byte) {
 	var stat []byte
 	if len(statAr) > 0 {
 		stat = statAr[0]
 	}
-	req := &ClientStateRequest{State: state, RoomID: roomID, ID: id, GameStat: stat}
+	req := &ClientStateRequest{State: state, RoomID: roomID, ID: id,
+		GameStat: stat}
 	data, _ := req.MarshalBinary()
-	teo.SendTo(TeoCdb, CmdClientState, data)
+	teo.SendTo(TeoCdb, CmdSetClientState, data)
+}
+
+// RoomByCreatedRequest request room by created field
+type RoomByCreatedRequest struct {
+	ReqID uint32    // Request id
+	From  time.Time // Time when room created
+	To    time.Time // Time when room created
+	Limit uint32    // Number of records to read
+}
+
+// MarshalBinary encodes RoomCreatedRequest data into binary buffer.
+func (req *RoomByCreatedRequest) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, req.ReqID)
+	from, _ := req.From.MarshalBinary()
+	binary.Write(buf, le, from)
+	to, _ := req.To.MarshalBinary()
+	binary.Write(buf, le, to)
+	binary.Write(buf, le, req.Limit)
+	data = buf.Bytes()
+	return
+}
+
+// UnmarshalBinary decode binary buffer into RoomCreatedRequest receiver data.
+func (req *RoomByCreatedRequest) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewReader(data)
+	le := binary.LittleEndian
+
+	// Create time buffer
+	var t time.Time
+	tdata, _ := t.MarshalBinary()
+	tlen := len(tdata)
+	tbuf := make([]byte, tlen)
+
+	err = binary.Read(buf, le, &req.ReqID)
+	if err != nil {
+		return
+	}
+
+	err = binary.Read(buf, le, &tbuf)
+	if err != nil {
+		return
+	}
+	req.From.UnmarshalBinary(tbuf)
+
+	err = binary.Read(buf, le, &tbuf)
+	if err != nil {
+		return
+	}
+	req.To.UnmarshalBinary(tbuf)
+
+	err = binary.Read(buf, le, &req.Limit)
+	return
+}
+
+// Room data structure
+type Room struct {
+	ID      gocql.UUID // Room ID
+	RoomNum uint32     // Room number
+	Created time.Time  // Time when room created
+	Started time.Time  // Time when room started
+	Closed  time.Time  // Time when room closed to add players
+	Stopped time.Time  // Time when room stopped
+	State   uint8      // Current rooms state
+}
+
+// RoomByCreatedResponce responce to room request
+type RoomByCreatedResponce struct {
+	ReqID uint32 // Request id
+	Rooms []Room
+}
+
+// MarshalBinary encodes RoomByCreatedResponce data into binary buffer.
+func (res *RoomByCreatedResponce) MarshalBinary() (data []byte, err error) {
+	buf := new(bytes.Buffer)
+	le := binary.LittleEndian
+	binary.Write(buf, le, res.ReqID)
+	for _, v := range res.Rooms {
+		binary.Write(buf, le, v.ID)
+		binary.Write(buf, le, v.RoomNum)
+		created, _ := v.Created.MarshalBinary()
+		// fmt.Println("Created:", created, len(created))
+		started, _ := v.Started.MarshalBinary()
+		closed, _ := v.Closed.MarshalBinary()
+		stopped, _ := v.Stopped.MarshalBinary()
+		binary.Write(buf, le, created)
+		binary.Write(buf, le, started)
+		binary.Write(buf, le, closed)
+		binary.Write(buf, le, stopped)
+		binary.Write(buf, le, v.State)
+	}
+	data = buf.Bytes()
+	return
+}
+
+// UnmarshalBinary decode binary buffer into RoomByCreatedResponce receiver data.
+func (res *RoomByCreatedResponce) UnmarshalBinary(data []byte) (err error) {
+	res.Rooms = nil
+	var t time.Time
+	le := binary.LittleEndian
+	buf := bytes.NewReader(data)
+	tdata, _ := t.MarshalBinary()
+	tlen := len(tdata)
+
+	err = binary.Read(buf, le, &res.ReqID)
+	for i := 0; ; i++ {
+		var id gocql.UUID
+		err = binary.Read(buf, le, &id)
+		if err != nil {
+			err = nil
+			break
+		}
+
+		res.Rooms = append(res.Rooms, Room{ID: id})
+		err = binary.Read(buf, le, &res.Rooms[i].RoomNum)
+		if err != nil {
+			return
+		}
+
+		t := make([]byte, tlen)
+		err = binary.Read(buf, le, &t)
+		if err != nil {
+			return
+		}
+		res.Rooms[i].Created.UnmarshalBinary(t)
+		//
+		err = binary.Read(buf, le, &t)
+		if err != nil {
+			return
+		}
+		res.Rooms[i].Started.UnmarshalBinary(t)
+		//
+		err = binary.Read(buf, le, &t)
+		if err != nil {
+			return
+		}
+		res.Rooms[i].Closed.UnmarshalBinary(t)
+		//
+		err = binary.Read(buf, le, &t)
+		if err != nil {
+			return
+		}
+		res.Rooms[i].Stopped.UnmarshalBinary(t)
+		//
+		err = binary.Read(buf, le, &res.Rooms[i].State)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// SendRoomByCreated sends RoomByCreated Request to cdb
+func SendRoomByCreated(teo TeoConnector, from, to time.Time, limit uint32) (
+	res RoomByCreatedResponce, err error) {
+	req := &RoomByCreatedRequest{ReqID: limit, From: from, To: to, Limit: limit}
+	data, _ := req.MarshalBinary()
+	teo.SendTo(TeoCdb, CmdRoomsByCreated, data)
+	if r := <-teo.WaitFrom(TeoCdb, CmdRoomsByCreated, func(data []byte) (rv bool) {
+		//fmt.Println("check function body data:", data)
+		if err = res.UnmarshalBinary(data); err == nil {
+			//fmt.Println("check function unmarshalled res:", res)
+			rv = res.ReqID == req.ReqID
+		}
+		return
+	}); r.Err != nil {
+		err = r.Err
+	}
+	return
 }

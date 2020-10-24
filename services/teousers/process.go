@@ -56,7 +56,7 @@ func (p *Process) ComCheckUser(pac TeoPacket) (exists bool, err error) {
 	if err != nil {
 		// expected: user_prefix + user_id string
 		req := cli.UserRequest{}
-		err = req.UnmarshalText(pac.Data())
+		err = req.UnmarshalText1(pac.Data())
 		if err != nil {
 			return
 		}
@@ -79,19 +79,19 @@ func (p *Process) ComCheckUser(pac TeoPacket) (exists bool, err error) {
 // ComCheckAccess process check users access token request, return user_id and
 // access_tocken (the same as create user return)
 //
-//  Input data: prefix (with or without id).
+// Input data: {req_id uint32, prefix_with_or_without_id string}
 //
-// Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}.
+// Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}
 //
-// Use UserNew.UnmarshalBinary to decode binary buffer into UserNew.
+// Use UserNew.UnmarshalBinary to decode binary buffer into UserNew
 func (p *Process) ComCheckAccess(pac TeoPacket) (res *cli.UserResponce, err error) {
 	// Parse intput data
 	req := cli.UserRequest{}
-	if err = req.UnmarshalText(pac.Data()); err != nil {
+	if err = req.UnmarshalBinary(pac.Data()); err != nil {
 		return
 	}
 	// Check if user exists, get from database by AccessToken
-	res = &cli.UserResponce{AccessToken: req.ID}
+	res = &cli.UserResponce{ReqID: req.ReqID, AccessToken: req.ID}
 	err = p.getAccess(res)
 	if err != nil {
 		//err = ErrUserDoesNotExists
@@ -109,15 +109,16 @@ func (p *Process) ComCheckAccess(pac TeoPacket) (res *cli.UserResponce, err erro
 // ComCreateUser process create new user request, return new user_id and
 // access_tocken.
 //
-// Input data: prefix (with or without id).
+// Input data: {req_id uint32, prefix_with_or_without_id string}
 //
-// Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}.
+// Output data: UserNew{user_id gocql.UUID,access_tocken gocql.UUID,prefix string}
 //
 // Use UserNew.UnmarshalBinary to decode binary buffer into UserNew.
-func (p *Process) ComCreateUser(pac TeoPacket) (u *cli.UserResponce, err error) {
+func (p *Process) ComCreateUser(pac TeoPacket) (res *cli.UserResponce, err error) {
 	// Parse intput data
+	var emptyUUID gocql.UUID
 	req := cli.UserRequest{}
-	if err := req.UnmarshalText(pac.Data()); err != nil {
+	if err := req.UnmarshalBinary(pac.Data()); err != nil || req.ID == emptyUUID {
 		// if there is wrong or empty id in request than create new one and
 		// ignore this error
 		req.ID = gocql.TimeUUID()
@@ -142,12 +143,13 @@ func (p *Process) ComCreateUser(pac TeoPacket) (u *cli.UserResponce, err error) 
 		return
 	}
 	// Send answer to teonet
-	u = &cli.UserResponce{
+	res = &cli.UserResponce{
+		ReqID:       req.ReqID,
 		ID:          user.ID,
 		AccessToken: user.AccessToken,
 		Prefix:      user.Prefix,
 	}
-	d, err := u.MarshalBinary()
+	d, err := res.MarshalBinary()
 	if err != nil {
 		return
 	}

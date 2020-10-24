@@ -52,7 +52,7 @@ func BenchmarkSyscallUDP() { //t *testing.B) {
 		if i%200 == 0 { // 200
 			time.Sleep(850 * time.Microsecond) // 800
 		}
-		packet := pac.dataCreateNew(uint32(i), 1, []byte("hello"))
+		packet := pac.newData(uint32(i), 1, []byte("hello"))
 		if err := syscall.Sendto(fd, packet.data, flags, addr); err != nil {
 			panic(err)
 		}

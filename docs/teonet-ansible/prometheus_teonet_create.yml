@@ -1,0 +1,32 @@
+# Playbook: teonet prometheus service create (or update) on teonet node
+#
+- hosts: teonet
+  become: true
+  vars:
+    image_prometheus: prom/prometheus
+    service_name: prometheus
+    conf_host_path: /tmp/prometheus.yml
+
+  tasks:
+
+    - name: Remove running service
+      shell: docker service rm {{service_name}}
+      failed_when: False
+
+    - name: Copy config file
+      copy:
+        src: files/prometheus.yml
+        dest: "{{conf_host_path}}" 
+       
+    - name: Update docker image
+      shell: docker pull {{image_prometheus}}
+
+    - name: Run (or update) prometheush on teonet node
+      shell: >
+        docker service create 
+        --name {{service_name}}
+        --replicas 1
+        --constraint 'node.hostname == teonet'
+        --mount type=bind,source={{conf_host_path}},destination=/etc/prometheus/prometheus.yml
+        --publish published=9090,target=9090,protocol=tcp 
+        {{image_prometheus}}

@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -18,10 +19,12 @@ import (
 
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 	"github.com/kirill-scherba/teonet-go/trudp/trudp"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // MODULE is name in log
-const MODULE = "main"
+const MODULE = "(main)"
 
 func main() {
 	fmt.Println("TRUDP test application ver " + trudp.Version)
@@ -41,20 +44,20 @@ func main() {
 		sendSleepTime int
 
 		// Control flags parameters
-		noLogTime  bool
-		sendTest   bool
-		showStat   bool
-		sendAnswer bool
+		logToSyslogF bool
+		sendTest     bool
+		showStat     bool
+		sendAnswer   bool
 	)
 
 	flag.IntVar(&maxQueueSize, "Q", trudp.DefaultQueueSize, "maximum send and receive queues size")
-	flag.BoolVar(&noLogTime, "no-log-time", false, "don't show time in application log")
 	flag.IntVar(&port, "p", 0, "this host port (to remote hosts connect to this host)")
 	flag.StringVar(&rhost, "a", "", "remote host address (to connect to remote host)")
 	flag.IntVar(&rchan, "c", 1, "remote host channel (to connect to remote host)")
 	flag.IntVar(&rport, "r", 0, "remote host port (to connect to remote host)")
 	flag.StringVar(&logLevel, "log-level", "CONNECT", "application log level")
 	flag.StringVar(&logFilter, "log-filter", "", "application log filter")
+	flag.BoolVar(&logToSyslogF, "log-to-syslog", false, "save log to syslog")
 	flag.IntVar(&sendSleepTime, "t", 0, "send timeout in microseconds")
 	flag.BoolVar(&sendTest, "send-test", false, "send test data")
 	flag.BoolVar(&sendAnswer, "answer", false, "send answer")
@@ -67,13 +70,66 @@ func main() {
 		tru := trudp.Init(&port)
 
 		// Set log level
-		teolog.Init(logLevel, !noLogTime, log.LstdFlags|log.Lmicroseconds, logFilter)
+		teolog.Init(logLevel, log.Lmicroseconds|log.Lshortfile, logFilter,
+			logToSyslogF, "trudp")
 
 		// Set 'show statictic' flag
-		tru.ShowStatistic(showStat)
+		tru.SetShowStatistic(showStat)
 
 		// Set default queue size
 		tru.SetDefaultQueueSize(maxQueueSize)
+
+		// Event Receiver
+		go func() {
+			defer tru.ChanEventClosed()
+			teolog.Log(teolog.CONNECT, MODULE, "event receiver started")
+
+			for ev := range tru.ChanEvent() {
+				switch ev.Event {
+
+				case trudp.EvGotData:
+					teolog.Log(teolog.DEBUGv, MODULE, "GOT_DATA: ",
+						ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
+					if sendAnswer {
+						ev.Tcd.WriteNowait([]byte(string(ev.Data)+" - answer"), func() {})
+						// ev.Tcd.Write([]byte(string(ev.Data) + " - answer"))
+					}
+
+				// case trudp.SEND_DATA:
+				// 	teolog.Log(teolog.DEBUG, MODULE, "SEND_DATA:", ev.Data, string(ev.Data))
+
+				case trudp.EvInitialize:
+					teolog.Log(teolog.CONNECT, MODULE, "INITIALIZE, start listen at:",
+						string(ev.Data))
+
+				case trudp.EvDestroy:
+					teolog.Log(teolog.CONNECT, MODULE, "DESTROY",
+						string(ev.Data))
+
+				case trudp.EvConnected:
+					teolog.Log(teolog.CONNECT, MODULE, "CONNECTED to:",
+						string(ev.Data))
+
+				case trudp.EvDisconnected:
+					teolog.Log(teolog.CONNECT, MODULE, "DISCONNECTED from:",
+						string(ev.Data))
+
+				case trudp.EvResetLocal:
+					teolog.Log(teolog.DEBUG, MODULE, "RESET_LOCAL executed at channel:",
+						ev.Tcd.GetKey())
+
+				case trudp.EvSendReset:
+					teolog.Log(teolog.DEBUG, MODULE, "SEND_RESET to channel:",
+						ev.Tcd.GetKey())
+
+				default:
+					teolog.Errorf(MODULE,
+						"event: %d, data_len: %d, data: %v %s\n",
+						ev.Event, len(ev.Data), ev.Data, string(ev.Data),
+					)
+				}
+			}
+		}()
 
 		// Connect to remote server flag and send data when connected
 		if rport != 0 {
@@ -99,56 +155,18 @@ func main() {
 						num++
 					}
 
-					teolog.Log(teolog.CONNECT, MODULE, "(main) channel "+tcd.GetKey()+" sender stopped")
+					teolog.Log(teolog.CONNECT, MODULE, "channel "+
+						tcd.GetKey()+" sender stopped")
 					if !tru.Running() {
 						break
 					}
 					time.Sleep(5 * time.Second)
-					teolog.Log(teolog.CONNECT, MODULE, "(main) reconnect")
+					teolog.Log(teolog.CONNECT, MODULE, "reconnect")
 				}
 
-				teolog.Log(teolog.CONNECT, MODULE, "(main) sender worker stopped")
+				teolog.Log(teolog.CONNECT, MODULE, "sender worker stopped")
 			}()
 		}
-
-		// Receiver
-		go func() {
-			defer tru.ChanEventClosed()
-			for ev := range tru.ChanEvent() {
-				switch ev.Event {
-
-				case trudp.EvGotData:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) GOT_DATA: ", ev.Data, string(ev.Data), fmt.Sprintf("%.3f ms", ev.Tcd.TripTime()))
-					if sendAnswer {
-						ev.Tcd.Write([]byte(string(ev.Data) + " - answer"))
-					}
-
-				// case trudp.SEND_DATA:
-				// 	teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_DATA:", ev.Data, string(ev.Data))
-
-				case trudp.EvInitialize:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) INITIALIZE, listen at:", string(ev.Data))
-
-				case trudp.EvDestroy:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) DESTROY", string(ev.Data))
-
-				case trudp.EvConnected:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) CONNECTED", string(ev.Data))
-
-				case trudp.EvDisconnected:
-					teolog.Log(teolog.CONNECT, MODULE, "(main) DISCONNECTED", string(ev.Data))
-
-				case trudp.EvResetLocal:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) RESET_LOCAL executed at channel:", ev.Tcd.GetKey())
-
-				case trudp.EvSendReset:
-					teolog.Log(teolog.DEBUG, MODULE, "(main) SEND_RESET to channel:", ev.Tcd.GetKey())
-
-				default:
-					teolog.Log(teolog.ERROR, MODULE, "(main) event:", ev.Event)
-				}
-			}
-		}()
 
 		// Ctrl+C process
 		c := make(chan os.Signal, 1)
@@ -157,22 +175,51 @@ func main() {
 			for sig := range c {
 				switch sig {
 				case syscall.SIGINT:
-					// reconnectF = true
-					// tru.Close()
-					// return
 
-					var str string
-					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect: ")
-					fmt.Scanf("%s\n", &str)
-					switch str {
-					case "r", "R":
+					showStat := tru.ShowStatistic()
+					tru.SetShowStatistic(false)
+					logLevel := teolog.Loglevel()
+					teolog.SetLoglevel(0)
+
+					// Set terminal to raw mode (fd 0 is stdin)
+					state, err := terminal.MakeRaw(0)
+					if err != nil {
+						log.Fatalln("setting stdin to raw:", err)
+					}
+
+					// Restore terminal
+					rest := func() {
+						if err := terminal.Restore(0, state); err != nil {
+							log.Println("warning, failed to restore terminal:", err)
+						}
+					}
+
+					// Get one rune
+					getch := func() (r rune) {
+						in := bufio.NewReader(os.Stdin)
+						r, _, err = in.ReadRune()
+						if err != nil {
+							log.Println("stdin:", err)
+						}
+						// fmt.Printf("read rune %q\r\n", r)
+						return
+					}
+
+					fmt.Print("\033[2K\033[0E" + "Press Q to exit or R to reconnect, or press any other key to continue\r\n")
+					switch getch() {
+					case 'r', 'R':
 						reconnectF = true
 						tru.Close()
 						return
-					case "q", "Q":
+					case 'q', 'Q', '\x03':
 						reconnectF = false
 						tru.Close()
 					}
+					rest()
+
+					tru.SetShowStatistic(showStat)
+					teolog.SetLoglevel(logLevel)
+
 				case syscall.SIGCLD:
 					fallthrough
 				default:

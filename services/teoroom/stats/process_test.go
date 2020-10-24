@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli/stats"
@@ -22,6 +23,12 @@ func (t *Teoemu) SendTo(peer string, cmd byte, data []byte) (int, error) { retur
 func (t *Teoemu) SendAnswer(pac interface{}, cmd byte, data []byte) (int, error) {
 	answerData = data
 	return 0, nil
+}
+func (t *Teoemu) WaitFrom(from string, cmd byte, ii ...interface{}) (ch <-chan *struct {
+	Data []byte
+	Err  error
+}) {
+	return
 }
 
 func TestProcess_ComRoomCreated(t *testing.T) {
@@ -66,5 +73,25 @@ func TestProcess_ComRoomCreated(t *testing.T) {
 			t.Error(errors.New("roomID in teonet answer does not equal to " +
 				"generated roomID in ComRoomCreated function"))
 		}
+	})
+
+	t.Run("ComGetRoomsByCreated", func(t *testing.T) {
+		// Create request and process it
+		now := time.Now()
+		from := now.Add(-10 * time.Minute)
+		to := now
+		req := &stats.RoomByCreatedRequest{ReqID: 15, From: from, To: to, Limit: 2}
+		data, err := req.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		fmt.Println(data)
+		var reqq = &stats.RoomByCreatedRequest{}
+		reqq.UnmarshalBinary(data)
+		fmt.Println("RoomByCreatedRequest.UnmarshalBinary:", reqq.ReqID,
+			reqq.From, reqq.To, reqq.Limit)
+		pac := teo.PacketCreateNew("teo-from", 129, data)
+		_, err = r.ComGetRoomsByCreated(pac)
 	})
 }

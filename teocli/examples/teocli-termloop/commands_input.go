@@ -27,8 +27,8 @@ type roomDataCommand struct{ tg *Teogame }
 type roomStartCommand struct{ tg *Teogame }
 type clientDisconnecCommand struct{ tg *Teogame }
 
-// inputCommands combine input commands to slice (to use in teocli.Run() function)
-func inputCommands(tg *Teogame) (com []teocli.Command) {
+// newInputCommands combine input commands to slice (to use in teocli.Run() function)
+func newInputCommands(tg *Teogame) (com []teocli.Command) {
 	com = append(com,
 		authAnswerCommand{tg},
 		echoAnswerCommand{},
@@ -58,7 +58,7 @@ func (p authAnswerCommand) Command(packet *teocli.Packet) bool {
 // Echo answer command methods
 func (p echoAnswerCommand) Cmd() byte { return teocli.CmdLEchoAnswer }
 func (p echoAnswerCommand) Command(packet *teocli.Packet) bool {
-	if t, err := packet.TripTime(); err != nil {
+	if t, err := packet.Triptime(); err != nil {
 		fmt.Println("trip time error:", err)
 	} else {
 		fmt.Println("trip time (ms):", t)

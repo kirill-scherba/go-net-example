@@ -61,17 +61,29 @@ func (cry *crypt) decrypt(packet []byte, key string) ([]byte, error) {
 	if cry.kcr == nil {
 		return packet, errors.New("crypt module does not initialized")
 	}
+
+	errCantDecript := func() (err error) {
+		err = fmt.Errorf("can't decript %d bytes packet (try to use "+
+			"without decrypt), channel key: %s", len(packet), key)
+		teolog.DebugVv(MODULE, err.Error())
+		return
+	}
+
+	// Empty packet
+	if packet == nil || len(packet) == 0 {
+		return packet, errCantDecript()
+	}
+
 	var err error
 	var decryptLen C.size_t
 	packetPtr := unsafe.Pointer(&packet[0])
 	C.ksnDecryptPackage(cry.kcr, packetPtr, C.size_t(len(packet)), &decryptLen)
 	if decryptLen > 0 {
 		packet = packet[2 : decryptLen+2]
-		teolog.DebugVvf(MODULE, "decripted to %d bytes packet, channel key: %s\n", decryptLen, key)
+		teolog.DebugVvf(MODULE, "decripted to %d bytes packet, channel key: %s\n",
+			decryptLen, key)
 	} else {
-		err = fmt.Errorf("can't decript %d bytes packet (try to use without decrypt), channel key: %s", len(packet), key)
-		teolog.DebugVv(MODULE, err.Error())
-
+		err = errCantDecript()
 	}
 	return packet, err
 }

@@ -10,7 +10,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/kirill-scherba/teonet-go/services/teouserscli"
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
@@ -107,10 +109,16 @@ func (l0 *l0Conn) sendToRegistrar(d []byte) (data []byte, err error) {
 	teoCDB := "teo-cdb"
 	CmdAuth := byte(133)
 	teolog.Debugf(MODULE,
-		"login command, send to users registrar (teo-cdb): %s, data: %v\n",
-		teoCDB, d)
-	l0.teo.SendTo(teoCDB, CmdAuth, d)
-	r := <-l0.teo.WaitFrom(teoCDB, CmdAuth, 1*time.Second)
+		"login command, send to users registrar: %s, data: %v\n", teoCDB, d)
+	req := &teouserscli.UserRequest{ReqID: atomic.AddUint32(&l0.reqID, 1)}
+	req.UnmarshalText1(d)
+	packetData, _ := req.MarshalBinary()
+	l0.teo.SendTo(teoCDB, CmdAuth, packetData)
+	checkData := func(data []byte) bool {
+		return len(data) >= int(unsafe.Sizeof(req.ReqID)) &&
+			binary.LittleEndian.Uint32(data) == req.ReqID
+	}
+	r := <-l0.teo.WaitFrom(teoCDB, CmdAuth, 20*time.Second, checkData)
 	if r.Err != nil {
 		err = r.Err
 		teolog.Errorf(MODULE,
@@ -119,8 +127,7 @@ func (l0 *l0Conn) sendToRegistrar(d []byte) (data []byte, err error) {
 		return
 	}
 	data = r.Data
-	teolog.Debugf(MODULE,
-		"got answer from users registrar (teo-cdb): %s, %v\n",
+	teolog.Debugf(MODULE, "got answer from users registrar (teo-cdb): %s, %v\n",
 		teoCDB, r.Data)
 
 	// Check answer
@@ -130,7 +137,6 @@ func (l0 *l0Conn) sendToRegistrar(d []byte) (data []byte, err error) {
 		// can't create new user
 		return
 	}
-	fmt.Printf("\nresult: %v\n", res)
 
 	// Set client name in system
 	client := res.Prefix + "-" + res.ID.String()

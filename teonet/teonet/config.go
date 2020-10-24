@@ -27,6 +27,7 @@ type Parameters struct {
 	Network          string `json:"network"`          // teonet network name
 	Loglevel         string `json:"log-level"`        // show log messages level
 	LogFilter        string `json:"log-filter"`       // log messages filter
+	LogToSyslogF     bool   `json:"log-to-syslog"`    // forbid hotkeys menu
 	ForbidHotkeysF   bool   `json:"forbid-hotkeys"`   // forbid hotkeys menu
 	ShowTrudpStatF   bool   `json:"show-trudp"`       // show trudp statistic
 	ShowPeersStatF   bool   `json:"show-peers"`       // show peers table
@@ -44,8 +45,10 @@ type Parameters struct {
 }
 
 // Params read Teonet parameters from configuration file and parse application
-// flars and arguments
-func Params(ii ...interface{}) (param *Parameters) {
+// flars and arguments. If api parameter present than flag -api 'show teonet
+// application api' with false by default added to the application parameters.
+// Commands should be added before teonet connet to show with -api flag.
+func Params(apiiII ...interface{}) (param *Parameters) {
 	// Teonet parameters and config
 	param = CreateParameters()
 	param.ReadConfig()
@@ -64,6 +67,7 @@ func Params(ii ...interface{}) (param *Parameters) {
 	flag.IntVar(&param.RPort, "r", param.RPort, "remote host port (to connect to remote host)")
 	flag.StringVar(&param.Loglevel, "log-level", param.Loglevel, "show log messages level")
 	flag.StringVar(&param.LogFilter, "log-filter", param.LogFilter, "set log messages filter")
+	flag.BoolVar(&param.LogToSyslogF, "log-to-syslog", param.LogToSyslogF, "save log messages to syslog")
 	flag.BoolVar(&param.ForbidHotkeysF, "forbid-hotkeys", param.ForbidHotkeysF, "forbid hotkeys menu")
 	flag.BoolVar(&param.ShowTrudpStatF, "show-trudp", param.ShowTrudpStatF, "show trudp statistic")
 	flag.BoolVar(&param.ShowPeersStatF, "show-peers", param.ShowPeersStatF, "show peers table")
@@ -81,10 +85,10 @@ func Params(ii ...interface{}) (param *Parameters) {
 	// Teonet api flags
 	var showAPI bool
 	var trapi *teoapi.Teoapi
-	if len(ii) > 0 {
-		switch v := ii[0].(type) {
+	if len(apiiII) > 0 {
+		switch v := apiiII[0].(type) {
 		case *teoapi.Teoapi:
-			flag.BoolVar(&showAPI, "api", param.DisallowEncrypt, "show teonet application api")
+			flag.BoolVar(&showAPI, "api", false, "show teonet application api")
 			trapi = v
 		}
 	}
@@ -94,7 +98,7 @@ func Params(ii ...interface{}) (param *Parameters) {
 
 	// Show teonet api if api flag is set
 	if showAPI {
-		fmt.Println(trapi.Sprint())
+		fmt.Println(trapi)
 		os.Exit(0)
 	}
 

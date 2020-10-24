@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"time"
 
 	tl "github.com/JoelOtter/termloop"
@@ -63,7 +64,7 @@ func (menu *GameMenu) Tick(event tl.Event) {
 	if !menu.started && menu.tg.hero.bot {
 		menu.started = true
 		go func() {
-			time.Sleep(1 * time.Second)
+			time.Sleep(time.Duration(rand.Intn(5000)) * time.Millisecond)
 			menu.tg.com.start.Command(menu.tg.teo, nil)
 			menu.started = false
 		}()

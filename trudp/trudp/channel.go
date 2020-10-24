@@ -1,7 +1,6 @@
 package trudp
 
 import (
-	"container/list"
 	"errors"
 	"fmt"
 	"net"
@@ -26,8 +25,8 @@ type ChannelData struct {
 	expectedID uint32 // Expected incoming ID
 
 	// Channels packet queues
-	sendQueue    *list.List   // send queue
-	receiveQueue *list.List   // received queue
+	*sendQueue                // send queue
+	receiveQueue              // received queue
 	writeQueue   []*writeType // write queue
 	maxQueueSize int          // maximum queue size
 
@@ -100,8 +99,8 @@ func (tcd *ChannelData) incID(id *uint32) (currentID uint32) {
 	return
 }
 
-// getId return new packe id
-func (tcd *ChannelData) getID() (currentID uint32) {
+// ID return new packe id
+func (tcd *ChannelData) ID() (currentID uint32) {
 	for {
 		currentID = atomic.LoadUint32(&tcd.id)
 		// newID := currentID
@@ -140,8 +139,23 @@ func (tcd *ChannelData) Write(data []byte) (n int, err error) {
 	return
 }
 
-// WriteToUnsafe send data to remote host by UDP
-func (tcd *ChannelData) WriteToUnsafe(data []byte) (int, error) {
+// WriteNowait send data to remote host in no wait mode and got result in callback
+func (tcd *ChannelData) WriteNowait(data []byte, cb func()) (n int, err error) {
+	if tcd.stoppedF {
+		err = errors.New("can't write to: the channel " + tcd.key + " already closed")
+		return
+	}
+	go func() {
+		chanAnswer := make(chan bool)
+		tcd.trudp.proc.chanWrite <- &writeType{tcd, data, chanAnswer}
+		<-chanAnswer
+		cb()
+	}()
+	return
+}
+
+// WriteUnsafe send data to remote host by UDP
+func (tcd *ChannelData) WriteUnsafe(data []byte) (int, error) {
 	return tcd.trudp.udp.writeTo(data, tcd.addr)
 }
 
@@ -188,8 +202,8 @@ func (trudp *TRUDP) newChannelData(addr *net.UDPAddr, ch int, canCreate,
 		sendTestMsgF: false,
 		maxQueueSize: trudp.defaultQueueSize,
 	}
-	tcd.sendQueue = list.New()
-	tcd.receiveQueue = list.New()
+	tcd.sendQueue = sendQueueInit()
+	tcd.receiveQueue = receiveQueueInit()
 	tcd.writeQueue = make([]*writeType, 0)
 
 	// Add to channels map
@@ -258,7 +272,7 @@ func (tcd *ChannelData) Connected() bool {
 
 // canWrine return true if writeTo is allowed
 func (tcd *ChannelData) canWrite() bool {
-	return tcd.sendQueue.Len() < tcd.maxQueueSize /*&& tcd.receiveQueue.Len() < tcd.maxQueueSize*/
+	return tcd.sendQueue.q.Len() < tcd.maxQueueSize /*&& tcd.receiveQueue.Len() < tcd.maxQueueSize*/
 }
 
 // keepAlive Send ping if time since tcd.lastTripTimeReceived >= sleepTime
@@ -266,7 +280,7 @@ func (tcd *ChannelData) keepAlive() {
 
 	// Send ping after sleep time
 	if time.Since(tcd.stat.lastTripTimeReceived) >= sleepTime {
-		tcd.trudp.packet.pingCreateNew(tcd.ch, []byte(echoMsg)).writeTo(tcd)
+		tcd.trudp.packet.newPing(tcd.ch, []byte(echoMsg)).writeTo(tcd)
 		teolog.Log(teolog.DEBUGv, MODULE, "send ping to channel: ", tcd.key)
 	}
 
@@ -282,6 +296,6 @@ func (tcd *ChannelData) keepAlive() {
 	// \TODO send test data - remove it
 	if tcd.sendTestMsgF {
 		data := []byte(helloMsg + "-" + strconv.Itoa(int(tcd.id)))
-		tcd.trudp.packet.dataCreateNew(tcd.getID(), tcd.ch, data).writeTo(tcd)
+		tcd.trudp.packet.newData(tcd.ID(), tcd.ch, data).writeTo(tcd)
 	}
 }

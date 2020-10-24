@@ -1,0 +1,9 @@
+#- name: Setup eoip tunnel
+#  shell: docker ps -a
+#
+
+- name: New dir
+  command: touch /root/1.txt
+
+- name: Docker ps
+  shell: docker run -d --name ubuntu ubuntu

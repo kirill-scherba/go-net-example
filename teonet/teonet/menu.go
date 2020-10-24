@@ -66,7 +66,7 @@ func (teo *Teonet) createMenu() {
 			} else {
 				teo.param.ShowClientsStatF = false
 				teo.param.ShowTrudpStatF = false
-				teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+				teo.td.SetShowStatistic(teo.param.ShowTrudpStatF)
 				teo.arp.print()
 				mode = "on"
 			}
@@ -76,7 +76,7 @@ func (teo *Teonet) createMenu() {
 		teo.menu.Add('u', "show trudp statistics", func() {
 			var mode string
 			teo.param.ShowTrudpStatF = !teo.param.ShowTrudpStatF
-			teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+			teo.td.SetShowStatistic(teo.param.ShowTrudpStatF)
 			if !teo.param.ShowTrudpStatF {
 				mode = "off" + "\033[r" + "\0338"
 			} else {
@@ -96,7 +96,7 @@ func (teo *Teonet) createMenu() {
 				} else {
 					teo.param.ShowPeersStatF = false
 					teo.param.ShowTrudpStatF = false
-					teo.td.ShowStatistic(teo.param.ShowTrudpStatF)
+					teo.td.SetShowStatistic(teo.param.ShowTrudpStatF)
 					teo.l0.stat.process()
 					mode = "on"
 				}
@@ -119,7 +119,7 @@ func (teo *Teonet) createMenu() {
 				in := bufio.NewReader(os.Stdin)
 				teo.param.LogFilter = readString(in, "\b"+"enter log filter: ")
 				teolog.SetFilter(teo.param.LogFilter)
-				setLoglevel(teolog.Loglevel(logLevel))
+				setLoglevel(teolog.LoglevelInt(logLevel))
 				teo.menu.Stop(false)
 			}()
 		})
@@ -185,7 +185,7 @@ func (teo *Teonet) createMenu() {
 			teo.menu.Stop(true)
 			ch := teo.menu.Getch()
 			fmt.Println()
-			setLoglevel(teolog.Loglevel(logLevel))
+			setLoglevel(teolog.LoglevelInt(logLevel))
 			if ch == 'y' || ch == 'Y' {
 				teo.menu.Stop(false)
 				teo.menu.Quit()

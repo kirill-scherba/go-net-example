@@ -81,11 +81,15 @@ func (wcom *waitCommand) check(rec *receiveData) (processed int) {
 	if !ok {
 		return
 	}
+	// fmt.Printf("check cmd %d: %v\n", rec.rd.Cmd(), rec.rd.Data())
 	for _, w := range wcar {
 		if w.f != nil {
+			// fmt.Printf("check func() ")
 			if !w.f(rec.rd.Data()) {
+				//fmt.Printf("false\n")
 				continue
 			}
+			// fmt.Printf("true\n")
 		}
 		w.ch <- &struct {
 			Data []byte
@@ -116,7 +120,7 @@ type checkDataFunc func([]byte) bool
 // timeout. It may be omitted or contain timeout time of time. Duration type.
 // If timeout parameter is omitted than default timeout value sets to 2 second.
 // Next parameter is checkDataFunc func([]byte) bool. This function calls to
-// check packet data and returns true if packet data valid. This parameter may 
+// check packet data and returns true if packet data valid. This parameter may
 // be ommited too.
 func (teo *Teonet) WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *struct {
 	Data []byte
@@ -125,14 +129,15 @@ func (teo *Teonet) WaitFrom(from string, cmd byte, ii ...interface{}) <-chan *st
 	// Parameters definition
 	var f checkDataFunc
 	timeout := 2 * time.Second
-	for i := range ii { //if len(ii) > 0 {
+	for i := range ii {
 		switch v := ii[i].(type) {
 		case time.Duration:
 			timeout = v
-		case checkDataFunc:
+		case func([]byte) bool:
 			f = v
 		}
 	}
+
 	// Create channel, add wait parameter and wait timeout
 	ch := make(ChanWaitFromData)
 	go func() {

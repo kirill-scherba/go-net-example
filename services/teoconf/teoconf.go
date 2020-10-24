@@ -6,6 +6,7 @@
 package teoconf
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -46,6 +47,7 @@ func New(val Config) (c *Teoconf) {
 	err := c.Read()
 	if err != nil {
 		fmt.Printf("config name: %s (err: %s) \n", c.Name(), err.Error())
+		c.Write()
 	}
 	return
 }
@@ -102,7 +104,12 @@ func (c *Teoconf) Write() (err error) {
 	if err != nil {
 		return
 	}
-	if _, err = f.Write(data); err != nil {
+	var prettyJSON bytes.Buffer
+	err = json.Indent(&prettyJSON, data, "", "\t")
+	if err != nil {
+		return
+	}
+	if _, err = f.Write(prettyJSON.Bytes()); err != nil {
 		return
 	}
 	teolog.Debugf(MODULE, "config was write to file %s, value: %v\n",

@@ -14,7 +14,7 @@ func TestKeyValueBinary(t *testing.T) {
 	t.Run("MarshalUnmarshalBinary", func(t *testing.T) {
 
 		cmd := byte(1)
-		id := uint16(2)
+		id := uint32(2)
 		key := "test.key.123"
 		value := []byte("Hello world!")
 
@@ -49,13 +49,13 @@ func TestKeyValueText(t *testing.T) {
 
 	t.Run("UnmarshalText", func(t *testing.T) {
 
-		id := uint16(77)
+		id := uint32(77)
 		key := "test.key.5678"
 		value := []byte("Hello!")
 
 		type fields struct {
 			Cmd           byte
-			ID            uint16
+			ID            uint32
 			Key           string
 			Value         []byte
 			requestInJSON bool

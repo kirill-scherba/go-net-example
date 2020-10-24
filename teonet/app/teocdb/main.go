@@ -10,7 +10,8 @@
 // Before you execute this application, you need install database schemas.
 // Launch `cqlsh` and execute next commands:
 /*
-  create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+  create keyspace teocdb with replication = { 'class' : 'SimpleStrategy',
+  'replication_factor' : 3 };
   create table teocdb.map(key text, data blob, PRIMARY KEY(key));
 */
 //
@@ -41,8 +42,6 @@ var MODULE = teokeys.Color(teokeys.ANSIMagenta, "(teocdb)")
 
 func main() {
 
-	var log []string
-
 	// Teonet logo
 	teonet.Logo("Teonet-go CQL Database service", Version)
 
@@ -51,7 +50,7 @@ func main() {
 		Name:    "teocdb",
 		Version: Version,
 		Descr:   "Teonet-go CQL Database service",
-	})
+	}, 6)
 
 	// Read Teonet parameters from configuration file and parse application
 	// flars and arguments
@@ -63,22 +62,26 @@ func main() {
 	// Teonet connect
 	teo := teonet.Connect(param, []string{"teo-go", "teo-cdb"}, Version, api)
 
+	// Read cdb parameters
+	c := Config("config")
+
 	// Teonet cdb database
-	tcdb, _ := teocdb.Connect(teo)
+	tcdb, _ := teocdb.Connect(teo, c.KeyAndHosts(c.Keyspace.Cdb)...)
 	defer tcdb.Close()
 
 	// Teonet users database
-	usr, _ := teousers.Connect(teo)
+	usr, _ := teousers.Connect(teo, c.KeyAndHosts(c.Keyspace.Users)...)
 	defer usr.Close()
 
 	// Teonet room controller statistic database
-	room, _ := teoroomStats.Connect(teo)
-	defer usr.Close()
+	room, _ := teoroomStats.Connect(teo, c.KeyAndHosts(c.Keyspace.Room)...)
+	defer room.Close()
 
-	// Teoapi command description
+	// Teoapi command:
+	//
+	// Command # 129: Binary command execute all cammands Set, Get and
+	// GetList in binary format
 	api.Add(&teoapi.Command{
-		// # 129: Binary command execute all cammands Set, Get and GetList in
-		// binary format
 		Cmd:   teocdbcli.CmdBinary,
 		Descr: "Binary set, get or get list",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -88,8 +91,11 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 130: Set (insert or update) text or json {key,value} to database
+	})
+
+	// Command # 130: Set (insert or update) text or json {key,value} to
+	// database
+	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CmdSet,
 		Descr: "Set text or json {key,value} to key-value database",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -99,8 +105,11 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 131: Get key value and send answer with value in text or json format
+	})
+
+	// Commands # 131: Get key value and send answer with value in text or
+	// json format
+	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CmdGet,
 		Descr: "Get key and send answer with value in text or json format",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -110,11 +119,14 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 132: Get list of keys (by not complete key) and send answer with
-		// array of keys in text or json format
-		Cmd:   teocdbcli.CmdList,
-		Descr: "List get not completed key and send answer with array of keys in text or json format",
+	})
+
+	// Command # 132: Get list of keys (by not complete key) and send answer
+	// with array of keys in text or json format
+	api.Add(&teoapi.Command{
+		Cmd: teocdbcli.CmdList,
+		Descr: "List get not completed key and send answer with array of keys " +
+			"in text or json format",
 		Func: func(pac teoapi.Packet) (err error) {
 			err = tcdb.Process.CmdList(pac)
 			if err != nil {
@@ -122,8 +134,10 @@ func main() {
 			}
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 133: Check and register user
+	})
+
+	// Command # 133: Check and register user
+	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CheckUser,
 		Descr: "Check and register user",
 		Func: func(pac teoapi.Packet) (err error) {
@@ -144,25 +158,31 @@ func main() {
 				res.ID, res.AccessToken, res.Prefix)
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 134: Room created
-		Cmd:   teoroomStatsCli.CmdRoomCreated,
+	})
+
+	// Command # 134: Room created
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomStatsCli.CmdSetRoomCreated,
 		Descr: "Room created",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomCreated(pac)
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 135: Room state changed
-		Cmd:   teoroomStatsCli.CmdRoomState,
+	})
+
+	// Command # 135: Room state changed
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomStatsCli.CmdSetRoomState,
 		Descr: "Room state changed",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComRoomStateChanged(pac)
 			return
 		},
-	}).Add(&teoapi.Command{
-		// # 136: Client status changed
-		Cmd:   teoroomStatsCli.CmdClientState,
+	})
+
+	// Command # 136: Client status changed
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomStatsCli.CmdSetClientState,
 		Descr: "Client state changed",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComClientStatus(pac)
@@ -170,41 +190,27 @@ func main() {
 		},
 	})
 
-	// Commands processing workers pool
-	const numWorkers = 6
-	workerRun := make([]float64, numWorkers)
-	commandChan := make(chan teoapi.Packet, numWorkers*4)
-	for i := 0; i < numWorkers; i++ {
-		go func(workerID int) {
-			workerRun[workerID] = 1
-			for {
-				pac, ok := <-commandChan
-				if !ok {
-					return
-				}
-				workerRun[workerID]++
-				logStr := fmt.Sprintf("worker #%d got cmd %d: '%s', from: %s",
-					workerID, pac.Cmd(), api.Descr(pac.Cmd()), pac.From())
-				teolog.Debug(MODULE, logStr)
-				log = append([]string{logStr}, log...)
-				if len(log) > 40 {
-					log = log[:30]
-				}
-				api.Process(pac)
-			}
-		}(i)
-	}
-
-	// Add teonet hotkey menu item to call termui interface
-	teo.Menu().Add('m', "mui dashboard", func() {
-		teo.SetLoglevel(teolog.NONE)
-		fmt.Print("\b \b")
-		go termui(api, workerRun, &log)
+	// Command # 137: Get rooms by created time {from_time, to_time, limit}
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomStatsCli.CmdRoomsByCreated,
+		Descr: "Get rooms by created time",
+		Func: func(pac teoapi.Packet) (err error) {
+			room.ComGetRoomsByCreated(pac)
+			return
+		},
 	})
 
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
-		//fmt.Println("Teonet even loop started")
+
+		// Add teonet hotkey menu item to call termui interface
+		teo.Menu().Add('m', "mui dashboard", func() {
+			teo.SetLoglevel(teolog.NONE)
+			fmt.Print("\b \b")
+			go termui(api)
+		})
+
+		// Teonet event loop
 		for ev := range teo.Event() {
 
 			// Event processing
@@ -213,9 +219,9 @@ func main() {
 			// When teonet started
 			case teonet.EventStarted:
 				fmt.Printf("Event Started\n")
-			// case teonet.EventStoppedBefore:
-			// case teonet.EventStopped:
-			// 	fmt.Printf("Event Stopped\n")
+
+			case teonet.EventStopped:
+				fmt.Printf("Event Stopped\n")
 
 			// When teonet peer connected
 			case teonet.EventConnected:
@@ -226,11 +232,6 @@ func main() {
 			case teonet.EventDisconnected:
 				pac := ev.Data
 				fmt.Printf("Event Disconnected from: %s\n", pac.From())
-
-			// When received command from teonet peer or client
-			case teonet.EventReceived:
-				pac := ev.Data
-				commandChan <- pac
 			}
 		}
 	})

@@ -41,6 +41,7 @@ type l0Conn struct {
 	mn      map[string]*client // Clients name map
 	mux     sync.Mutex         // Maps mutex
 	closed  bool               // Closet flag
+	reqID   uint32             // Request ID
 }
 
 // packet is Packet processing channels data structure

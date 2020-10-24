@@ -1,63 +1,69 @@
 package trudp
 
 import (
-	"container/list"
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/kirill-scherba/teonet-go/teolog/teolog"
 )
+
+// receiveQueue is the receive queue type definition
+type receiveQueue map[uint32]*receiveQueueData
 
 // receiveQueueData receive queue data structure
 type receiveQueueData struct {
 	packet *packetType
 }
 
-// receiveQueueAdd add packet to receive queue
-func (tcd *ChannelData) receiveQueueAdd(packet *packetType) {
-	tcd.receiveQueue.PushBack(&receiveQueueData{packet: packet})
-	teolog.Log(teolog.DEBUGvv, MODULE, "add to receive queue, id", packet.getID())
-}
-
-// receiveQueueFind find packet with selected id in receiveQueue
-func (tcd *ChannelData) receiveQueueFind(id uint32) (e *list.Element, rqd *receiveQueueData, err error) {
-	for e = tcd.receiveQueue.Front(); e != nil; e = e.Next() {
-		rqd = e.Value.(*receiveQueueData)
-		if rqd.packet.getID() == id {
-			return
-		}
-	}
-	err = errors.New(fmt.Sprint("not found, packet id: ", id))
-	return
-}
-
-// receiveQueueRemove remove previousely found element from receive queue by index
-func (tcd *ChannelData) receiveQueueRemove(e *list.Element) {
-	tcd.receiveQueue.Remove(e)
-	teolog.Log(teolog.DEBUGvv, MODULE, "remove from receive queue, e", e.Value.(*receiveQueueData).packet.getID())
+// receiveQueueInit create new receive
+func receiveQueueInit() receiveQueue {
+	return make(map[uint32]*receiveQueueData)
 }
 
 // receiveQueueReset resets (clear) send queue
 func (tcd *ChannelData) receiveQueueReset() {
-	tcd.receiveQueue.Init()
+	tcd.receiveQueue = receiveQueueInit()
 }
 
 // receiveQueueProcess find packets in received queue sendEvent and remove packet
-func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) {
+func (tcd *ChannelData) receiveQueueProcess(sendEvent func(data []byte)) (err error) {
 	for {
-		e, rqd, err := tcd.receiveQueueFind(tcd.expectedID)
-		if err != nil {
+		id := tcd.expectedID
+		rqd, ok := tcd.receiveQueue.Find(id)
+		if !ok {
 			break
 		}
-		// \TODO: this a critical place where we have packet in received queue but
-		// has not place in event queue and can't read new packet bekause afraid deadlock
+		// \TODO: this a critical place where we have packet in received queue
+		// but has not place in event queue and can't read new packet because
+		// afraid deadlock
 		if !tcd.trudp.sendEventAvailable() {
 			teolog.Error(MODULE, "ebzdik-2:"+strconv.Itoa(len(tcd.trudp.chanEvent)))
+			err = errors.New("can't process all receive queue")
+			break
 		}
 		tcd.incID(&tcd.expectedID)
-		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:", rqd.packet.getID())
-		sendEvent(rqd.packet.getData())
-		tcd.receiveQueueRemove(e)
+		teolog.Log(teolog.DEBUGvv, MODULE, "find packet in receivedQueue, id:", id)
+		sendEvent(rqd.packet.Data())
+		tcd.receiveQueue.Remove(id)
 	}
+	return
+}
+
+// receiveQueueAdd add packet to receive queue
+func (r receiveQueue) Add(packet *packetType) {
+	id := packet.ID()
+	r[id] = &receiveQueueData{packet: packet}
+	teolog.Log(teolog.DEBUGvv, MODULE, "add to receive queue, id:", id)
+}
+
+// receiveQueueFind find packet with selected id in receiveQueue
+func (r receiveQueue) Find(id uint32) (rqd *receiveQueueData, ok bool) {
+	rqd, ok = r[id]
+	return
+}
+
+// receiveQueueRemove remove element from receive queue by id
+func (r receiveQueue) Remove(id uint32) {
+	delete(r, id)
+	teolog.Logf(teolog.DEBUGvv, MODULE, "remove id %d from receive queue", id)
 }

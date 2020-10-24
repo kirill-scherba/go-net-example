@@ -22,15 +22,15 @@ const (
 func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	processed = false
 
-	ch := pac.getChannel()
-	tcd, key, ok := pac.trudp.newChannelData(addr, ch, pac.getType() == DATA, true)
+	ch := pac.Channel()
+	tcd, key, ok := pac.trudp.newChannelData(addr, ch, pac.Type() == DATA, true)
 	if !ok {
 		return
 	}
 
 	tcd.stat.setLastTimeReceived()
 
-	packetType := pac.getType()
+	packetType := pac.Type()
 	switch packetType {
 
 	// DATA packet received
@@ -44,11 +44,11 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		// Show Log
 		teolog.DebugVf(MODULE, "got DATA packet id: %d, channel: %s, "+
 			"expected id: %d, data_len: %d",
-			pac.getID(), key, tcd.expectedID, len(pac.data),
+			pac.ID(), key, tcd.expectedID, len(pac.data),
 		)
 
 		// Create ACK packet and send it back to sender
-		pac.ackCreateNew().writeTo(tcd)
+		pac.newAck().writeTo(tcd)
 		tcd.stat.received(len(pac.data))
 
 		// Process received queue
@@ -57,25 +57,27 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 	// ACK-to-data packet received
 	case ACK:
 
+		id := pac.ID()
+
 		// Show Log
 		teolog.DebugVf(MODULE, "got ACK packet id: %d, channel: %s, "+
 			"triptime: %.3f ms\n",
-			pac.getID(), key, tcd.stat.triptime,
+			id, key, tcd.stat.triptime,
 		)
 
 		// Set trip time to ChannelData
-		tcd.stat.setTriptime(pac.getTriptime())
+		tcd.stat.setTriptime(pac.Triptime())
 		tcd.stat.ackReceived()
 
 		// Remove packet from send queue
-		tcd.sendQueueRemove(pac)
-		tcd.trudp.proc.writeQueueWriteTo(tcd)
+		tcd.sendQueue.Remove(id)
+		tcd.trudp.proc.writeFromQueue(tcd)
 
 	// RESET packet received
 	case RESET:
 
 		teolog.DebugV(MODULE, "got RESET packet, channel:", key)
-		pac.ackToResetCreateNew().writeTo(tcd)
+		pac.newAckToReset().writeTo(tcd)
 		tcd.reset()
 
 	// ACK-to-reset packet received
@@ -89,10 +91,10 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 
 		// Show Log
 		teolog.DebugVf(MODULE, "got PING packet id: %d, channel: %s, data: %s\n",
-			pac.getID(), key, string(pac.getData()),
+			pac.ID(), key, string(pac.Data()),
 		)
 		// Create ACK to ping packet and send it back to sender
-		pac.ackToPingCreateNew().writeTo(tcd)
+		pac.newAckToPing().writeTo(tcd)
 
 	// ACK-to-PING packet received
 	case ACKPing:
@@ -100,11 +102,11 @@ func (pac *packetType) process(addr *net.UDPAddr) (processed bool) {
 		// Show Log
 		teolog.DebugVf(MODULE, "got ACK_PING packet id: %d, channel: %s, "+
 			"triptime: %.3f ms\n",
-			pac.getID(), key, tcd.stat.triptime,
+			pac.ID(), key, tcd.stat.triptime,
 		)
 
 		// Set trip time to ChannelData
-		triptime := pac.getTriptime()
+		triptime := pac.Triptime()
 		tcd.stat.setTriptime(triptime)
 
 		// Send event to user level
@@ -144,7 +146,7 @@ func (pac *packetType) packetDistance(expectedID uint32, id uint32) int {
 // packetDataProcess process received data packet, check receivedQueue and
 // send received data and events to user level
 func (pac *packetType) packetDataProcess(tcd *ChannelData) {
-	id := pac.getID()
+	id := pac.ID()
 	packetDistance := pac.packetDistance(tcd.expectedID, id)
 	switch {
 
@@ -155,7 +157,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 			fmt.Sprintf("received valid packet id: %d, channel: %s",
 				int(id), tcd.GetKey())))
 		// Send received packet data to user level
-		tcd.trudp.sendEvent(tcd, EvGotData, pac.getData())
+		tcd.trudp.sendEvent(tcd, EvGotData, pac.Data())
 		// Check valid packets in received queue and send it data to user level
 		tcd.receiveQueueProcess(func(data []byte) {
 			tcd.trudp.sendEvent(tcd, EvGotData, data)
@@ -174,7 +176,7 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 		teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightRed,
 			fmt.Sprintf("received invalid packet id: %d (expected id: %d), channel: %s, "+
 				"send reset to remote host", id, tcd.expectedID, tcd.GetKey())))
-		pac.resetCreateNew().writeTo(tcd) // Send reset
+		pac.newReset().writeTo(tcd) // Send reset
 		// Send event "RESET was sent" to user level
 		tcd.trudp.sendEvent(tcd, EvSendReset, nil)
 
@@ -189,12 +191,17 @@ func (pac *packetType) packetDataProcess(tcd *ChannelData) {
 	// Packet with id more than expectedID placed to receive queue and wait
 	// previouse packets
 	case packetDistance > 0: // id > tcd.expectedID:
-		_, _, err := tcd.receiveQueueFind(id)
-		if err != nil {
+		_, ok := tcd.receiveQueue.Find(id)
+		if !ok {
 			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSIYellow,
 				fmt.Sprintf("put packet id: %d, channel: %s to received queue, "+
 					"wait previouse packets", id, tcd.GetKey())))
-			tcd.receiveQueueAdd(pac)
+			tcd.receiveQueue.Add(pac)
+			// <<<< Added to fix overload receve queueu
+			tcd.receiveQueueProcess(func(data []byte) {
+				tcd.trudp.sendEvent(tcd, EvGotData, data)
+			})
+			// <<<<
 		} else {
 			teolog.DebugV(MODULE, teokeys.Color(teokeys.ANSILightBlue,
 				fmt.Sprintf("skip received packet id: %d, channel: %s, "+

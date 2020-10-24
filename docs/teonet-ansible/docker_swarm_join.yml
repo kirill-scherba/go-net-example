@@ -1,0 +1,23 @@
+# Playbook: Add node to swarm
+#
+# See examples: https://docs.ansible.com/ansible/latest/modules/docker_swarm_module.html#examples
+#
+#
+- hosts: all
+  become: true
+  vars:
+    # create_containers: 4
+    # default_container_name: docker
+    # default_container_image: ubuntu
+    # default_container_command: sleep 1d
+
+  tasks:
+
+    - name: remove configuration
+      command: ip r d 172.16.0.0/12
+
+    - name: join swarm
+      command: docker swarm join --token SWMTKN-1-47377g5xqg70mtx0cfqgz4baorn93o9ep7p6q86aj2ryc8hrbz-ebaa91l3ojkqerzrpn7dk9ka2 10.10.17.4:2377
+
+    - name: configure static route
+      command: ip r a 172.16.0.0/12 via 10.10.17.5

@@ -12,11 +12,21 @@ import (
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 )
 
-func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
+func termui(api *teoapi.Teoapi) {
+
+	// Init termui
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
+		return
 	}
-	defer ui.Close()
+
+	// Redirect standart output to null
+	api.Stdout.Redirect()
+	defer func() {
+		// Restory standart output
+		api.Stdout.Restore()
+		ui.Close()
+	}()
 
 	// Text box
 	p := widgets.NewParagraph()
@@ -41,7 +51,7 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 	table1.Rows = [][]string{[]string{" Cmd ", "  Count ", " Description"}}
 	table1.RowSeparator = false
 	//table1.FillRow = true
-	table1.RowStyles[0] = ui.NewStyle(ui.ColorBlack, ui.ColorGreen) //, ui.ModifierBold)
+	table1.RowStyles[0] = ui.NewStyle(ui.ColorBlack, ui.ColorGreen)
 	cmds := api.Cmds()
 	cmdsNumber := len(cmds)
 	sprintCount := func(count uint64) string {
@@ -49,15 +59,16 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 	}
 	for i := 0; i < cmdsNumber; i++ {
 		table1.Rows = append(table1.Rows, []string{
-			" " + strconv.Itoa(int(cmds[i])), sprintCount(0), " " + api.Descr(cmds[i]),
+			" " + strconv.Itoa(int(cmds[i])), sprintCount(0), " " +
+				api.Descr(cmds[i]),
 		})
 	}
 	table1.Rows = append(table1.Rows, []string{"", sprintCount(0), " "})
 	table1.TextStyle = ui.NewStyle(ui.ColorWhite)
 	table1.BorderStyle.Fg = ui.ColorCyan
-	table1.SetRect(0, 8, 103, 19)
+	table1.SetRect(0, 8, 103, 20)
 	table1Total := widgets.NewParagraph()
-	table1Total.SetRect(0, 18, 103, 21)
+	table1Total.SetRect(0, 19, 103, 22)
 	table1Total.BorderStyle.Fg = ui.ColorCyan
 	// Update table to draw
 	updateTable := func(count int) {
@@ -68,7 +79,8 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 			tCount += count
 		}
 		table1.Rows[cmdsNumber+1][1] = sprintCount(tCount)
-		table1Total.Text = "Total commands count: " + strings.TrimSpace(table1.Rows[cmdsNumber+1][1])
+		table1Total.Text = "Total commands count: " +
+			strings.TrimSpace(table1.Rows[cmdsNumber+1][1])
 	}
 
 	// Bar chart with workers
@@ -81,21 +93,23 @@ func termui(api *teoapi.Teoapi, workerRun []float64, logData *[]string) {
 	bc.NumStyles[0] = ui.NewStyle(ui.ColorWhite | ui.ColorBlack)
 
 	// Log with commands log
+	apiCount, apiLog := api.W.Statistic()
 	l := widgets.NewList()
 	l.Title = "Log"
-	l.Rows = *logData
-	l.SetRect(0, 21, 103, 36)
+	l.Rows = *apiLog
+	l.SetRect(0, 22, 103, 36)
 	l.TextStyle.Fg = ui.ColorYellow
 
+	// Draw function to update all controls
 	draw := func(tickerCount int) {
 		updateParagraph(tickerCount)
 		updateTable(tickerCount)
-		l.Rows = *logData
-		bc.Data = workerRun
+		l.Rows = *apiLog
+		bc.Data = apiCount
 		ui.Render(p, table1, table1Total, bc, l)
-		for i := 0; i < len(workerRun); i++ {
-			if workerRun[i] >= 15 {
-				workerRun[i] = 3
+		for i := 0; i < len(apiCount); i++ {
+			if apiCount[i] >= 15 {
+				apiCount[i] = 3
 			}
 		}
 	}

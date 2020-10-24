@@ -18,6 +18,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	"github.com/kirill-scherba/teonet-go/services/teoroom"
 	"github.com/kirill-scherba/teonet-go/services/teoroomcli"
 	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
@@ -36,47 +37,80 @@ func main() {
 	// Teonet logo
 	teonet.Logo("Teonet-go room conroller application", Version)
 
+	// Applications teonet registy api description
+	api := teoapi.New(&teoapi.Application{
+		Name:    "teoroom",
+		Version: Version,
+		Descr:   "Teonet-go room controller service",
+	}, 6)
+
 	// Read Teonet parameters from configuration file and parse application
 	// flars and arguments
-	param := teonet.Params()
+	param := teonet.Params(api)
 
 	// Show host and network name
 	fmt.Printf("\nhost: %s\nnetwork: %s\n", param.Name, param.Network)
 
 	// Teonet connect, init room controller package and run teonet
-	teo := teonet.Connect(param, []string{"teo-go", "teo-room"}, Version)
+	teo := teonet.Connect(param, []string{"teo-go", "teo-room"}, Version, api)
 	tr, err := teoroom.New(teo)
 	if err != nil {
 		panic(err)
 	}
 	defer tr.Destroy()
 
-	// Commands processing
-	commands := func(pac *teonet.Packet) {
-		switch pac.Cmd() {
-
-		// Command #129: [in,out] Room request
-		case teoroomcli.ComRoomRequest:
-			if err := tr.Process.ComRoomRequest(pac); err != nil {
+	// Teoapi command description
+	//
+	// Command #129: [in,out] Room request
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomcli.ComRoomRequest,
+		Descr: "Room request",
+		Func: func(pac teoapi.Packet) (err error) {
+			tpac := pac.(*teonet.Packet)
+			if err = tr.Process.ComRoomRequest(tpac); err != nil {
 				teolog.Debugf(MODULE, "%s\n", err.Error())
 			}
+			return
+		},
+	})
 
-		// Command #130: [in,out] Data transfer
-		case teoroomcli.ComRoomData:
-			if err := tr.Process.ComRoomData(pac); err != nil {
+	// Command #130: [in,out] Data transfer
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomcli.ComRoomData,
+		Descr: "Data transfer",
+		Func: func(pac teoapi.Packet) (err error) {
+			tpac := pac.(*teonet.Packet)
+			if err = tr.Process.ComRoomData(tpac); err != nil {
 				teolog.Debugf(MODULE, "%s\n", err.Error())
 			}
+			return
+		},
+	})
 
-		// Command #131 [in] Disconnect (exit) from room
-		case teoroomcli.ComDisconnect:
-			if err := tr.Process.ComDisconnect(pac); err != nil {
-				teolog.Debugf(MODULE, "Error Disconnect %s: %s\n", pac.From(), err.Error())
+	// Command #131: [in] Disconnect (exit) from room
+	api.Add(&teoapi.Command{
+		Cmd:   teoroomcli.ComDisconnect,
+		Descr: "Disconnect (exit) from room",
+		Func: func(pac teoapi.Packet) (err error) {
+			if err = tr.Process.ComDisconnect(pac); err != nil {
+				teolog.Debugf(MODULE, "Error Disconnect %s: %s\n", pac.From(),
+					err.Error())
 			}
-		}
-	}
+			return
+		},
+	})
 
 	// Teonet run
 	teo.Run(func(teo *teonet.Teonet) {
+
+		// Add teonet hotkey menu item to call termui interface
+		teo.Menu().Add('m', "mui dashboard", func() {
+			teo.SetLoglevel(teolog.NONE)
+			fmt.Print("\b \b")
+			go termui(teo, api)
+		})
+
+		// Teonet event loop
 		for ev := range teo.Event() {
 
 			// Event processing
@@ -85,9 +119,6 @@ func main() {
 			// When teonet started
 			case teonet.EventStarted:
 				fmt.Printf("Event Started\n")
-			// case teonet.EventStoppedBefore:
-			// case teonet.EventStopped:
-			// 	fmt.Printf("Event Stopped\n")
 
 			// When teonet peer connected
 			case teonet.EventConnected:
@@ -98,13 +129,6 @@ func main() {
 			case teonet.EventDisconnected:
 				pac := ev.Data
 				fmt.Printf("Event Disconnected from: %s\n", pac.From())
-
-			// When received command from teonet peer or client
-			case teonet.EventReceived:
-				pac := ev.Data
-				// fmt.Printf("Event Received from: %s, cmd: %d, data: %v\n",
-				// 	pac.From(), pac.Cmd(), pac.Data())
-				commands(pac)
 			}
 		}
 	})

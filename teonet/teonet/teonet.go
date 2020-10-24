@@ -76,11 +76,13 @@ func Logo(title, ver string) {
 // '*teoapi.Teoapi'. If this api parammeter is set than api menu item adding
 // to the hotkey menu. The api definition shoud be done before the
 // 'teonet.Params(api)' calls.
-func Connect(param *Parameters, appType []string, appVersion string, ii ...interface{}) (teo *Teonet) {
+func Connect(param *Parameters, appType []string, appVersion string,
+	apiII ...interface{}) (teo *Teonet) {
 
 	// Create Teonet connection structure and Init logger
 	teo = &Teonet{param: param, running: true}
-	teolog.Init(param.Loglevel, true, log.Lmicroseconds|log.Lshortfile, param.LogFilter)
+	teolog.Init(param.Loglevel, log.Lmicroseconds|log.Lshortfile,
+		param.LogFilter, param.LogToSyslogF, param.Name)
 
 	// Timer ticker and kernel channel init
 	teo.ticker = time.NewTicker(250 * time.Millisecond)
@@ -95,7 +97,7 @@ func Connect(param *Parameters, appType []string, appVersion string, ii ...inter
 	// Trudp init
 	teo.td = trudp.Init(&param.Port)
 	teo.td.AllowEvents(1) // \TODO: set events connected by '||'' to allow it
-	teo.td.ShowStatistic(param.ShowTrudpStatF)
+	teo.td.SetShowStatistic(param.ShowTrudpStatF)
 
 	// Arp module init
 	teo.arp = &arp{teo: teo, m: make(map[string]*arpData)}
@@ -123,12 +125,28 @@ func Connect(param *Parameters, appType []string, appVersion string, ii ...inter
 	teo.setAppVersion(appVersion)
 
 	// Teonet api registry
-	if len(ii) > 0 {
-		if v, ok := ii[0].(*teoapi.Teoapi); ok {
+	if len(apiII) > 0 {
+		if v, ok := apiII[0].(*teoapi.Teoapi); ok {
 			teo.api = v
+			// Hotkey menu add
 			teo.Menu().Add('a', "show teonet application api", func() {
-				fmt.Printf("\b%s\n", v.Sprint())
+				fmt.Printf("\b%s\n", teo.api)
 			})
+			//Connect api workers to teonet event channel
+			apiEventLoop := func() {
+				for ev := range teo.ev.subscribe() {
+					if !ok {
+						break
+					}
+					if ev.Event == EventReceived {
+						teo.api.W.CommandChan() <- ev.Data
+					}
+				}
+				fmt.Printf("teonet event channel for api closed\n")
+			}
+			if teo.api.NumW > 0 {
+				go apiEventLoop()
+			}
 		}
 	}
 
@@ -191,13 +209,14 @@ func (teo *Teonet) Run(proccess func(*Teonet)) {
 
 		// Reconnect
 		if teo.reconnect {
+			api := teo.api
 			param := teo.param
 			appType := teo.Type()
 			appVersion := teo.AppVersion()
 			fmt.Println("reconnect...")
 			teo = nil
 			time.Sleep(1 * time.Second)
-			teo = Connect(param, appType, appVersion)
+			teo = Connect(param, appType, appVersion, api)
 			teo.reconnect = false
 			teo.running = true
 		}
@@ -217,6 +236,7 @@ func (teo *Teonet) Close() {
 	teo.arp.deleteAll()
 	teo.rhost.destroy()
 	teo.td.Close()
+	teo.api.Destroy()
 
 	close(teo.chanKernel)
 	teo.ticker.Stop()
@@ -253,10 +273,12 @@ FOR:
 			switch ev.Event {
 
 			case trudp.EvConnected:
-				teolog.Connect(MODULE, "got CONNECTED event, channel key: "+string(packet))
+				teolog.Connect(MODULE, "got CONNECTED event, channel key: "+
+					string(packet))
 
 			case trudp.EvDisconnected:
-				teolog.Connect(MODULE, "got DISCONNECTED event, channel key: "+string(packet))
+				teolog.Connect(MODULE, "got DISCONNECTED event, channel key: "+
+					string(packet))
 				// Reconnect to r-host
 				teo.rhost.reconnect(ev.Tcd)
 				// Delete peer from arp table
@@ -267,7 +289,8 @@ FOR:
 				}
 
 			case trudp.EvResetLocal:
-				err = errors.New("got RESET_LOCAL event, channel key: " + ev.Tcd.GetKey())
+				err = errors.New("got RESET_LOCAL event, channel key: " +
+					ev.Tcd.GetKey())
 				teolog.Connect(MODULE, err.Error())
 				//ev.Tcd.CloseChannel()
 				//break FOR
@@ -277,9 +300,9 @@ FOR:
 					len(packet), ev.Tcd.GetKey())
 				packet, err = teo.cry.decrypt(packet, ev.Tcd.GetKey())
 				if err != nil && teo.l0.allow {
-					// if packet does not decrypted than it may be l0 client trudp packet.
-					// Check l0 packet and process it if this packet is valid teocli(l0)
-					// packet
+					// if packet does not decrypted than it may be l0 client
+					// trudp packet. Check l0 packet and process it if this
+					// packet is valid teocli(l0) packet
 					if _, status := teo.l0.check(ev.Tcd, packet); status != 1 {
 						continue FOR
 					}
@@ -334,7 +357,8 @@ FOR:
 }
 
 // sendToHimself send command to this host
-func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (length int,
+	err error) {
 	teolog.DebugVf(MODULE,
 		"send command to this host: '%s', cmd: %d, data_len: %d\n",
 		to, cmd, len(data),
@@ -350,7 +374,8 @@ func (teo *Teonet) sendToHimself(to string, cmd byte, data []byte) (length int, 
 }
 
 // SendTo send command to Teonet peer
-func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (length int,
+	err error) {
 	arp, ok := teo.arp.m[to]
 	if !ok && to != "" {
 		err = errors.New("peer " + to + " not connected to this host")
@@ -363,17 +388,20 @@ func (teo *Teonet) SendTo(to string, cmd byte, data []byte) (length int, err err
 }
 
 // SendToClient send command to Teonet L0 client
-func (teo *Teonet) SendToClient(l0Peer string, client string, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) SendToClient(l0Peer string, client string, cmd byte,
+	data []byte) (length int, err error) {
 	return teo.l0.sendToL0(l0Peer, client, cmd, data)
 }
 
 // SendToClientAddr send command to Teonet L0 client by address
-func (teo *Teonet) SendToClientAddr(l0 *L0PacketData, client string, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) SendToClientAddr(l0 *L0PacketData, client string, cmd byte,
+	data []byte) (length int, err error) {
 	return teo.sendToClient(l0.addr, l0.port, client, cmd, data)
 }
 
 // sendToClient send command to Teonet L0 client by address
-func (teo *Teonet) sendToClient(addr string, port int, client string, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) sendToClient(addr string, port int, client string, cmd byte,
+	data []byte) (length int, err error) {
 	arp, ok := teo.arp.find(addr, port, 0)
 	if !ok {
 		err = fmt.Errorf("can't find l0 server %s:%d in arp table", addr, port)
@@ -383,7 +411,8 @@ func (teo *Teonet) sendToClient(addr string, port int, client string, cmd byte, 
 }
 
 // SendAnswer send (answer) command to Teonet peer by received Packet
-func (teo *Teonet) SendAnswer(ipac interface{}, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) SendAnswer(ipac interface{}, cmd byte, data []byte) (length int,
+	err error) {
 	pac := ipac.(*Packet)
 	if addr, port, ok := pac.L0(); ok {
 		if teo.isL0Local(addr, port) {
@@ -402,7 +431,8 @@ func (teo *Teonet) isL0Local(addr string, port int) bool {
 }
 
 // sendAnswer send command to Teonet peer by receiveData
-func (teo *Teonet) sendAnswer(rec *receiveData, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) sendAnswer(rec *receiveData, cmd byte, data []byte) (length int,
+	err error) {
 	// Answer to peer
 	if !rec.rd.IsL0() {
 		return teo.sendToTcd(rec.tcd, cmd, data)
@@ -418,13 +448,15 @@ func (teo *Teonet) sendAnswer(rec *receiveData, cmd byte, data []byte) (length i
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel
-func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd byte, data []byte) (length int, err error) {
+func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd byte, data []byte) (length int,
+	err error) {
 
 	// makePac creates new teonet packet and show 'send' log message
 	makePac := func(tcd *trudp.ChannelData, cmd byte, data []byte) []byte {
 		pac := teo.PacketCreateNew(teo.param.Name, cmd, data)
 		to, _ := teo.arp.peer(tcd)
-		teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to, len(data))
+		teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d\n", cmd, to,
+			len(data))
 		return teo.cry.encrypt(pac.packet)
 	}
 
@@ -445,7 +477,8 @@ func (teo *Teonet) sendToTcd(tcd *trudp.ChannelData, cmd byte, data []byte) (len
 }
 
 // sendToTcd send command to Teonet peer by known trudp channel
-func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd byte, data []byte) (int, error) {
+func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd byte,
+	data []byte) (int, error) {
 	pac := teo.PacketCreateNew(teo.param.Name, cmd, data)
 	to, _ := teo.arp.peer(tcd)
 	teolog.DebugVf(MODULE, "send cmd: %d, to: %s, data_len: %d (send direct udp)\n",
@@ -454,7 +487,7 @@ func (teo *Teonet) sendToTcdUnsafe(tcd *trudp.ChannelData, cmd byte, data []byte
 	// much unfsafe packets and than combine it. So sugest return err "too large
 	// data packet" if the length more than 1024 - 1280 (more than mtu, more than
 	// udp packet)... or lets him try send any size packets :-)
-	return tcd.WriteToUnsafe(teo.cry.encrypt(pac.packet))
+	return tcd.WriteUnsafe(teo.cry.encrypt(pac.packet))
 }
 
 // Type return this teonet application type (array of types)

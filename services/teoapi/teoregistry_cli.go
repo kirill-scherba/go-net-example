@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Package teoapi is the Teonet registry service client package
+// Package teoapi is the Teonet registry service client package.
 package teoapi
 
 import (
@@ -10,7 +10,11 @@ import (
 	"sync/atomic"
 
 	"github.com/gocql/gocql"
+	"github.com/kirill-scherba/teonet-go/teokeys/teokeys"
 )
+
+// MODULE is this package module name
+var MODULE = teokeys.Color(teokeys.ANSIYellow, "(teoapi)")
 
 // Application is the Table 'applications': Teonet applications (services)
 // description.
@@ -47,11 +51,14 @@ type Command struct {
 
 // Teoapi is api receiver.
 type Teoapi struct {
-	app *Application
-	com []*Command
+	app    *Application
+	com    []*Command
+	W      *Workers
+	NumW   int
+	Stdout *Stdout
 }
 
-// Packet implement teonet packet interface.
+// Packet implements teonet packet interface.
 type Packet interface {
 	Cmd() byte
 	From() string
@@ -59,9 +66,25 @@ type Packet interface {
 	RemoveTrailingZero(data []byte) []byte
 }
 
-// New create new Teoregistrycli.
-func New(app *Application) (api *Teoapi) {
-	return &Teoapi{app: app}
+// New create new Teoregistrycli. App is application name. NumWorkers is number
+// of workers to process incoming teonet commands, if this parameter = 0 than
+// workes pool does not created and commands not processed by Teoapi.
+func New(app *Application, numWorkers ...interface{}) (api *Teoapi) {
+	api = &Teoapi{app: app, Stdout: NewStdout()}
+	if len(numWorkers) > 0 {
+		switch n := numWorkers[0].(type) {
+		case int:
+			if n > 0 {
+				api.W = api.newWorkers(n)
+			}
+		}
+	}
+	return
+}
+
+// Destroy Teoregistrycli
+func (api *Teoapi) Destroy() {
+
 }
 
 // Add command description.
@@ -70,8 +93,8 @@ func (api *Teoapi) Add(com *Command) *Teoapi {
 	return api
 }
 
-// Sprint print all added command to output string.
-func (api *Teoapi) Sprint() (str string) {
+// String stringlify added commands to output string.
+func (api *Teoapi) String() (str string) {
 	str = fmt.Sprintf("\b \nThe %s api commands:\n", api.app.Name)
 	for i, c := range api.com {
 		str += fmt.Sprintf("%2d. Command %d: %s\n", i+1, c.Cmd, c.Descr)
@@ -79,7 +102,7 @@ func (api *Teoapi) Sprint() (str string) {
 	return
 }
 
-// Cmds return slice of added commands
+// Cmds return slice of added commands.
 func (api *Teoapi) Cmds() (cmds []byte) {
 	if l := len(api.com); l > 0 {
 		cmds = make([]byte, l)
@@ -90,7 +113,7 @@ func (api *Teoapi) Cmds() (cmds []byte) {
 	return
 }
 
-// find command in command array by cmd number
+// find command in command array by cmd number.
 func (api *Teoapi) find(cmd byte) (c *Command, ok bool) {
 	for _, c = range api.com {
 		if cmd == c.Cmd {
@@ -101,7 +124,7 @@ func (api *Teoapi) find(cmd byte) (c *Command, ok bool) {
 	return
 }
 
-// Count return count command processing
+// Count return count command processing.
 func (api *Teoapi) Count(cmd byte) (count uint64) {
 	if com, ok := api.find(cmd); ok {
 		count = com.Count
@@ -121,9 +144,10 @@ func (api *Teoapi) Descr(cmd byte) (descr string) {
 }
 
 // Process packet commands.
-func (api *Teoapi) Process(pac Packet) (err error) {
+func (api *Teoapi) Process(pac Packet, done func()) (err error) {
 	for _, com := range api.com {
 		if com.Cmd == pac.Cmd() {
+			done()
 			if com.Message != nil {
 				err = com.Message(pac)
 			}

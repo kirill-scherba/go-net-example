@@ -18,8 +18,7 @@ func TestTeoapi(t *testing.T) {
 		trapi.Add(&Command{Cmd: 130, Descr: "This is command No 130"})
 	})
 
-	t.Run("Sprint", func(t *testing.T) {
-		str := trapi.Sprint()
-		fmt.Printf("%s\n", str)
+	t.Run("String", func(t *testing.T) {
+		fmt.Printf("%s\n", trapi)
 	})
 }

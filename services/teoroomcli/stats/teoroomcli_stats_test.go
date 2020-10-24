@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/gocql/gocql"
@@ -168,5 +169,79 @@ func TestClientStatusRequest(t *testing.T) {
 			gameStat = nil
 		}
 
+	})
+}
+
+func TestRoomByCreatedResponce(t *testing.T) {
+
+	var data []byte
+	var err error
+	t.Run("MarshalUnmarshal", func(t *testing.T) {
+
+		now := time.Now()
+		id := gocql.TimeUUID()
+		resq := &RoomByCreatedResponce{
+			ReqID: 717,
+			Rooms: []Room{Room{
+				ID:      id,
+				RoomNum: 919,
+				Created: now,
+				Started: now.Add(time.Second * 10),
+				Closed:  now.Add(time.Second * 20),
+				Stopped: now.Add(time.Second * 20),
+				State:   232,
+			}},
+		}
+
+		data, err = resq.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		fmt.Println("resq.MarshalBinary():", resq, data, len(data))
+
+		res := &RoomByCreatedResponce{}
+		err = res.UnmarshalBinary(data)
+		fmt.Println("res.UnmarshalBinary(data):", res, data)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if res.ReqID != resq.ReqID {
+			err = errors.New("UnmarshalBinary err, wrong ReqID")
+			t.Error(err)
+			return
+		}
+		if res.Rooms[0].RoomNum != resq.Rooms[0].RoomNum {
+			err = errors.New("UnmarshalBinary err, wrong RoomNum")
+			t.Error(err)
+			return
+		}
+		// if res.Rooms[0].Created != resq.Rooms[0].Created {
+		// 	err = errors.New("UnmarshalBinary err, wrong Created")
+		// 	t.Error(err)
+		// 	return
+		// }
+		// if res.Rooms[0].Started != resq.Rooms[0].Started {
+		// 	err = errors.New("UnmarshalBinary err, wrong Started")
+		// 	t.Error(err)
+		// 	return
+		// }
+		// if res.Rooms[0].Closed != resq.Rooms[0].Closed {
+		// 	err = errors.New("UnmarshalBinary err, wrong Closed")
+		// 	t.Error(err)
+		// 	return
+		// }
+		// if res.Rooms[0].Stopped != resq.Rooms[0].Stopped {
+		// 	err = errors.New("UnmarshalBinary err, wrong Stopped")
+		// 	t.Error(err)
+		// 	return
+		// }
+		if res.Rooms[0].State != resq.Rooms[0].State {
+			err = errors.New("UnmarshalBinary err, wrong State")
+			t.Error(err)
+			return
+		}
 	})
 }
