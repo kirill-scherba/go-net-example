@@ -34,8 +34,6 @@
 package teocdb
 
 import (
-	"fmt"
-
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
@@ -95,7 +93,6 @@ func (tcdb *Teocdb) Close() {
 func (tcdb *Teocdb) Set(key string, value []byte) (err error) {
 	if err = tcdb.session.Query(`UPDATE map SET data = ? WHERE key = ?`,
 		value, key).Exec(); err != nil {
-		fmt.Printf("Insert(or update) key '%s' Error: %s\n", key, err.Error())
 	}
 	return
 }
@@ -103,9 +100,8 @@ func (tcdb *Teocdb) Set(key string, value []byte) (err error) {
 // Get value by key, returns key value or empty data if key not found
 func (tcdb *Teocdb) Get(key string) (data []byte, err error) {
 	// Does not return err of tcdb.session.Query function
-	if err := tcdb.session.Query(`SELECT data FROM map WHERE key = ? LIMIT 1`,
+	if err = tcdb.session.Query(`SELECT data FROM map WHERE key = ? LIMIT 1`,
 		key).Consistency(gocql.One).Scan(&data); err != nil {
-		fmt.Printf("Get key '%s' Error: %s\n", key, err.Error())
 	}
 	return
 }
