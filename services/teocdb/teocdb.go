@@ -40,7 +40,10 @@ import (
 )
 
 // HostsDefault is default hosts IPs
-var HostsDefault = []string{"172.18.0.2", "172.18.0.3", "172.18.0.4"}
+var HostsDefault = []string{"172.17.0.2", "172.17.0.3", "172.17.0.4", "172.18.0.2", "172.18.0.3", "172.18.0.4"}
+
+// KeyspaceDefault is default keyspace bane
+var KeyspaceDefault = "teocdb"
 
 // Teocdb is teocdb packet receiver
 type Teocdb struct {
@@ -50,22 +53,63 @@ type Teocdb struct {
 }
 
 // Connect to the cql cluster and return teocdb receiver
-func Connect(con cdb.TeoConnector, hosts ...string) (tcdb *Teocdb, err error) {
-	keyspace := "teocdb"
+// func Connect(con cdb.TeoConnector, hosts ...string) (tcdb *Teocdb, err error) {
+// 	keyspace := "teocdb"
+// 	tcdb = &Teocdb{con: con}
+// 	tcdb.Process = &Process{tcdb}
+// 	cluster := gocql.NewCluster(func() (h []string) {
+// 		if h = hosts; len(h) > 0 {
+// 			keyspace = h[0]
+// 			h = h[1:]
+// 		}
+// 		return
+// 	}()...)
+// 	cluster.Keyspace = keyspace
+// 	cluster.Consistency = gocql.Quorum
+// 	tcdb.session, _ = cluster.CreateSession()
+
+// 	// Create table
+// 	const mapSchema = `
+// 		// create KEYSPACE IF NOT EXISTS teocdb WITH replication = {
+// 		// 	'class' : 'SimpleStrategy',
+// 		// 	'replication_factor' : 3
+// 		// };
+// 		create TABLE IF NOT EXISTS teocdb.map(
+// 			key text,
+// 			data blob,
+// 			PRIMARY KEY(key)
+// 		)`
+// 	if err = tcdb.execStmt(tcdb.session, mapSchema); err != nil {
+// 		//t.Fatal("create table:", err)
+// 	}
+// 	return
+// }
+
+// Connect to the cql cluster and return teocdb receiver
+func Connect(con cdb.TeoConnector, keyAndHosts ...string) (tcdb *Teocdb, err error) {
+	keyspace := KeyspaceDefault
 	tcdb = &Teocdb{con: con}
 	tcdb.Process = &Process{tcdb}
 	cluster := gocql.NewCluster(func() (h []string) {
-		if h = hosts; len(h) > 0 {
-			keyspace = h[0]
-			h = h[1:]
+		// Get keyspace from keyAndHosts input array
+		if len(keyAndHosts) > 0 {
+			keyspace = keyAndHosts[0]
+		}
+		// Get hosts name from keyAndHosts input array or set default hosts name if input array empty
+		if len(keyAndHosts) > 1 {
+			h = keyAndHosts[1:]
+		} else {
+			h = HostsDefault
 		}
 		return
 	}()...)
 	cluster.Keyspace = keyspace
 	cluster.Consistency = gocql.Quorum
-	tcdb.session, _ = cluster.CreateSession()
+	if tcdb.session, err = cluster.CreateSession(); err != nil {
+		return
+	}
 
-	// Create table
+	// Create keyspace and table
 	const mapSchema = `
 		// create KEYSPACE IF NOT EXISTS teocdb WITH replication = {
 		// 	'class' : 'SimpleStrategy',
