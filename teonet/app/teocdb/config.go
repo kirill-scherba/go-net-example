@@ -42,7 +42,7 @@ func Config(name string) (conf *CdbParameters) {
 				Users: "teousers",
 				Room:  "teoroom",
 			},
-			Hosts: []string{"172.18.0.2", "172.18.0.3", "172.18.0.4"},
+			Hosts: []string{"172.17.0.2", "172.17.0.3", "172.17.0.4", "172.18.0.2", "172.18.0.3", "172.18.0.4"},
 		},
 		name: name,
 	}
