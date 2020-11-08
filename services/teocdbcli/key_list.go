@@ -25,6 +25,11 @@ func (k *KeyList) Keys() []string {
 	return k.keys
 }
 
+// Len return length of keys array
+func (k *KeyList) Len() int {
+	return len(k.keys)
+}
+
 // MarshalJSON returns the JSON encoding
 func (k *KeyList) MarshalJSON() (data []byte, err error) {
 	jdata := k.Keys()
