@@ -155,6 +155,15 @@ func (tcdb *Teocdb) Get(key string) (data []byte, err error) {
 	return
 }
 
+// Delete record from database by key, returns
+func (tcdb *Teocdb) Delete(key string) (err error) {
+	// Does not return err of tcdb.session.Query function
+	if err = tcdb.session.Query(`DELETE data FROM map WHERE key = ?`,
+		key).Exec(); err != nil {
+	}
+	return
+}
+
 // List read and return array of all keys starts from selected key
 func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 	var keyOut string
