@@ -231,7 +231,9 @@ func (teo *Teonet) Close() {
 	}
 	teo.running = false
 
-	teo.menu.Quit()
+	if teo.menu != nil {
+		teo.menu.Quit()
+	}
 	teo.l0.destroy()
 	teo.arp.deleteAll()
 	teo.rhost.destroy()
