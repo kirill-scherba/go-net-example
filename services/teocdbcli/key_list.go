@@ -25,6 +25,18 @@ func (k *KeyList) Keys() []string {
 	return k.keys
 }
 
+// String return keys in string divided by end of line
+func (k *KeyList) String() string {
+	var str string
+	for i, s := range k.Keys() {
+		if i > 0 {
+			str += "\n"
+		}
+		str += s
+	}
+	return str
+}
+
 // Len return length of keys array
 func (k *KeyList) Len() int {
 	return len(k.keys)
