@@ -15,10 +15,11 @@ import "sync/atomic"
 
 // Key value database commands.
 const (
-	CmdBinary = 129 // Binary set, get or get list binary {key,value} to/from key-value database
+	CmdBinary = 129 // Binary set, get, delete or get list binary {key,value} to/from key-value database
 	CmdSet    = 130 // Set (insert or update) text or json {key,value} to key-value database
 	CmdGet    = 131 // Get key and send answer with value in text or json format from key-value database
 	CmdList   = 132 // List get not completed key and send answer with array of keys in text or json format from key-value database
+	CmdDelete = 138 // Delete key
 )
 
 // Users registrar commands

@@ -206,6 +206,12 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 			return
 		}
 		responce.Value, _ = keys.MarshalBinary()
+
+	case cdb.CmdDelete:
+		if err = p.tcdb.Delete(request.Key); err != nil {
+			return
+		}
+		responce.Value = nil
 	}
 
 	if retdata, err := responce.MarshalBinary(); err == nil {
@@ -221,6 +227,26 @@ func (p *Process) CmdSet(pac teoapi.Packet) (err error) {
 	if err = request.UnmarshalText(data); err != nil {
 		return
 	} else if err = p.tcdb.Set(request.Key, request.Value); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	responce.Value = nil
+	if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdDelete process CmdDelete command
+func (p *Process) CmdDelete(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	} else if err = p.tcdb.Delete(request.Key); err != nil {
 		return
 	}
 	// Return only Value for text requests and all fields for json

@@ -35,7 +35,7 @@ import (
 )
 
 // Version this teonet application version
-const Version = "0.0.1"
+const Version = "0.1.1"
 
 // MODULE is this application module name
 var MODULE = teokeys.Color(teokeys.ANSIMagenta, "(teocdb)")
@@ -83,7 +83,7 @@ func main() {
 	// GetList in binary format
 	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CmdBinary,
-		Descr: "Binary set, get or get list",
+		Descr: "Binary set, get, delete or get list",
 		Func: func(pac teoapi.Packet) (err error) {
 			err = tcdb.Process.CmdBinary(pac)
 			if err != nil {
@@ -196,6 +196,20 @@ func main() {
 		Descr: "Get rooms by created time",
 		Func: func(pac teoapi.Packet) (err error) {
 			room.ComGetRoomsByCreated(pac)
+			return
+		},
+	})
+
+	// Command # 138: Delete by key
+	// database
+	api.Add(&teoapi.Command{
+		Cmd:   teocdbcli.CmdDelete,
+		Descr: "Delete {key} from key-value database",
+		Func: func(pac teoapi.Packet) (err error) {
+			err = tcdb.Process.CmdDelete(pac)
+			if err != nil {
+				fmt.Printf("CmdDelete Error: %s\n", err.Error())
+			}
 			return
 		},
 	})
