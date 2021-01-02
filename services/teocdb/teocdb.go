@@ -212,6 +212,11 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 			return
 		}
 		responce.Value = nil
+
+	case cdb.CmdFunc:
+		if responce.Value, err = cdb.PluginFunc(request.Key, request.Value); err != nil {
+			return
+		}
 	}
 
 	if retdata, err := responce.MarshalBinary(); err == nil {
