@@ -299,3 +299,22 @@ func (p *Process) CmdList(pac teoapi.Packet) (err error) {
 	}
 	return
 }
+
+// CmdPlugin process CmdPlugin command
+func (p *Process) CmdPlugin(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	if responce.Value, err = p.tcdb.Get(request.Key); err != nil {
+		return
+	} else if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}

@@ -20,6 +20,7 @@ const (
 	CmdGet    = 131 // Get key and send answer with value in text or json format from key-value database
 	CmdList   = 132 // List get not completed key and send answer with array of keys in text or json format from key-value database
 	CmdDelete = 138 // Delete key
+	CmdPlugin = 139 // Process plugin command(function)
 )
 
 // Users registrar commands

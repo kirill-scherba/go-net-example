@@ -35,7 +35,7 @@ import (
 )
 
 // Version this teonet application version
-const Version = "0.1.1"
+const Version = "0.2.1"
 
 // MODULE is this application module name
 var MODULE = teokeys.Color(teokeys.ANSIMagenta, "(teocdb)")
@@ -209,6 +209,20 @@ func main() {
 			err = tcdb.Process.CmdDelete(pac)
 			if err != nil {
 				fmt.Printf("CmdDelete Error: %s\n", err.Error())
+			}
+			return
+		},
+	})
+
+	// Command # 139: Process plugin command
+	// database
+	api.Add(&teoapi.Command{
+		Cmd:   teocdbcli.CmdPlugin,
+		Descr: "Execute plugin command {func(params...}",
+		Func: func(pac teoapi.Packet) (err error) {
+			err = tcdb.Process.CmdPlugin(pac)
+			if err != nil {
+				fmt.Printf("CmdPlugin Error: %s\n", err.Error())
 			}
 			return
 		},
