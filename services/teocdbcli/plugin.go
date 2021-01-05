@@ -103,5 +103,5 @@ func PluginFunc(fff string, value []byte) (data []byte, err error) {
 		return
 	}
 
-	return f.(func(...string) ([]byte, error))()
+	return f.(func(...string) ([]byte, error))(d.Params...)
 }
