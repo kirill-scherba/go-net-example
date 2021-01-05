@@ -83,7 +83,7 @@ func main() {
 	// GetList in binary format
 	api.Add(&teoapi.Command{
 		Cmd:   teocdbcli.CmdBinary,
-		Descr: "Binary set, get, delete or get list",
+		Descr: "Binary set, get, delete,list or plugin func command",
 		Func: func(pac teoapi.Packet) (err error) {
 			err = tcdb.Process.CmdBinary(pac)
 			if err != nil {
@@ -217,12 +217,12 @@ func main() {
 	// Command # 139: Process plugin command
 	// database
 	api.Add(&teoapi.Command{
-		Cmd:   teocdbcli.CmdPlugin,
+		Cmd:   teocdbcli.CmdFunc,
 		Descr: "Execute plugin command {func(params...}",
 		Func: func(pac teoapi.Packet) (err error) {
-			err = tcdb.Process.CmdPlugin(pac)
+			err = tcdb.Process.CmdFunc(pac)
 			if err != nil {
-				fmt.Printf("CmdPlugin Error: %s\n", err.Error())
+				fmt.Printf("CmdFunc Error: %s\n", err.Error())
 			}
 			return
 		},

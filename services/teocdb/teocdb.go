@@ -177,6 +177,11 @@ func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 	return
 }
 
+// Func execute plugin function and return data
+func (tcdb *Teocdb) Func(key string, value []byte) (data []byte, err error) {
+	return cdb.PluginFunc(key, value)
+}
+
 // Process receiver to process teocdb commands
 type Process struct{ tcdb *Teocdb }
 
@@ -212,6 +217,11 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 			return
 		}
 		responce.Value = nil
+
+	case cdb.CmdFunc:
+		if responce.Value, err = cdb.PluginFunc(request.Key, request.Value); err != nil {
+			return
+		}
 	}
 
 	if retdata, err := responce.MarshalBinary(); err == nil {
@@ -300,8 +310,8 @@ func (p *Process) CmdList(pac teoapi.Packet) (err error) {
 	return
 }
 
-// CmdPlugin process CmdPlugin command
-func (p *Process) CmdPlugin(pac teoapi.Packet) (err error) {
+// CmdFunc process CmdFunc command
+func (p *Process) CmdFunc(pac teoapi.Packet) (err error) {
 	data := pac.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
@@ -309,7 +319,7 @@ func (p *Process) CmdPlugin(pac teoapi.Packet) (err error) {
 	}
 	// Return only Value for text requests and all fields for json
 	responce := request
-	if responce.Value, err = p.tcdb.Get(request.Key); err != nil {
+	if responce.Value, err = p.tcdb.Func(request.Key, request.Value); err != nil {
 		return
 	} else if !request.RequestInJSON {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)

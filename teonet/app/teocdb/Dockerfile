@@ -5,10 +5,10 @@ FROM ubuntu:latest
 RUN apt-get update
 RUN apt-get install -y wget git gcc libssl-dev
 
-RUN wget -P /tmp https://golang.org/dl/go1.15.5.linux-amd64.tar.gz
+RUN wget -P /tmp https://golang.org/dl/go1.15.6.linux-amd64.tar.gz
 
-RUN tar -C /usr/local -xzf /tmp/go1.15.5.linux-amd64.tar.gz
-RUN rm /tmp/go1.15.5.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf /tmp/go1.15.6.linux-amd64.tar.gz
+RUN rm /tmp/go1.15.6.linux-amd64.tar.gz
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
@@ -35,4 +35,11 @@ CMD /go/bin/teocdb -p 11011 teo-cdb
 # Document that the service listens on port 11011.
 EXPOSE 11011/udp
 
-# run example: docker run -d -it --restart=always --name teocdb -p 11011:11011/udp teocdb
+# Docker build: 
+#   docker build -t teocdb:0.2.1 .
+#
+# Docker run example: 
+#    docker run -d -it --restart=always --name teocdb -p 11011:11011/udp teocdb -p 11011 teo-cdb
+#    or 
+#    docker run -d -it --restart=always --name teocdb -p 11011:11011/udp teocdb -p 11011 -a x.x.x.x -r 11011 teo-cdb
+#
