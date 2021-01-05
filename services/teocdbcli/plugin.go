@@ -93,7 +93,7 @@ func PluginFunc(fff string, value []byte) (data []byte, err error) {
 	d := Plugin{}
 	d.UnmarshalBinary(value)
 
-	p, err := plugin.Open("./plugin/" + d.Name + ".so")
+	p, err := plugin.Open("/root/plugin/" + d.Name + ".so")
 	if err != nil {
 		return
 	}
