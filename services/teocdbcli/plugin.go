@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"plugin"
 )
 
 // Plugin is plugins function and parameters used in requests
@@ -82,26 +81,4 @@ func (p *Plugin) UnmarshalBinary(data []byte) (err error) {
 	}
 	binary.Read(buf, le, &p.RequestInJSON)
 	return
-}
-
-// PluginFuncType define plugin function type
-// type PluginFuncType func(params ...string) (data []byte, err error)
-
-// PluginFunc process plugin function: plugin_name.func(parameters ...string)
-func (tcdb *Teocdb) PluginFunc(fff string, value []byte) (data []byte, err error) {
-
-	d := Plugin{}
-	d.UnmarshalBinary(value)
-
-	p, err := plugin.Open("/root/plugin/" + d.Name + ".so")
-	if err != nil {
-		return
-	}
-
-	f, err := p.Lookup(d.Func)
-	if err != nil {
-		return
-	}
-
-	return f.(func(*Teocdb, ...string) ([]byte, error))(tcdb, d.Params...)
 }

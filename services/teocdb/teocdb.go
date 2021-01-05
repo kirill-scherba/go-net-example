@@ -34,6 +34,8 @@
 package teocdb
 
 import (
+	"plugin"
+
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
 	cdb "github.com/kirill-scherba/teonet-go/services/teocdbcli"
@@ -327,4 +329,26 @@ func (p *Process) CmdFunc(pac teoapi.Packet) (err error) {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	}
 	return
+}
+
+// PluginFuncType define plugin function type
+// type PluginFuncType func(params ...string) (data []byte, err error)
+
+// PluginFunc process plugin function: plugin_name.func(parameters ...string)
+func (tcdb *Teocdb) PluginFunc(fff string, value []byte) (data []byte, err error) {
+
+	d := cdb.Plugin{}
+	d.UnmarshalBinary(value)
+
+	p, err := plugin.Open("/root/plugin/" + d.Name + ".so")
+	if err != nil {
+		return
+	}
+
+	f, err := p.Lookup(d.Func)
+	if err != nil {
+		return
+	}
+
+	return f.(func(*Teocdb, ...string) ([]byte, error))(tcdb, d.Params...)
 }
