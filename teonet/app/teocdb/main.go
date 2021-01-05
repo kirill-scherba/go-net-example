@@ -220,9 +220,9 @@ func main() {
 		Cmd:   teocdbcli.CmdFunc,
 		Descr: "Execute plugin command {func(params...}",
 		Func: func(pac teoapi.Packet) (err error) {
-			err = tcdb.Process.CmdPlugin(pac)
+			err = tcdb.Process.CmdFunc(pac)
 			if err != nil {
-				fmt.Printf("CmdPlugin Error: %s\n", err.Error())
+				fmt.Printf("CmdFunc Error: %s\n", err.Error())
 			}
 			return
 		},
