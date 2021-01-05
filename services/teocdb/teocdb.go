@@ -179,7 +179,7 @@ func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 
 // Func execute plugin function and return data
 func (tcdb *Teocdb) Func(key string, value []byte) (data []byte, err error) {
-	return cdb.PluginFunc(key, value)
+	return tcdb.PluginFunc(key, value)
 }
 
 // Process receiver to process teocdb commands
@@ -219,7 +219,7 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 		responce.Value = nil
 
 	case cdb.CmdFunc:
-		if responce.Value, err = cdb.PluginFunc(request.Key, request.Value); err != nil {
+		if responce.Value, err = p.tcdb.PluginFunc(request.Key, request.Value); err != nil {
 			return
 		}
 	}
