@@ -85,7 +85,7 @@ func (p *Plugin) UnmarshalBinary(data []byte) (err error) {
 }
 
 // PluginFuncType define plugin function type
-type PluginFuncType func(params ...string) (data []byte, err error)
+// type PluginFuncType func(params ...string) (data []byte, err error)
 
 // PluginFunc process plugin function: plugin_name.func(parameters ...string)
 func PluginFunc(fff string, value []byte) (data []byte, err error) {
@@ -103,5 +103,5 @@ func PluginFunc(fff string, value []byte) (data []byte, err error) {
 		return
 	}
 
-	return f.(PluginFuncType)()
+	return f.(func(...string) ([]byte, error))()
 }
