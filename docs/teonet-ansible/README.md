@@ -1,1 +1,0 @@
-# Teonet ansible configuration
