@@ -80,3 +80,8 @@ func (w *Workers) Statistic() (count []float64, log *[]string) {
 func (w *Workers) CommandChan() chan Packet {
 	return w.commandChan
 }
+
+// ProcessPacket send packet to waorkers channel
+func (api *Teoapi) ProcessPacket(p interface{}) {
+	api.W.CommandChan() <- p.(Packet)
+}
