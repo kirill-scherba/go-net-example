@@ -1,4 +1,4 @@
-// Copyright 2019 Teonet-go authors.  All rights reserved.
+// Copyright 2019,2021 Teonet-go authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -204,7 +204,12 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 
 	case cdb.CmdGet:
 		if responce.Value, err = p.tcdb.Get(request.Key); err != nil {
-			return
+			const notFound = "not found"
+			if err.Error() != notFound {
+				return
+			}
+			// err = nil
+			responce.Value = []byte(`{"err":"` + notFound + `"}`)
 		}
 
 	case cdb.CmdList:
@@ -226,9 +231,11 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 		}
 	}
 
-	if retdata, err := responce.MarshalBinary(); err == nil {
-		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	retdata, err := responce.MarshalBinary()
+	if err != nil {
+		return
 	}
+	_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
 	return
 }
 
