@@ -212,7 +212,8 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 				return
 			}
 			// err = nil
-			responce.Value = []byte(`{"err":"` + notFound + `"}`)
+			// responce.Value = []byte(`{"err":"` + notFound + `"}`)
+			responce.Err = err.Error()
 		}
 
 	case cdb.CmdList:
