@@ -23,6 +23,7 @@ type KeyValue struct {
 	Key           string // Key
 	Value         []byte // Value
 	RequestInJSON bool   // Request packet format
+	Err           string // Database error
 }
 
 // jsonData is key value packet in json format.
@@ -38,6 +39,7 @@ func (kv *KeyValue) Empty() {
 	kv.Key = ""
 	kv.Value = nil
 	kv.RequestInJSON = false
+	kv.Err = ""
 }
 
 // MarshalBinary encodes KeyValue receiver data into binary buffer and returns
@@ -47,8 +49,13 @@ func (kv *KeyValue) MarshalBinary() (data []byte, err error) {
 	le := binary.LittleEndian
 	binary.Write(buf, le, kv.Cmd)
 	binary.Write(buf, le, kv.ID)
+
 	binary.Write(buf, le, uint16(len(kv.Key)))
-	binary.Write(buf, le, []byte(kv.Key))
+	binary.Write(buf, le, []byte(kv.Key)) // TODO: max 65535
+
+	binary.Write(buf, le, uint8(len(kv.Err)))
+	binary.Write(buf, le, []byte(kv.Err)) // TODO: max 255
+
 	binary.Write(buf, le, kv.Value)
 	data = buf.Bytes()
 	return
@@ -56,13 +63,13 @@ func (kv *KeyValue) MarshalBinary() (data []byte, err error) {
 
 // UnmarshalBinary decode binary buffer into KeyValue receiver data.
 func (kv *KeyValue) UnmarshalBinary(data []byte) (err error) {
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		kv.Empty()
 		return
 	}
 	buf := bytes.NewReader(data)
 	le := binary.LittleEndian
-	ReadData := func(r io.Reader, order binary.ByteOrder, dataLen uint16) (data []byte) {
+	ReadData := func(r io.Reader, order binary.ByteOrder, dataLen uint32) (data []byte) {
 		data = make([]byte, dataLen)
 		binary.Read(r, order, &data)
 		return
@@ -70,16 +77,24 @@ func (kv *KeyValue) UnmarshalBinary(data []byte) (err error) {
 	ReadString := func(r io.Reader, order binary.ByteOrder) (str string) {
 		var strLen uint16
 		binary.Read(r, order, &strLen)
-		str = string(ReadData(r, order, strLen))
+		str = string(ReadData(r, order, uint32(strLen)))
+		return
+	}
+	ReadShortString := func(r io.Reader, order binary.ByteOrder) (str string) {
+		var strLen uint8
+		binary.Read(r, order, &strLen)
+		str = string(ReadData(r, order, uint32(strLen)))
 		return
 	}
 	binary.Read(buf, le, &kv.Cmd)
 	binary.Read(buf, le, &kv.ID)
 	kv.Key = ReadString(buf, le)
-	kv.Value = ReadData(buf, le, uint16(len(data)-
+	kv.Err = ReadShortString(buf, le)
+	kv.Value = ReadData(buf, le, uint32(len(data)-
 		int(unsafe.Sizeof(kv.Cmd))-
 		int(unsafe.Sizeof(kv.ID))-
-		(int(unsafe.Sizeof(uint16(0)))+len(kv.Key)),
+		(int(unsafe.Sizeof(uint16(0)))+len(kv.Key))-
+		(int(unsafe.Sizeof(uint8(0)))+len(kv.Err)),
 	))
 	return
 }
