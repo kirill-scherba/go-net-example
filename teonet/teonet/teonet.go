@@ -26,7 +26,7 @@ import (
 )
 
 // Version Teonet version
-const Version = "3.0.0"
+const Version = "3.0.1"
 
 // MODULE Teonet module name for using in logging
 var MODULE = teokeys.Color(teokeys.ANSILightCyan, "(teonet)")
