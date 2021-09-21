@@ -9,7 +9,10 @@
 //
 package teocdbcli
 
-import "sync/atomic"
+import (
+	"errors"
+	"sync/atomic"
+)
 
 // BUG(r): Test bug message (https://blog.golang.org/godoc-documenting-go-code)
 
@@ -138,5 +141,8 @@ func (cdb *TeocdbCli) Send(cmd byte, key string, value ...[]byte) (data []byte, 
 	}
 
 	data = response.Value
+	if len(response.Err) > 0 {
+		err = errors.New(response.Err)
+	}
 	return
 }
