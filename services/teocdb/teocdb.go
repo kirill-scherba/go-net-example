@@ -35,7 +35,9 @@ package teocdb
 
 import (
 	"fmt"
+	"log"
 	"plugin"
+	"strconv"
 
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
@@ -188,25 +190,47 @@ func (tcdb *Teocdb) Func(key string, value []byte) (data []byte, err error) {
 	return tcdb.PluginFunc(key, value)
 }
 
+// SetID set keys next ID value
+func (tcdb *Teocdb) SetID(key string, value []byte) (err error) {
+	nextID, err := strconv.Atoi(string(value))
+	if err != nil {
+		return
+	}
+	return tcdb.session.Query(`UPDATE ids SET next_id = ? WHERE id_name = ?`,
+		nextID, key).Exec()
+}
+
 // GetID returns new diginal ID for key, ID just increments
 func (tcdb *Teocdb) GetID(key string) (data []byte, err error) {
 	var nextID int
-	for {
-		// Read current counter value with id_name
-		if err = tcdb.session.Query(`SELECT next_id FROM ids WHERE id_name = ? LIMIT 1`,
-			key).Consistency(gocql.One).Scan(&nextID); err != nil {
+	// Read current counter value with id_name
+	if err = tcdb.session.Query(`SELECT next_id FROM ids WHERE id_name = ? LIMIT 1`,
+		key).Consistency(gocql.One).Scan(&nextID); err != nil {
 
-			// Create new record if counter with id_name does not exists
-			nextID = 1
-			if err = tcdb.session.Query(`UPDATE ids SET next_id = ? WHERE id_name = ?`,
-				nextID, key).Exec(); err != nil {
-				return
-			}
+		// Check error
+		if err != gocql.ErrNotFound {
+			log.Println("Read current counter error:", err)
+			return
 		}
 
+		// Create new record if counter with id_name does not exists
+		nextID = 1
+		if err = tcdb.SetID(key, []byte(strconv.Itoa(nextID))); err != nil {
+			return
+		}
+	}
+
+	// Set new next_id and return current next_id
+	var ok bool
+	for {
 		// Increment nextID in database
 		if err = tcdb.session.Query(`UPDATE ids SET next_id = ? WHERE id_name = ? IF next_id = ?`,
-			nextID+1, key, nextID).Exec(); err == nil {
+			nextID+1, key, nextID).Scan(&ok, &nextID); err != nil {
+			log.Println("Increment current counter error:", err)
+			return
+		}
+		// log.Println("Update result:", ok, nextID)
+		if ok {
 			break
 		}
 	}
@@ -214,6 +238,12 @@ func (tcdb *Teocdb) GetID(key string) (data []byte, err error) {
 	// Return received nextID in text
 	data = []byte(fmt.Sprintf("%d", nextID))
 	return
+}
+
+// DeleteID delete counter from database by key
+func (tcdb *Teocdb) DeleteID(key string) (err error) {
+	return tcdb.session.Query(`DELETE FROM ids WHERE id_name = ?`,
+		key).Exec()
 }
 
 // Process receiver to process teocdb commands
@@ -228,6 +258,7 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 	}
 	responce = request
 	switch request.Cmd {
+
 	case cdb.CmdSet:
 		if err = p.tcdb.Set(request.Key, request.Value); err != nil {
 			return
@@ -265,6 +296,18 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 		if responce.Value, err = p.tcdb.GetID(request.Key); err != nil {
 			return
 		}
+
+	case cdb.CmdSetID:
+		if err = p.tcdb.SetID(request.Key, request.Value); err != nil {
+			return
+		}
+		responce.Value = nil
+
+	case cdb.CmdDeleteID:
+		if err = p.tcdb.DeleteID(request.Key); err != nil {
+			return
+		}
+		responce.Value = nil
 	}
 
 	retdata, err := responce.MarshalBinary()
@@ -408,6 +451,46 @@ func (p *Process) CmdGetID(pac teoapi.Packet) (err error) {
 	if responce.Value, err = p.tcdb.GetID(request.Key); err != nil {
 		return
 	} else if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdSetID process CmdSetID command; next id number created for
+func (p *Process) CmdSetID(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	} else if err = p.tcdb.SetID(request.Key, request.Value); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	responce.Value = nil
+	if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdDeleteID process CmdDeleteID command
+func (p *Process) CmdDeleteID(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	} else if err = p.tcdb.DeleteID(request.Key); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	responce.Value = nil
+	if !request.RequestInJSON {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
 	} else if retdata, err := responce.MarshalText(); err == nil {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)

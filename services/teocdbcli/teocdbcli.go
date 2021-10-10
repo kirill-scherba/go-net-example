@@ -18,13 +18,15 @@ import (
 
 // Key value database commands.
 const (
-	CmdBinary = 129 // Binary set, get, delete or get list binary {key,value} to/from key-value database
-	CmdSet    = 130 // Set (insert or update) text or json {key,value} to key-value database
-	CmdGet    = 131 // Get key and send answer with value in text or json format from key-value database
-	CmdList   = 132 // List get not completed key and send answer with array of keys in text or json format from key-value database
-	CmdDelete = 138 // Delete key
-	CmdFunc   = 139 // Process plugin command(function)
-	CmdGetID  = 140 // Get new numeric ID by name
+	CmdBinary   = 129 // Binary set, get, delete or get list binary {key,value} to/from key-value database
+	CmdSet      = 130 // Set (insert or update) text or json {key,value} to key-value database
+	CmdGet      = 131 // Get key and send answer with value in text or json format from key-value database
+	CmdList     = 132 // List get not completed key and send answer with array of keys in text or json format from key-value database
+	CmdDelete   = 138 // Delete key
+	CmdFunc     = 139 // Process plugin command(function)
+	CmdGetID    = 140 // Get new numeric ID by name
+	CmdSetID    = 141 // Set new value of numeric ID by name
+	CmdDeleteID = 142 // Delete numeric ID by name
 )
 
 // Users registrar commands
