@@ -34,6 +34,7 @@
 package teocdb
 
 import (
+	"fmt"
 	"plugin"
 
 	"github.com/gocql/gocql"
@@ -187,6 +188,34 @@ func (tcdb *Teocdb) Func(key string, value []byte) (data []byte, err error) {
 	return tcdb.PluginFunc(key, value)
 }
 
+// GetID returns new diginal ID for key, ID just increments
+func (tcdb *Teocdb) GetID(key string) (data []byte, err error) {
+	var nextID int
+	for {
+		// Read current counter value with id_name
+		if err = tcdb.session.Query(`SELECT next_id FROM ips WHERE id_name = ? LIMIT 1`,
+			key).Consistency(gocql.One).Scan(&nextID); err != nil {
+
+			// Create new record if counter with id_name does not exists
+			nextID = 1
+			if err = tcdb.session.Query(`UPDATE ips SET next_id = ? WHERE id_name = ?`,
+				nextID, key).Exec(); err != nil {
+				return
+			}
+		}
+
+		// Increment nextID in database
+		if err = tcdb.session.Query(`UPDATE ids SET next_id = ? WHERE id_name = ? IF next_id = ?`,
+			nextID+1, key, nextID).Exec(); err == nil {
+			break
+		}
+	}
+
+	// Return received nextID in text
+	data = []byte(fmt.Sprintf("%d", nextID))
+	return
+}
+
 // Process receiver to process teocdb commands
 type Process struct{ tcdb *Teocdb }
 
@@ -211,8 +240,6 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 			if err.Error() != notFound {
 				return
 			}
-			// err = nil
-			// responce.Value = []byte(`{"err":"` + notFound + `"}`)
 			responce.Err = err.Error()
 		}
 
@@ -231,6 +258,11 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 
 	case cdb.CmdFunc:
 		if responce.Value, err = p.tcdb.PluginFunc(request.Key, request.Value); err != nil {
+			return
+		}
+
+	case cdb.CmdGetID:
+		if responce.Value, err = p.tcdb.GetID(request.Key); err != nil {
 			return
 		}
 	}
@@ -362,4 +394,23 @@ func (tcdb *Teocdb) PluginFunc(fff string, value []byte) (data []byte, err error
 	}
 
 	return f.(func(*Teocdb, ...string) ([]byte, error))(tcdb, d.Params...)
+}
+
+// CmdGetID process CmdGetID command; next id number created for
+func (p *Process) CmdGetID(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	if responce.Value, err = p.tcdb.GetID(request.Key); err != nil {
+		return
+	} else if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
 }
