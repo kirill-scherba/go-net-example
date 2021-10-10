@@ -18,7 +18,7 @@ func TestKeyValueBinary(t *testing.T) {
 		key := "test.key.123"
 		value := []byte("Hello world!")
 
-		bdInput := &KeyValue{cmd, id, key, value, false}
+		bdInput := &KeyValue{cmd, id, key, value, false, ""}
 		bdOutput := &KeyValue{}
 		data, err := bdInput.MarshalBinary()
 		//fmt.Println(data)
