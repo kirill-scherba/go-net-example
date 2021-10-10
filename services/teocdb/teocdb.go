@@ -193,12 +193,12 @@ func (tcdb *Teocdb) GetID(key string) (data []byte, err error) {
 	var nextID int
 	for {
 		// Read current counter value with id_name
-		if err = tcdb.session.Query(`SELECT next_id FROM ips WHERE id_name = ? LIMIT 1`,
+		if err = tcdb.session.Query(`SELECT next_id FROM ids WHERE id_name = ? LIMIT 1`,
 			key).Consistency(gocql.One).Scan(&nextID); err != nil {
 
 			// Create new record if counter with id_name does not exists
 			nextID = 1
-			if err = tcdb.session.Query(`UPDATE ips SET next_id = ? WHERE id_name = ?`,
+			if err = tcdb.session.Query(`UPDATE ids SET next_id = ? WHERE id_name = ?`,
 				nextID, key).Exec(); err != nil {
 				return
 			}
