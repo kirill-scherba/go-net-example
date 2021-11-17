@@ -186,9 +186,9 @@ func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 	return
 }
 
-// ListBody read and return array of all data of keys starts from selected key
-func (tcdb *Teocdb) ListBody(key string) (dataList [][]byte, err error) {
-	var dataOut []byte
+// ListBody read and return array of all keys data starts from selected key
+func (tcdb *Teocdb) ListBody(key string) (dataList []string, err error) {
+	var dataOut string
 	iter := tcdb.session.Query(`
 		SELECT data FROM map WHERE key >= ? and key < ?
 		ALLOW FILTERING`,
@@ -296,7 +296,7 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 		responce.Value, _ = keys.MarshalBinary()
 
 	case cdb.CmdListBody:
-		var datas [][]byte
+		var datas []string
 		if datas, err = p.tcdb.ListBody(request.Key); err != nil {
 			return
 		}
@@ -421,7 +421,7 @@ func (p *Process) CmdList(pac teoapi.Packet) (err error) {
 
 // CmdListBody process CmdListBody command
 func (p *Process) CmdListBody(pac teoapi.Packet) (err error) {
-	var datas [][]byte
+	var datas []string
 	data := pac.RemoveTrailingZero(pac.Data())
 	request := cdb.KeyValue{Cmd: pac.Cmd()}
 	if err = request.UnmarshalText(data); err != nil {
