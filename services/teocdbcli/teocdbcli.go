@@ -27,6 +27,7 @@ const (
 	CmdGetID    = 140 // Get new numeric ID by name
 	CmdSetID    = 141 // Set new value of numeric ID by name
 	CmdDeleteID = 142 // Delete numeric ID by name
+	CmdListBody = 143 // ListBody get not completed key and send answer with array of keys data in json format from key-value database
 )
 
 // Users registrar commands

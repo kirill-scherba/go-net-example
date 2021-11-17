@@ -34,6 +34,7 @@
 package teocdb
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"plugin"
@@ -185,6 +186,19 @@ func (tcdb *Teocdb) List(key string) (keyList cdb.KeyList, err error) {
 	return
 }
 
+// ListBody read and return array of all keys data starts from selected key
+func (tcdb *Teocdb) ListBody(key string) (dataList []string, err error) {
+	var dataOut string
+	iter := tcdb.session.Query(`
+		SELECT data FROM map WHERE key >= ? and key < ?
+		ALLOW FILTERING`,
+		key, key+"a").Iter()
+	for iter.Scan(&dataOut) {
+		dataList = append(dataList, dataOut)
+	}
+	return
+}
+
 // Func execute plugin function and return data
 func (tcdb *Teocdb) Func(key string, value []byte) (data []byte, err error) {
 	return tcdb.PluginFunc(key, value)
@@ -280,6 +294,13 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 			return
 		}
 		responce.Value, _ = keys.MarshalBinary()
+
+	case cdb.CmdListBody:
+		var datas []string
+		if datas, err = p.tcdb.ListBody(request.Key); err != nil {
+			return
+		}
+		responce.Value, _ = json.Marshal(datas)
 
 	case cdb.CmdDelete:
 		if err = p.tcdb.Delete(request.Key); err != nil {
@@ -390,6 +411,28 @@ func (p *Process) CmdList(pac teoapi.Packet) (err error) {
 	// Return only Value for text requests and all fields for json
 	responce := request
 	responce.Value, err = keys.MarshalJSON()
+	if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdListBody process CmdListBody command
+func (p *Process) CmdListBody(pac teoapi.Packet) (err error) {
+	var datas []string
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	} else if datas, err = p.tcdb.ListBody(request.Key); err != nil {
+		return
+	}
+	// Return all fields in json
+	responce := request
+	responce.Value, err = json.Marshal(datas)
+
 	if !request.RequestInJSON {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
 	} else if retdata, err := responce.MarshalText(); err == nil {
