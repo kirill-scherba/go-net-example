@@ -29,6 +29,8 @@
 /*
 	create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
 	create table teocdb.map(key text, data blob, PRIMARY KEY(key));
+	create table teocdb.ids(id_name text, next_id int, PRIMARY KEY(id_name));
+	create table teocdb.queue(key text, time timestamp, lock text, data blob, PRIMARY KEY(key, time));
 */
 //
 package teocdb
@@ -259,6 +261,14 @@ func (tcdb *Teocdb) DeleteID(key string) (err error) {
 	return tcdb.session.Query(`DELETE FROM ids WHERE id_name = ?`,
 		key).Exec()
 }
+
+// TODO: SetQueue
+// UPDATE queue SET data = textAsBlob('Hello19') WHERE key = 'queue/first' AND time = toTimestamp(now());
+
+// TODO: GetQueue
+// SELECT time FROM queue WHERE key = 'queue/first' AND lock = '' LIMIT 1  ALLOW FILTERING ;
+// UPDATE queue SET lock = 'locked' WHERE key = 'queue/first' AND time = '2021-12-12 22:01:52.301' IF lock = null;
+// DELETE FROM queue WHERE key = 'queue/first' AND time = '2021-12-12 22:01:52.301';
 
 // Process receiver to process teocdb commands
 type Process struct{ tcdb *Teocdb }
