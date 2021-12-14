@@ -262,13 +262,29 @@ func (tcdb *Teocdb) DeleteID(key string) (err error) {
 		key).Exec()
 }
 
-// TODO: SetQueue
+// TODO: SetQueue add value to named queue by key (name of queue)
 // UPDATE queue SET data = textAsBlob('Hello19') WHERE key = 'queue/first' AND time = currentTimeUUID() AND random = UUID();
+func (tcdb *Teocdb) SetQueue(key string, value []byte) (err error) {
+	return tcdb.session.Query(`UPDATE queue SET data = ? WHERE key = ? AND time = currentTimeUUID() AND random = UUID()`,
+		value, key).Exec()
+}
 
-// TODO: GetQueue
+// TODO: GetQueue get first value from named queue by key (name of queue)
 // SELECT time, random FROM queue WHERE key = 'queue/first' AND lock = '' LIMIT 1  ALLOW FILTERING ;
 // UPDATE queue SET lock = 'locked' WHERE key = 'queue/first' AND time = 228d3cb0-5b9c-11ec-8482-000000000002 AND random = 228d3cb1-5b9c-11ec-8482-000000000002 IF lock = null;
 // DELETE FROM queue WHERE key = 'queue/first' AND time = 228d3cb0-5b9c-11ec-8482-000000000002 AND random = 228d3cb1-5b9c-11ec-8482-000000000002;
+func (tcdb *Teocdb) GetQueue(key string) (data []byte, err error) {
+
+	var time, random string
+	if err = tcdb.session.Query(`SELECT time, random FROM queue WHERE key = ? AND lock = '' LIMIT 1 ALLOW FILTERING`,
+		key).Consistency(gocql.One).Scan(&time, &random); err != nil {
+
+		log.Println(time, random)
+	} else {
+		log.Println("error:", err)
+	}
+	return
+}
 
 // Process receiver to process teocdb commands
 type Process struct{ tcdb *Teocdb }
