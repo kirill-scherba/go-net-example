@@ -355,6 +355,18 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 			return
 		}
 		responce.Value = nil
+
+	case cdb.CmdGetQueue:
+		if responce.Value, err = p.tcdb.GetQueue(request.Key); err != nil {
+			return
+		}
+
+	case cdb.CmdSetQueue:
+		if err = p.tcdb.SetQueue(request.Key, request.Value); err != nil {
+			return
+		}
+		responce.Value = nil
+
 	}
 
 	retdata, err := responce.MarshalBinary()
@@ -560,6 +572,45 @@ func (p *Process) CmdDeleteID(pac teoapi.Packet) (err error) {
 	responce := request
 	responce.Value = nil
 	if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdSetQueue process CmdSetQueue command; set value to queue
+func (p *Process) CmdSetQueue(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	} else if err = p.tcdb.SetQueue(request.Key, request.Value); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	responce.Value = nil
+	if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdGetQueue process CmdGetUeue command; get value from queue
+func (p *Process) CmdGetQueue(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	if responce.Value, err = p.tcdb.GetQueue(request.Key); err != nil {
+		return
+	} else if !request.RequestInJSON {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
 	} else if retdata, err := responce.MarshalText(); err == nil {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
