@@ -265,7 +265,7 @@ func (tcdb *Teocdb) DeleteID(key string) (err error) {
 // TODO: SetQueue add value to named queue by key (name of queue)
 // UPDATE queue SET data = textAsBlob('Hello19') WHERE key = 'queue/first' AND time = currentTimeUUID() AND random = UUID();
 func (tcdb *Teocdb) SetQueue(key string, value []byte) (err error) {
-	return tcdb.session.Query(`UPDATE queue SET data = ? WHERE key = ? AND time = currentTimeUUID() AND random = UUID()`,
+	return tcdb.session.Query(`UPDATE queue SET lock = '', data = ? WHERE key = ? AND time = currentTimeUUID() AND random = UUID()`,
 		value, key).Exec()
 }
 
@@ -275,14 +275,34 @@ func (tcdb *Teocdb) SetQueue(key string, value []byte) (err error) {
 // DELETE FROM queue WHERE key = 'queue/first' AND time = 228d3cb0-5b9c-11ec-8482-000000000002 AND random = 228d3cb1-5b9c-11ec-8482-000000000002;
 func (tcdb *Teocdb) GetQueue(key string) (data []byte, err error) {
 
-	var time, random string
-	if err = tcdb.session.Query(`SELECT time, random FROM queue WHERE key = ? AND lock = '' LIMIT 1 ALLOW FILTERING`,
-		key).Consistency(gocql.One).Scan(&time, &random); err != nil {
+	log.Println("GetQueue:", key)
 
-		log.Println(time, random)
-	} else {
+	// Get free value
+	var time, random string
+	if err = tcdb.session.Query(`SELECT time, random, data FROM queue WHERE key = ? AND lock = '' LIMIT 1 ALLOW FILTERING`,
+		key).Consistency(gocql.One).Scan(&time, &random, &data); err != nil {
+
 		log.Println("error:", err)
+		return
 	}
+	log.Println("time, random, data:", time, random, string(data))
+
+	// Loc record (to allow concurency)
+	var ok bool
+	var lock string
+	if err = tcdb.session.Query(`UPDATE queue SET lock = 'locked' WHERE key = ? AND time = ? AND random = ? IF lock = ''`,
+		key, time, random).Consistency(gocql.One).Scan(&ok, &lock); err != nil {
+
+		log.Println("error:", err)
+		return
+	}
+	log.Println("loc record:", ok, lock)
+
+	// Delete locket record from queue and return value
+	err = tcdb.session.Query(`DELETE FROM queue WHERE key = ? AND time = ? AND random = ?`,
+		key, time, random).Exec()
+	log.Println("delete record:", err)
+
 	return
 }
 
