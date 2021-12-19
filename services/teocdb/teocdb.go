@@ -29,6 +29,8 @@
 /*
 	create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
 	create table teocdb.map(key text, data blob, PRIMARY KEY(key));
+	create table teocdb.ids(id_name text, next_id int, PRIMARY KEY(id_name));
+	create table teocdb.queue(key text, time timestamp, random UUID, lock text, data blob, PRIMARY KEY(key, time, random));
 */
 //
 package teocdb
@@ -39,6 +41,7 @@ import (
 	"log"
 	"plugin"
 	"strconv"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
@@ -260,6 +263,39 @@ func (tcdb *Teocdb) DeleteID(key string) (err error) {
 		key).Exec()
 }
 
+// SetQueue add value to named queue by key (name of queue)
+func (tcdb *Teocdb) SetQueue(key string, value []byte) (err error) {
+	return tcdb.session.Query(`UPDATE queue SET lock = '', data = ? WHERE key = ? AND time = toTimestamp(now()) AND random = UUID()`,
+		value, key).Exec()
+}
+
+// GetQueue get first value from named queue by key (name of queue)
+func (tcdb *Teocdb) GetQueue(key string) (data []byte, err error) {
+	// Get free value
+	var time time.Time
+	var random string
+	if err = tcdb.session.Query(`SELECT time, random, data FROM queue WHERE key = ? AND lock = '' LIMIT 1 ALLOW FILTERING`,
+		key).Consistency(gocql.One).Scan(&time, &random, &data); err != nil {
+		return
+	}
+
+	// Loc record (to allow concurency)
+	var ok bool
+	var lock string
+	if err = tcdb.session.Query(`UPDATE queue SET lock = 'locked' WHERE key = ? AND time = ? AND random = ? IF lock = ''`,
+		key, time, random).Consistency(gocql.One).Scan(&ok, &lock); err != nil {
+		return
+	}
+	if !ok {
+		return tcdb.GetQueue(key)
+	}
+
+	// Delete locket record from queue and return value
+	err = tcdb.session.Query(`DELETE FROM queue WHERE key = ? AND time = ? AND random = ?`,
+		key, time, random).Exec()
+	return
+}
+
 // Process receiver to process teocdb commands
 type Process struct{ tcdb *Teocdb }
 
@@ -271,6 +307,7 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 		return
 	}
 	responce = request
+	const errNotFound = "not found"
 	switch request.Cmd {
 
 	case cdb.CmdSet:
@@ -281,8 +318,7 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 
 	case cdb.CmdGet:
 		if responce.Value, err = p.tcdb.Get(request.Key); err != nil {
-			const notFound = "not found"
-			if err.Error() != notFound {
+			if err.Error() != errNotFound {
 				return
 			}
 			responce.Err = err.Error()
@@ -329,6 +365,21 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 			return
 		}
 		responce.Value = nil
+
+	case cdb.CmdGetQueue:
+		if responce.Value, err = p.tcdb.GetQueue(request.Key); err != nil {
+			if err.Error() != errNotFound {
+				return
+			}
+			responce.Err = err.Error()
+		}
+
+	case cdb.CmdSetQueue:
+		if err = p.tcdb.SetQueue(request.Key, request.Value); err != nil {
+			return
+		}
+		responce.Value = nil
+
 	}
 
 	retdata, err := responce.MarshalBinary()
@@ -534,6 +585,45 @@ func (p *Process) CmdDeleteID(pac teoapi.Packet) (err error) {
 	responce := request
 	responce.Value = nil
 	if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdSetQueue process CmdSetQueue command; set value to queue
+func (p *Process) CmdSetQueue(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	} else if err = p.tcdb.SetQueue(request.Key, request.Value); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	responce.Value = nil
+	if !request.RequestInJSON {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
+	} else if retdata, err := responce.MarshalText(); err == nil {
+		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)
+	}
+	return
+}
+
+// CmdGetQueue process CmdGetUeue command; get value from queue
+func (p *Process) CmdGetQueue(pac teoapi.Packet) (err error) {
+	data := pac.RemoveTrailingZero(pac.Data())
+	request := cdb.KeyValue{Cmd: pac.Cmd()}
+	if err = request.UnmarshalText(data); err != nil {
+		return
+	}
+	// Return only Value for text requests and all fields for json
+	responce := request
+	if responce.Value, err = p.tcdb.GetQueue(request.Key); err != nil {
+		return
+	} else if !request.RequestInJSON {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), responce.Value)
 	} else if retdata, err := responce.MarshalText(); err == nil {
 		_, err = p.tcdb.con.SendAnswer(pac, pac.Cmd(), retdata)

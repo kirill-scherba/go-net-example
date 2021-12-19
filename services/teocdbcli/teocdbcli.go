@@ -28,6 +28,8 @@ const (
 	CmdSetID    = 141 // Set new value of numeric ID by name
 	CmdDeleteID = 142 // Delete numeric ID by name
 	CmdListBody = 143 // ListBody get not completed key and send answer with array of keys data in json format from key-value database
+	CmdSetQueue = 144 // Add value to named queue by key (name of queue)
+	CmdGetQueue = 145 // Get first value from named queue by key (name of queue)
 )
 
 // Users registrar commands
