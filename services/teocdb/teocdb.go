@@ -30,7 +30,7 @@
 	create keyspace teocdb with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
 	create table teocdb.map(key text, data blob, PRIMARY KEY(key));
 	create table teocdb.ids(id_name text, next_id int, PRIMARY KEY(id_name));
-	create table teocdb.queue(key text, time timeuuid, random UUID, lock text, data blob, PRIMARY KEY(key, time, random));
+	create table teocdb.queue(key text, time timestamp, random UUID, lock text, data blob, PRIMARY KEY(key, time, random));
 */
 //
 package teocdb
@@ -265,37 +265,27 @@ func (tcdb *Teocdb) DeleteID(key string) (err error) {
 
 // SetQueue add value to named queue by key (name of queue)
 func (tcdb *Teocdb) SetQueue(key string, value []byte) (err error) {
-	// log.Println("SetQueue:", key, string(value))
 	return tcdb.session.Query(`UPDATE queue SET lock = '', data = ? WHERE key = ? AND time = toTimestamp(now()) AND random = UUID()`,
 		value, key).Exec()
 }
 
 // GetQueue get first value from named queue by key (name of queue)
 func (tcdb *Teocdb) GetQueue(key string) (data []byte, err error) {
-
-	// log.Println("GetQueue:", key)
-
 	// Get free value
 	var time time.Time
 	var random string
 	if err = tcdb.session.Query(`SELECT time, random, data FROM queue WHERE key = ? AND lock = '' LIMIT 1 ALLOW FILTERING`,
 		key).Consistency(gocql.One).Scan(&time, &random, &data); err != nil {
-
-		// log.Println("error:", err)
 		return
 	}
-	// log.Println("time, random, data:", time, random, string(data))
 
 	// Loc record (to allow concurency)
 	var ok bool
 	var lock string
 	if err = tcdb.session.Query(`UPDATE queue SET lock = 'locked' WHERE key = ? AND time = ? AND random = ? IF lock = ''`,
 		key, time, random).Consistency(gocql.One).Scan(&ok, &lock); err != nil {
-
-		// log.Println("error:", err)
 		return
 	}
-	// log.Println("loc record:", ok, lock)
 	if !ok {
 		return tcdb.GetQueue(key)
 	}
@@ -303,8 +293,6 @@ func (tcdb *Teocdb) GetQueue(key string) (data []byte, err error) {
 	// Delete locket record from queue and return value
 	err = tcdb.session.Query(`DELETE FROM queue WHERE key = ? AND time = ? AND random = ?`,
 		key, time, random).Exec()
-	// log.Println("delete record:", err)
-
 	return
 }
 
