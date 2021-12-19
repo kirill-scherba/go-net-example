@@ -41,6 +41,7 @@ import (
 	"log"
 	"plugin"
 	"strconv"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/kirill-scherba/teonet-go/services/teoapi"
@@ -262,30 +263,28 @@ func (tcdb *Teocdb) DeleteID(key string) (err error) {
 		key).Exec()
 }
 
-// TODO: SetQueue add value to named queue by key (name of queue)
-// UPDATE queue SET data = textAsBlob('Hello19') WHERE key = 'queue/first' AND time = currentTimeUUID() AND random = UUID();
+// SetQueue add value to named queue by key (name of queue)
 func (tcdb *Teocdb) SetQueue(key string, value []byte) (err error) {
-	return tcdb.session.Query(`UPDATE queue SET lock = '', data = ? WHERE key = ? AND time = currentTimeUUID() AND random = UUID()`,
+	// log.Println("SetQueue:", key, string(value))
+	return tcdb.session.Query(`UPDATE queue SET lock = '', data = ? WHERE key = ? AND time = toTimestamp(now()) AND random = UUID()`,
 		value, key).Exec()
 }
 
-// TODO: GetQueue get first value from named queue by key (name of queue)
-// SELECT time, random FROM queue WHERE key = 'queue/first' AND lock = '' LIMIT 1  ALLOW FILTERING ;
-// UPDATE queue SET lock = 'locked' WHERE key = 'queue/first' AND time = 228d3cb0-5b9c-11ec-8482-000000000002 AND random = 228d3cb1-5b9c-11ec-8482-000000000002 IF lock = null;
-// DELETE FROM queue WHERE key = 'queue/first' AND time = 228d3cb0-5b9c-11ec-8482-000000000002 AND random = 228d3cb1-5b9c-11ec-8482-000000000002;
+// GetQueue get first value from named queue by key (name of queue)
 func (tcdb *Teocdb) GetQueue(key string) (data []byte, err error) {
 
-	log.Println("GetQueue:", key)
+	// log.Println("GetQueue:", key)
 
 	// Get free value
-	var time, random string
+	var time time.Time
+	var random string
 	if err = tcdb.session.Query(`SELECT time, random, data FROM queue WHERE key = ? AND lock = '' LIMIT 1 ALLOW FILTERING`,
 		key).Consistency(gocql.One).Scan(&time, &random, &data); err != nil {
 
-		log.Println("error:", err)
+		// log.Println("error:", err)
 		return
 	}
-	log.Println("time, random, data:", time, random, string(data))
+	// log.Println("time, random, data:", time, random, string(data))
 
 	// Loc record (to allow concurency)
 	var ok bool
@@ -293,15 +292,18 @@ func (tcdb *Teocdb) GetQueue(key string) (data []byte, err error) {
 	if err = tcdb.session.Query(`UPDATE queue SET lock = 'locked' WHERE key = ? AND time = ? AND random = ? IF lock = ''`,
 		key, time, random).Consistency(gocql.One).Scan(&ok, &lock); err != nil {
 
-		log.Println("error:", err)
+		// log.Println("error:", err)
 		return
 	}
-	log.Println("loc record:", ok, lock)
+	// log.Println("loc record:", ok, lock)
+	if !ok {
+		return tcdb.GetQueue(key)
+	}
 
 	// Delete locket record from queue and return value
 	err = tcdb.session.Query(`DELETE FROM queue WHERE key = ? AND time = ? AND random = ?`,
 		key, time, random).Exec()
-	log.Println("delete record:", err)
+	// log.Println("delete record:", err)
 
 	return
 }
@@ -317,6 +319,7 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 		return
 	}
 	responce = request
+	const errNotFound = "not found"
 	switch request.Cmd {
 
 	case cdb.CmdSet:
@@ -327,8 +330,7 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 
 	case cdb.CmdGet:
 		if responce.Value, err = p.tcdb.Get(request.Key); err != nil {
-			const notFound = "not found"
-			if err.Error() != notFound {
+			if err.Error() != errNotFound {
 				return
 			}
 			responce.Err = err.Error()
@@ -378,7 +380,10 @@ func (p *Process) CmdBinary(pac teoapi.Packet) (err error) {
 
 	case cdb.CmdGetQueue:
 		if responce.Value, err = p.tcdb.GetQueue(request.Key); err != nil {
-			return
+			if err.Error() != errNotFound {
+				return
+			}
+			responce.Err = err.Error()
 		}
 
 	case cdb.CmdSetQueue:
