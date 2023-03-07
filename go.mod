@@ -12,8 +12,8 @@ require (
 	github.com/scylladb/gocqlx v1.5.0
 	github.com/songgao/packets v0.0.0-20160404182456-549a10cd4091
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
-	golang.org/x/crypto v0.0.0-20211115234514-b4de73f9ece8
-	golang.org/x/net v0.0.0-20211116231205-47ca1ff31462
+	golang.org/x/crypto v0.1.0
+	golang.org/x/net v0.1.0
 )
 
 require (
@@ -27,8 +27,8 @@ require (
 	github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/scylladb/go-reflectx v1.0.1 // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/term v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 )
